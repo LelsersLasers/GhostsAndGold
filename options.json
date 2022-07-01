@@ -1,9 +1,20 @@
 {
     "window_width": 800,
     "window_height": 900,
+    "window_title": "Ghost Jump",
 
-    "h1_size": 50,
-    "h2_size": 30,
+    "background_color": "#2E3440",
+    "text_color": "#D8DEE9",
+
+    "font_name": "AnnieUseYourTelescope-Regular.ttf",
+    "h1_size": 80,
+    "h2_size": 20,
+
+    "welcome_title_y": 200,
+    "welcome_start_text": "Press [SPACE] to start",
+    "welcome_start_y": 400,
+    "welcome_instructions_text": "Press [I] for instructions",
+    "welcome_instructions_y": 500,
 
 
     "min_delta": 0.0025

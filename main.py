@@ -1,6 +1,8 @@
 from __future__ import annotations  # for type hints
+from typing import Any
+
 import pygame  # graphics library
-import pygame.locals as keys  # for keyboard input (ex: 'keys.K_w')
+
 import math
 import time
 import json
@@ -95,7 +97,7 @@ class Hitbox:
             and hb.pt.y < self.pt.y + self.h
         )
 
-    def draw(self, win: pygame.Surface) -> None:
+    def draw(self, win: pygame.surface.Surface) -> None:
         pygame.draw.rect(win, self.color, self.get_rect())
 
 
@@ -105,13 +107,13 @@ def read_options() -> dict:
         return json.load(f)
 
 
-def create_window(width, height) -> pygame.Surface:
+def create_window(width, height, title) -> pygame.surface.Surface:
     pygame.init()
     win = pygame.display.set_mode((width, height), pygame.SCALED)
-    pygame.display.set_caption("Ghost Jump")
+    pygame.display.set_caption(title) # TODO: icon
     return win
 
-def handle_events() -> None:
+def handle_events(screen: str) -> str:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
@@ -122,14 +124,33 @@ def handle_events() -> None:
     if keys_down[pygame.K_ESCAPE]:
         pygame.quit()
         quit()
+    elif keys_down[pygame.K_SPACE]:
+        return "game"
+    elif keys_down[pygame.K_i]:
+        return "instructions"
+    
+    return screen
 
-def draw_welcome(win: pygame.Surface, font: pygame.font) -> None:
-    win.fill("#2E3440")
-    surf_text = font.render("Ghost Jump", True, "#D8DEE9")
-    win.blit(surf_text, ((win.get_width() - surf_text.get_width()) / 2, 100))
+def draw_welcome(win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font], options: dict[str, Any]) -> None:
+    win.fill(options["background_color"])
+    
+    surf_title = fonts["h1"].render(options["window_title"], True, options["text_color"])
+    win.blit(
+        surf_title,
+        ((win.get_width() - surf_title.get_width()) / 2, options["welcome_title_y"])
+    )
 
+    surf_start = fonts["h2"].render(options["welcome_start_text"], True, options["text_color"])
+    win.blit(
+        surf_start,
+        ((win.get_width() - surf_start.get_width()) / 2, options["welcome_start_y"])
+    )
 
-
+    surf_instructions = fonts["h2"].render(options["welcome_instructions_text"], True, options["text_color"])
+    win.blit(
+        surf_instructions,
+        ((win.get_width() - surf_instructions.get_width()) / 2, options["welcome_instructions_y"])
+    )
 
 
 
@@ -141,7 +162,7 @@ def main():
 
     options = read_options()
 
-    win = create_window(options["window_width"], options["window_height"])
+    win = create_window(options["window_width"], options["window_height"], options["window_title"])
 
     fonts = {
         "h1": pygame.font.SysFont("monospace", options["h1_size"]),
@@ -149,19 +170,29 @@ def main():
     }
 
 
-    last_frame = time.time()
-
     playing = True
+    screen = "welcome"
+
+    last_time = time.time()
+    ticks = 0.1
+    
 
     while playing:
 
-        delta = time.time() - last_frame
+        delta = time.time() - last_time
         delta = max(options["min_delta"], delta)
-        last_frame = time.time()
+        last_time = time.time()
 
-        handle_events()
+        ticks += delta
 
-        draw_welcome(win, fonts["h1"])
+        screen = handle_events(screen)
+
+        if screen == "welcome":
+            draw_welcome(win, fonts, options)
+        elif screen == "game":
+            pass
+        elif screen == "instructions":
+            pass
         
         pygame.display.update()
 
