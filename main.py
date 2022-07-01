@@ -165,8 +165,8 @@ def main():
     win = create_window(options["window_width"], options["window_height"], options["window_title"])
 
     fonts = {
-        "h1": pygame.font.SysFont("monospace", options["h1_size"]),
-        "h2": pygame.font.SysFont("monospace", options["h2_size"]),
+        "h1": pygame.font.Font(options["font_name"], options["h1_size"]),
+        "h2": pygame.font.Font(options["font_name"], options["h2_size"]),
     }
 
 
