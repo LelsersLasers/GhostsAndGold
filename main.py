@@ -21,7 +21,7 @@ class Toggle:
         return False
 
 
-class Vector: 
+class Vector:
     def __init__(self, x: float, y: float):
         self.x: float = x
         self.y: float = y
@@ -74,7 +74,7 @@ class Vector:
 
 
 class Hitbox:
-    def __init__(self, pt: Vector, w: float, h: float, color: str = "#ffffff"):
+    def __init__(self, pt: Vector, w: float, h: float, color: str):
         self.pt: Vector = pt
         self.w: float = w
         self.h: float = h
@@ -84,8 +84,8 @@ class Hitbox:
         return "(%s, %f, %f)" % (self.pt, self.w, self.h)
 
     def get_center(self) -> Vector:
-        return Vector(self.pt.x + self.w/2, self.pt.y + self.h/2)
-        
+        return Vector(self.pt.x + self.w / 2, self.pt.y + self.h / 2)
+
     def get_rect(self) -> pygame.Rect:
         return pygame.Rect(self.pt.x, self.pt.y, self.w, self.h)
 
@@ -101,6 +101,18 @@ class Hitbox:
         pygame.draw.rect(win, self.color, self.get_rect())
 
 
+class Player(Hitbox):
+    def __init__(self, options: dict[str, Any]):
+        pt = Vector(
+            (options["window_width"] - options["player_w"]) / 2,
+            (options["window_height"] - options["player_h"]) / 2,
+        )
+        super().__init__(pt, options["player_w"], options["player_h"], "#A3BE8C")  # TODO: color
+
+        self.speed: float = options["player_speed"]
+        self.jump_vel: float = options["player_jump_vel"]
+        self.gravity: float = options["player_gravity"]
+
 
 def read_options() -> dict:
     with open("options.json", "r") as f:
@@ -110,8 +122,9 @@ def read_options() -> dict:
 def create_window(width, height, title) -> pygame.surface.Surface:
     pygame.init()
     win = pygame.display.set_mode((width, height), pygame.SCALED)
-    pygame.display.set_caption(title) # TODO: icon
+    pygame.display.set_caption(title)  # TODO: icon
     return win
+
 
 def handle_events(screen: str) -> str:
     for event in pygame.event.get():
@@ -128,34 +141,34 @@ def handle_events(screen: str) -> str:
         return "game"
     elif keys_down[pygame.K_i]:
         return "instructions"
-    
+
     return screen
 
-def draw_welcome(win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font], options: dict[str, Any]) -> None:
-    win.fill(options["background_color"])
-    
+
+def draw_welcome(
+    win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font], options: dict[str, Any]
+) -> None:
     surf_title = fonts["h1"].render(options["window_title"], True, options["text_color"])
     win.blit(
-        surf_title,
-        ((win.get_width() - surf_title.get_width()) / 2, options["welcome_title_y"])
+        surf_title, ((win.get_width() - surf_title.get_width()) / 2, options["welcome_title_y"])
     )
 
     surf_start = fonts["h2"].render(options["welcome_start_text"], True, options["text_color"])
     win.blit(
-        surf_start,
-        ((win.get_width() - surf_start.get_width()) / 2, options["welcome_start_y"])
+        surf_start, ((win.get_width() - surf_start.get_width()) / 2, options["welcome_start_y"])
     )
 
-    surf_instructions = fonts["h2"].render(options["welcome_instructions_text"], True, options["text_color"])
+    surf_instructions = fonts["h2"].render(
+        options["welcome_instructions_text"], True, options["text_color"]
+    )
     win.blit(
         surf_instructions,
-        ((win.get_width() - surf_instructions.get_width()) / 2, options["welcome_instructions_y"])
+        ((win.get_width() - surf_instructions.get_width()) / 2, options["welcome_instructions_y"]),
     )
 
 
-
-
-
+def draw_game(win: pygame.surface.Surface, player: Player):
+    player.draw(win)
 
 
 def main():
@@ -169,13 +182,13 @@ def main():
         "h2": pygame.font.Font(options["font_name"], options["h2_size"]),
     }
 
-
     playing = True
     screen = "welcome"
 
+    player = Player(options)
+
     last_time = time.time()
     ticks = 0.1
-    
 
     while playing:
 
@@ -187,18 +200,18 @@ def main():
 
         screen = handle_events(screen)
 
+        win.fill(options["background_color"])
+
         if screen == "welcome":
             draw_welcome(win, fonts, options)
         elif screen == "game":
-            pass
+            draw_game(win, player)
         elif screen == "instructions":
             pass
-        
+
         pygame.display.update()
 
-        print("Delta: %1.3f\tFPS: %4.2f" % (delta, 1/delta))
-
-
+        print("Delta: %1.3f\tFPS: %4.2f" % (delta, 1 / delta))
 
 
 if __name__ == "__main__":
