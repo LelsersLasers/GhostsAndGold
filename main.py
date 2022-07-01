@@ -8,7 +8,7 @@ import time
 import json
 
 
-class Toggle:
+class ToggleKey:
     def __init__(self):
         self.was_down = False
 
@@ -112,6 +112,23 @@ class Player(Hitbox):
         self.speed: float = options["player_speed"]
         self.jump_vel: float = options["player_jump_vel"]
         self.gravity: float = options["player_gravity"]
+        self.y_vel = 0
+
+        self.space_tk = ToggleKey()
+
+    def update(self, keys_down: list[bool], delta: float):
+        if keys_down[pygame.K_a]:
+            self.pt.x -= self.speed * delta
+        if keys_down[pygame.K_d]:
+            self.pt.x += self.speed * delta
+
+        self.y_vel += self.gravity * delta
+
+        if self.space_tk.down(keys_down[pygame.K_SPACE]):
+            self.y_vel = -self.jump_vel
+
+        self.pt.y += self.y_vel * delta
+
 
 
 def read_options() -> dict:
@@ -126,13 +143,11 @@ def create_window(width, height, title) -> pygame.surface.Surface:
     return win
 
 
-def handle_events(screen: str) -> str:
+def handle_events(screen: str, keys_down: list[bool]) -> str:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             quit()
-
-    keys_down = pygame.key.get_pressed()
 
     if keys_down[pygame.K_ESCAPE]:
         pygame.quit()
@@ -167,7 +182,9 @@ def draw_welcome(
     )
 
 
-def draw_game(win: pygame.surface.Surface, player: Player):
+def draw_game(win: pygame.surface.Surface, keys_down: list[bool], delta: float, player: Player):
+
+    player.update(keys_down, delta)
     player.draw(win)
 
 
@@ -193,19 +210,23 @@ def main():
     while playing:
 
         delta = time.time() - last_time
-        delta = max(options["min_delta"], delta)
+        if delta <= 0:
+            delta = 1 / 500
         last_time = time.time()
 
         ticks += delta
 
-        screen = handle_events(screen)
+        keys_down = pygame.key.get_pressed()
+
+
+        screen = handle_events(screen, keys_down)
 
         win.fill(options["background_color"])
 
         if screen == "welcome":
             draw_welcome(win, fonts, options)
         elif screen == "game":
-            draw_game(win, player)
+            draw_game(win, keys_down, delta, player)
         elif screen == "instructions":
             pass
 
