@@ -1,0 +1,10 @@
+{
+    "window_width": 800,
+    "window_height": 900,
+
+    "h1_size": 50,
+    "h2_size": 30,
+
+
+    "min_delta": 0.0025
+}
