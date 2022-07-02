@@ -11,3 +11,19 @@ python -m black --line-length 100 main.py
 ### Check (for 'compile time' errors)
 
 python -m mypy main.py
+
+
+
+## TODO
+
+- Directional check sometimes sends sideways to top
+
+- Smooth clear
+- Bias drop towards lower spots
+
+
+- 4 different 'colors'
+- art, animations, particles
+- chests/power ups?
+
+- Play with Class.var

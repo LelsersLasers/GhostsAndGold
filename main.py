@@ -23,6 +23,18 @@ class ToggleKey:
         return False
 
 
+class Interval:
+    def __init__(self, period: float, last: float = 1 / 500):
+        self.period = period
+        self.last = last
+
+    def update(self, ticks: float) -> bool:
+        if self.last + self.period < ticks:
+            self.last += self.period
+            return True
+        return False
+
+
 class Vector:
     def __init__(self, x: float, y: float):
         self.x: float = x
@@ -116,15 +128,12 @@ class Player(Hitbox):
         self.gravity: float = options["player_gravity"]
         self.move_vec: Vector = Vector(0, 0)
 
-        self.fall = True
+        self.jumps = 1
 
         self.space_tk = ToggleKey(True)
         self.p_tk = ToggleKey()
 
     def update(self, keys_down: list[bool], tiles: list[Tile], delta: float) -> None:
-        if self.p_tk.down(keys_down[pygame.K_p]):
-            self.fall = not self.fall
-
         if keys_down[pygame.K_a]:
             self.move_vec.x = -self.speed
         elif keys_down[pygame.K_d]:
@@ -132,22 +141,24 @@ class Player(Hitbox):
         else:
             self.move_vec.x = 0
 
-        if self.fall:
-            self.move_vec.y += self.gravity * delta
-        if self.space_tk.down(keys_down[pygame.K_SPACE]):
+        self.move_vec.y += self.gravity * delta
+        if self.space_tk.down(keys_down[pygame.K_SPACE]) and self.jumps < 2:
             self.move_vec.y = -self.jump_vel
+            self.jumps += 1
 
         self.pt.apply(self.move_vec.scalar(delta))
         current_self: Player = copy.deepcopy(self)  # TODO: not sure if the copy is needed
 
         for tile in tiles:
-            collision = tile.directional_collide(current_self, delta)
+            collision = tile.directional_collide(current_self)
             if collision == "bottom":
                 self.color = "#BF616A"
                 self.pt.y = tile.pt.y - self.h
             elif collision == "top":
                 self.pt.y = tile.pt.y - self.h
                 self.move_vec.y = 0
+                self.jumps = 0
+                self.space_tk.down(False)
             elif collision == "left":
                 self.pt.x = tile.pt.x - self.w
             elif collision == "right":
@@ -170,16 +181,18 @@ class Tile(Hitbox):
 
     def update(self, tiles: list[Tile], delta: float) -> None:
         if self.falling:
-            fall_dist = self.fall_speed * delta
-            self.pt.y += fall_dist
-            for key in self.side_hbs:
-                self.side_hbs[key].pt.y += fall_dist
+            self.fall(self.fall_speed * delta)
             for tile in tiles:
                 if tile != self and self.collide(tile):
                     self.falling = False
                     self.pt.y = tile.pt.y - self.h
 
-    def directional_collide(self, player: Player, delta: float) -> str:
+    def fall(self, dist: float) -> None:
+        self.pt.y += dist
+        for value in self.side_hbs.values():
+            value.pt.y += dist
+
+    def directional_collide(self, player: Player) -> str:
         if self.collide(player):
             if player.collide(self.side_hbs["top"]):
                 return "top"
@@ -193,8 +206,8 @@ class Tile(Hitbox):
 
     def draw(self, win: pygame.surface.Surface) -> None:
         super().draw(win)
-        for key in self.side_hbs:
-            self.side_hbs[key].draw(win)
+        for value in self.side_hbs.values():
+            value.draw(win)
 
 
 class EdgeTile(Tile):
@@ -254,20 +267,60 @@ def draw_welcome(
     )
 
 
+def count_full_rows(tiles: list[Tile], options: dict[str, Any]) -> int:
+    tile_ys: dict[float, int] = {}
+    for tile in tiles:
+        try:
+            tile_ys[tile.pt.y] += 1
+        except KeyError:
+            tile_ys[tile.pt.y] = 1
+
+    count = 0
+    for value in tile_ys.values():
+        if value == options["tile_columns"]:
+            count += 1
+
+    return count
+
+
 def draw_game(
     win: pygame.surface.Surface,
     keys_down: list[bool],
     delta: float,
+    ticks: float,
     player: Player,
     tiles: list[Tile],
-) -> None:
+    tile_spawn: Interval,
+    full_rows: int,
+    options: dict[str, Any],
+) -> int:
 
     for tile in tiles:
         tile.update(tiles, delta)
         tile.draw(win)
 
+    count = count_full_rows(tiles, options)
+    if count > full_rows:
+        for tile in tiles:
+            tile.fall(options["tile_w"])
+        player.pt.y += options["tile_w"]
+        tiles.append(EdgeTile(Vector(0, options["tile_top_y"]), options))
+        tiles.append(
+            EdgeTile(
+                Vector(options["window_width"] - options["tile_w"], options["tile_top_y"]), options
+            )
+        )
+        full_rows += 1
+
+    if tile_spawn.update(ticks):
+        tiles.append(
+            Tile(Vector(random.choice(options["tile_spawn_xs"]), options["tile_spawn_y"]), options)
+        )
+
     player.update(keys_down, tiles, delta)
     player.draw(win)
+
+    return full_rows
 
 
 def main():
@@ -286,25 +339,23 @@ def main():
 
     player = Player(options)
     tiles: list[Tile] = []
-    tile_drop_xs: list[float] = []
     tile_y = options["tile_base_y"]
 
     for i in range(options["tile_columns"] - 2):
-        x = (i + 1) * options["tile_w"]
-        tile_drop_xs.append(x)
-        tiles.append(Tile(Vector(x, tile_y), options, False))
+        tiles.append(Tile(Vector((i + 1) * options["tile_w"], tile_y), options, False))
 
-    tiles.append(EdgeTile(Vector(0, tile_y), options))
-    tiles.append(EdgeTile(Vector(options["window_width"] - options["tile_w"], tile_y), options))
     while tile_y > -options["tile_w"]:
         tiles.append(EdgeTile(Vector(0, tile_y), options))
         tiles.append(EdgeTile(Vector(options["window_width"] - options["tile_w"], tile_y), options))
+        options["tile_top_y"] = tile_y
         tile_y -= options["tile_w"]
 
     last_time = time.time()
-    ticks = 0.1
+    ticks = 1 / 500
 
-    r_tk = ToggleKey()
+    full_rows = 1
+
+    tile_spawn = Interval(options["tile_spawn_interval"], ticks)
 
     while playing:
 
@@ -324,9 +375,9 @@ def main():
         if screen == "welcome":
             draw_welcome(win, fonts, options)
         elif screen == "game":
-            if r_tk.down(keys_down[pygame.K_r]):
-                tiles.append(Tile(Vector(random.choice(tile_drop_xs), 0), options))
-            draw_game(win, keys_down, delta, player, tiles)
+            full_rows = draw_game(
+                win, keys_down, delta, ticks, player, tiles, tile_spawn, full_rows, options
+            )
         elif screen == "instructions":
             pass
 
