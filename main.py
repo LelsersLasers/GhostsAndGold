@@ -283,6 +283,34 @@ def count_full_rows(tiles: list[Tile], options: dict[str, Any]) -> int:
     return count
 
 
+def calc_drop_chances(tiles: list[Tile], options: dict[str, Any]) -> list[float]:
+    top_tile: dict[float, float] = {} # dict[X, Y]
+    for tile in tiles:
+        if type(tile) != EdgeTile and not tile.falling:
+            try:
+                if top_tile[tile.pt.x] > tile.pt.y:
+                    top_tile[tile.pt.x] = tile.pt.y
+            except KeyError:
+                top_tile[tile.pt.x] = tile.pt.y
+
+    # min:max -> 10:90
+    max_value: float = max(top_tile.values())
+    min_value: float = min(top_tile.values())
+
+    old_range = max_value - min_value
+    new_range = options["tile_spawn_scale_max"] - options["tile_spawn_scale_min"]  
+
+    drop_chances: list[float] = []
+    for value in top_tile.values():
+        try:
+            new_value = (((value - min_value) * new_range) / old_range) + options["tile_spawn_scale_min"]  
+        except ZeroDivisionError:
+            new_value = 10
+        drop_chances.append(new_value)
+
+    return drop_chances
+
+
 def draw_game(
     win: pygame.surface.Surface,
     keys_down: list[bool],
@@ -313,8 +341,13 @@ def draw_game(
         full_rows += 1
 
     if tile_spawn.update(ticks):
+        drop_chances = calc_drop_chances(tiles, options)
+        drop_chance_list: list[float] = []
+        for i in range(len(options["tile_spawn_xs"])):
+            drop_chance_list += [options["tile_spawn_xs"][i]] * int(drop_chances[i])
+
         tiles.append(
-            Tile(Vector(random.choice(options["tile_spawn_xs"]), options["tile_spawn_y"]), options)
+            Tile(Vector(random.choice(drop_chance_list), options["tile_spawn_y"]), options)
         )
 
     player.update(keys_down, tiles, delta)
@@ -347,7 +380,7 @@ def main():
     while tile_y > -options["tile_w"]:
         tiles.append(EdgeTile(Vector(0, tile_y), options))
         tiles.append(EdgeTile(Vector(options["window_width"] - options["tile_w"], tile_y), options))
-        options["tile_top_y"] = tile_y
+        options["tile_top_y"] = tile_y # TODO: change - modifying options
         tile_y -= options["tile_w"]
 
     last_time = time.time()

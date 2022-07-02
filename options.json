@@ -20,13 +20,16 @@
     "player_h": 50,
     "player_speed": 300,
     "player_jump_vel": 800,
-    "player_gravity": 2000,
+    "player_gravity": 2400,
 
     "tile_w": 60,
     "tile_fall_speed": 200,
-    "tile_spawn_interval": 0.3,
+    "tile_spawn_interval": 1,
     "tile_spawn_y": -120,
     "tile_spawn_xs": [60, 120, 180, 240, 300, 360, 420, 480, 540, 600],
     "tile_columns": 12,
-    "tile_base_y": 770
+    "tile_base_y": 770,
+
+    "tile_spawn_scale_min": 10,
+    "tile_spawn_scale_max": 90
 }
