@@ -181,11 +181,23 @@ class Player(Hitbox):
         self.check_tile_collision(state["tiles"])
 
 
-class Tile(Hitbox):
-    def __init__(self, pt: Vector, tile_options: dict[str, Any], falling: bool = True):
-        super().__init__(pt, tile_options["w"], tile_options["w"], "#5E81AC")  # TODO: color
+class Fall(Hitbox):
+    def __init__(
+        self, pt: Vector, w: float, h: float, color: str, fall_speed: float, falling: bool
+    ):
+        super().__init__(pt, w, h, color)
+        self.fall_speed = fall_speed
         self.falling = falling
-        self.fall_speed = tile_options["fall_speed"]
+
+    def fall(self, dist: float) -> None:
+        self.pt.y += dist
+
+
+class Tile(Fall):
+    def __init__(self, pt: Vector, tile_options: dict[str, Any], falling: bool = True):
+        super().__init__(
+            pt, tile_options["w"], tile_options["w"], "#5E81AC", tile_options["fall_speed"], falling
+        )  # TODO: color
 
         side_len = self.w - 4
         self.side_hbs: dict[str, Hitbox] = {
@@ -204,7 +216,7 @@ class Tile(Hitbox):
                     self.pt.y = tile.pt.y - self.h
 
     def fall(self, dist: float) -> None:
-        self.pt.y += dist
+        super().fall(dist)
         for value in self.side_hbs.values():
             value.pt.y += dist
 
@@ -230,6 +242,25 @@ class EdgeTile(Tile):
     def __init__(self, pt: Vector, tile_options: dict[str, Any]):
         super().__init__(pt, tile_options, False)
         self.color = "#88C0D0"
+
+
+class Coin(Fall):
+    def __init__(self, pt: Vector, coin_options: dict[str, Any]):
+        super().__init__(
+            pt, coin_options["w"], coin_options["h"], "#EBCB8B", coin_options["fall_speed"], True
+        )
+
+    def update(self, state: dict[str, Any]):
+        if self.falling:
+            self.fall(self.fall_speed * state["delta"])
+            for tile in state["tiles"]:
+                collision = tile.directional_collide(self)
+                if collision == "bottom":
+                    state["coins"].remove(self)
+                    break
+                elif collision == "top":
+                    self.falling = False
+                    break
 
 
 def read_options() -> dict:
@@ -264,6 +295,7 @@ def handle_events(state: dict[str, Any]) -> None:
     if state["screen"] == "welcome":
         if state["keys_down"][pygame.K_SPACE]:
             state["tile_spawn"].reset(state["ticks"])
+            state["coin_spawn"].reset(state["ticks"])
             state["screen"] = "game"
         elif state["keys_down"][pygame.K_i]:
             state["screen"] = "instructions"
@@ -395,6 +427,10 @@ def draw_game(state: dict[str, Any]) -> None:
         tile.update(state)
         tile.draw(state["win"])
 
+    for coin in state["coins"]:
+        coin.update(state)
+        coin.draw(state["win"])
+
     count = count_full_rows(state["tiles"], state["options"]["tile"]["columns"])
     if count > state["full_rows"]:
         state["tiles"].append(
@@ -418,7 +454,7 @@ def draw_game(state: dict[str, Any]) -> None:
     if state["scrolling"] > 0:
         scroll_dist = state["delta"] * state["options"]["scroll_speed"]
         state["scrolling"] -= scroll_dist
-        for tile in state["tiles"]:
+        for tile in state["tiles"] + state["coins"]:
             tile.fall(scroll_dist)
         state["player"].pt.y += scroll_dist
 
@@ -435,6 +471,28 @@ def draw_game(state: dict[str, Any]) -> None:
             )
         )
 
+    if state["coin_spawn"].update(state["ticks"]):
+        state["coins"].append(
+            Coin(
+                Vector(
+                    random.uniform(
+                        state["options"]["tile"]["w"],
+                        state["options"]["window"]["width"]
+                        - state["options"]["tile"]["w"]
+                        - state["options"]["coin"]["w"],
+                    ),
+                    state["options"]["coin"]["spawn_y"],
+                ),
+                state["options"]["coin"],
+            )
+        )
+        state["coin_spawn"].period = state["options"]["coin"][
+            "spawn_interval_base"
+        ] + random.uniform(
+            -state["options"]["coin"]["spawn_interval_variance"],
+            state["options"]["coin"]["spawn_interval_variance"],
+        )
+
     if state["player"].status == "alive":
         state["player"].update(state)
     state["player"].draw(state["win"])
@@ -445,10 +503,9 @@ def draw_game(state: dict[str, Any]) -> None:
             player, tiles = setup(state["options"])
             state["player"] = player
             state["tiles"] = tiles
-            state["ticks"] = 1 / 500
+            state["coins"] = []
             state["scrolling"] = 0
             state["full_rows"] = 1
-            state["tile_spawn"].reset(state["ticks"])
             state["screen"] = "welcome"
 
 
@@ -484,11 +541,13 @@ def main():
         "keys_down": [],
         "player": player,
         "tiles": tiles,
+        "coins": [],
         "delta": 1 / 500,
         "ticks": 1 / 500,
         "scrolling": 0,
         "full_rows": 1,
         "tile_spawn": Interval(options["tile"]["spawn_interval"], 1 / 500),
+        "coin_spawn": Interval(options["coin"]["spawn_interval_base"], 1 / 500),
         "screen": "welcome",
     }
 

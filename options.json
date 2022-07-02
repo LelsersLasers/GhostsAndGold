@@ -50,13 +50,21 @@
     "tile": {
         "w": 60,
         "fall_speed": 200,
-        "spawn_interval": 0.3,
+        "spawn_interval": 1,
         "spawn_y": -60,
         "spawn_xs": [60, 120, 180, 240, 300, 360, 420, 480, 540, 600],
         "columns": 12,
         "base_y": 770,
         "spawn_scale_min": 5,
         "spawn_scale_max": 95
+    },
+    "coin": {
+        "w": 15,
+        "h": 20,
+        "fall_speed": 100,
+        "spawn_interval_base": 20,
+        "spawn_interval_variance": 10,
+        "spawn_y": -20
     },
 
     "scroll_speed": 30
