@@ -25,7 +25,7 @@
     "tile_w": 60,
     "tile_fall_speed": 200,
     "tile_spawn_interval": 1,
-    "tile_spawn_y": -120,
+    "tile_spawn_y": -60,
     "tile_spawn_xs": [60, 120, 180, 240, 300, 360, 420, 480, 540, 600],
     "tile_columns": 12,
     "tile_base_y": 770,

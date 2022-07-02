@@ -19,7 +19,6 @@ python -m mypy main.py
 - Directional check sometimes sends sideways to top
 
 - Smooth clear
-- "Smooth?" Bias drop towards lower spots
 
 
 - 4 different 'colors'
