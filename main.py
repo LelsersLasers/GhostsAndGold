@@ -345,11 +345,14 @@ def calc_drop_chances(tiles: list[Tile], options: dict[str, Any]) -> list[int]:
 
     drop_chances: list[int] = []
     for value in top_tile.values():
-        try:
-            new_value = ((value - min_value) * new_range) / old_range
-        except ZeroDivisionError:
+        if value < 0:
             new_value = 0
-        new_value += options["tile"]["spawn_scale_min"]
+        else:
+            try:
+                new_value = ((value - min_value) * new_range) / old_range
+            except ZeroDivisionError:
+                new_value = 0
+            new_value += options["tile"]["spawn_scale_min"]
         drop_chances.append(int(new_value))
 
     return drop_chances
@@ -393,20 +396,23 @@ def draw_game(state: dict[str, Any]) -> None:
 
     count = count_full_rows(state["tiles"], state["options"]["tile"]["columns"])
     if count > state["full_rows"]:
-        state["scrolling"] += state["options"]["tile"]["w"]
         state["tiles"].append(
-            EdgeTile(Vector(0, state["options"]["tile"]["top_y"]), state["options"]["tile"])
+            EdgeTile(
+                Vector(0, state["options"]["tile"]["top_y"] - state["scrolling"]),
+                state["options"]["tile"],
+            )
         )
         state["tiles"].append(
             EdgeTile(
                 Vector(
                     state["options"]["window"]["width"] - state["options"]["tile"]["w"],
-                    state["options"]["tile"]["top_y"],
+                    state["options"]["tile"]["top_y"] - state["scrolling"],
                 ),
                 state["options"]["tile"],
             )
         )
         state["full_rows"] += 1
+        state["scrolling"] += state["options"]["tile"]["w"]
 
     if state["scrolling"] > 0:
         scroll_dist = state["delta"] * state["options"]["scroll_speed"]
