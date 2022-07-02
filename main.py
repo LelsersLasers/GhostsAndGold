@@ -118,14 +118,16 @@ class Hitbox:
 class Player(Hitbox):
     def __init__(self, options: dict[str, Any]):
         pt = Vector(
-            (options["window_width"] - options["player_w"]) / 2,
-            (options["window_height"] - options["player_h"]) / 2,
+            (options["window"]["width"] - options["player"]["w"]) / 2,
+            (options["window"]["height"] - options["player"]["h"]) / 2,
         )
-        super().__init__(pt, options["player_w"], options["player_h"], "#A3BE8C")  # TODO: color
+        super().__init__(
+            pt, options["player"]["w"], options["player"]["h"], "#A3BE8C"
+        )  # TODO: color
 
-        self.speed: float = options["player_speed"]
-        self.jump_vel: float = options["player_jump_vel"]
-        self.gravity: float = options["player_gravity"]
+        self.speed: float = options["player"]["speed"]
+        self.jump_vel: float = options["player"]["jump_vel"]
+        self.gravity: float = options["player"]["gravity"]
         self.move_vec: Vector = Vector(0, 0)
 
         self.jumps = 1
@@ -178,9 +180,9 @@ class Player(Hitbox):
 
 class Tile(Hitbox):
     def __init__(self, pt: Vector, options: dict[str, Any], falling: bool = True):
-        super().__init__(pt, options["tile_w"], options["tile_w"], "#5E81AC")  # TODO: color
+        super().__init__(pt, options["tile"]["w"], options["tile"]["w"], "#5E81AC")  # TODO: color
         self.falling = falling
-        self.fall_speed = options["tile_fall_speed"]
+        self.fall_speed = options["tile"]["fall_speed"]
 
         side_len = self.w - 4
         self.side_hbs: dict[str, Hitbox] = {
@@ -259,22 +261,29 @@ def handle_events(screen: str, keys_down: list[bool]) -> str:
 def draw_welcome(
     win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font], options: dict[str, Any]
 ) -> None:
-    surf_title = fonts["h1"].render(options["window_title"], True, options["text_color"])
+    surf_title = fonts["h1"].render(options["title"], True, options["colors"]["text"])
     win.blit(
-        surf_title, ((win.get_width() - surf_title.get_width()) / 2, options["welcome_title_y"])
+        surf_title,
+        ((win.get_width() - surf_title.get_width()) / 2, options["welcome"]["title"]["y"]),
     )
 
-    surf_start = fonts["h3"].render(options["welcome_start_text"], True, options["text_color"])
+    surf_start = fonts["h3"].render(
+        options["welcome"]["start"]["text"], True, options["colors"]["text"]
+    )
     win.blit(
-        surf_start, ((win.get_width() - surf_start.get_width()) / 2, options["welcome_start_y"])
+        surf_start,
+        ((win.get_width() - surf_start.get_width()) / 2, options["welcome"]["start"]["y"]),
     )
 
     surf_instructions = fonts["h4"].render(
-        options["welcome_instructions_text"], True, options["text_color"]
+        options["welcome"]["instructions"]["text"], True, options["colors"]["text"]
     )
     win.blit(
         surf_instructions,
-        ((win.get_width() - surf_instructions.get_width()) / 2, options["welcome_instructions_y"]),
+        (
+            (win.get_width() - surf_instructions.get_width()) / 2,
+            options["welcome"]["instructions"]["y"],
+        ),
     )
 
 
@@ -288,7 +297,7 @@ def count_full_rows(tiles: list[Tile], options: dict[str, Any]) -> int:
 
     count = 0
     for value in tile_ys.values():
-        if value == options["tile_columns"]:
+        if value == options["tile"]["columns"]:
             count += 1
 
     return count
@@ -308,7 +317,7 @@ def calc_drop_chances(tiles: list[Tile], options: dict[str, Any]) -> list[int]:
     min_value: float = min(top_tile.values())
 
     old_range = max_value - min_value
-    new_range = options["tile_spawn_scale_max"] - options["tile_spawn_scale_min"]
+    new_range = options["tile"]["spawn_scale_max"] - options["tile"]["spawn_scale_min"]
 
     drop_chances: list[int] = []
     for value in top_tile.values():
@@ -316,7 +325,7 @@ def calc_drop_chances(tiles: list[Tile], options: dict[str, Any]) -> list[int]:
             new_value = ((value - min_value) * new_range) / old_range
         except ZeroDivisionError:
             new_value = 0
-        new_value += options["tile_spawn_scale_min"]
+        new_value += options["tile"]["spawn_scale_min"]
         drop_chances.append(int(new_value))
 
     return drop_chances
@@ -329,12 +338,19 @@ def draw_death(
     darken_rect.fill((0, 0, 0, 10))
     win.blit(darken_rect, (0, 0))
 
-    surf_title = fonts["h2"].render(options["death_title_text"], True, options["text_color"])
-    win.blit(surf_title, ((win.get_width() - surf_title.get_width()) / 2, options["death_title_y"]))
-
-    surf_restart = fonts["h3"].render(options["death_restart_text"], True, options["text_color"])
+    surf_title = fonts["h2"].render(
+        options["death"]["title"]["text"], True, options["colors"]["text"]
+    )
     win.blit(
-        surf_restart, ((win.get_width() - surf_restart.get_width()) / 2, options["death_restart_y"])
+        surf_title, ((win.get_width() - surf_title.get_width()) / 2, options["death"]["title"]["y"])
+    )
+
+    surf_restart = fonts["h3"].render(
+        options["death"]["restart"]["text"], True, options["colors"]["text"]
+    )
+    win.blit(
+        surf_restart,
+        ((win.get_width() - surf_restart.get_width()) / 2, options["death"]["restart"]["y"]),
     )
 
 
@@ -358,11 +374,12 @@ def draw_game(
 
     count = count_full_rows(tiles, options)
     if count > full_rows:
-        scrolling += options["tile_w"]
-        tiles.append(EdgeTile(Vector(0, options["tile_top_y"]), options))
+        scrolling += options["tile"]["w"]
+        tiles.append(EdgeTile(Vector(0, options["tile"]["top_y"]), options))
         tiles.append(
             EdgeTile(
-                Vector(options["window_width"] - options["tile_w"], options["tile_top_y"]), options
+                Vector(options["window"]["width"] - options["tile"]["w"], options["tile"]["top_y"]),
+                options,
             )
         )
         full_rows += 1
@@ -377,11 +394,11 @@ def draw_game(
     if tile_spawn.update(ticks):
         drop_chances = calc_drop_chances(tiles, options)
         drop_chance_list: list[float] = []
-        for i in range(len(options["tile_spawn_xs"])):
-            drop_chance_list += [options["tile_spawn_xs"][i]] * drop_chances[i]
+        for i in range(len(options["tile"]["spawn_xs"])):
+            drop_chance_list += [options["tile"]["spawn_xs"][i]] * drop_chances[i]
 
         tiles.append(
-            Tile(Vector(random.choice(drop_chance_list), options["tile_spawn_y"]), options)
+            Tile(Vector(random.choice(drop_chance_list), options["tile"]["spawn_y"]), options)
         )
 
     if player.status == "alive":
@@ -401,14 +418,16 @@ def setup(options: dict[str, Any]) -> tuple[Player, list[Tile], float, float, in
     player = Player(options)
     tiles: list[Tile] = []
 
-    tile_y = options["tile_base_y"]
-    for i in range(options["tile_columns"] - 2):
-        tiles.append(Tile(Vector((i + 1) * options["tile_w"], tile_y), options, False))
-    while tile_y > -options["tile_w"]:
+    tile_y = options["tile"]["base_y"]
+    for i in range(options["tile"]["columns"] - 2):
+        tiles.append(Tile(Vector((i + 1) * options["tile"]["w"], tile_y), options, False))
+    while tile_y > -options["tile"]["w"]:
         tiles.append(EdgeTile(Vector(0, tile_y), options))
-        tiles.append(EdgeTile(Vector(options["window_width"] - options["tile_w"], tile_y), options))
-        tile_y -= options["tile_w"]
-        options["tile_top_y"] = tile_y  # TODO: change - modifying options
+        tiles.append(
+            EdgeTile(Vector(options["window"]["width"] - options["tile"]["w"], tile_y), options)
+        )
+        tile_y -= options["tile"]["w"]
+        options["tile"]["top_y"] = tile_y  # TODO: change - modifying options
 
     return player, tiles, 1 / 500, 0, 1
 
@@ -417,19 +436,21 @@ def main():
 
     options = read_options()
 
-    win = create_window(options["window_width"], options["window_height"], options["window_title"])
+    win = create_window(
+        options["window"]["width"], options["window"]["height"], options["title"]
+    )
 
     fonts = {
-        "h1": pygame.font.Font(options["font_name"], options["h1_size"]),
-        "h2": pygame.font.Font(options["font_name"], options["h2_size"]),
-        "h3": pygame.font.Font(options["font_name"], options["h3_size"]),
-        "h4": pygame.font.Font(options["font_name"], options["h4_size"]),
+        "h1": pygame.font.Font(options["font"]["name"], options["font"]["size"]["h1"]),
+        "h2": pygame.font.Font(options["font"]["name"], options["font"]["size"]["h2"]),
+        "h3": pygame.font.Font(options["font"]["name"], options["font"]["size"]["h3"]),
+        "h4": pygame.font.Font(options["font"]["name"], options["font"]["size"]["h4"]),
     }
 
     player, tiles, ticks, scrolling, full_rows = setup(options)
 
     last_time = time.time()
-    tile_spawn = Interval(options["tile_spawn_interval"], ticks)
+    tile_spawn = Interval(options["tile"]["spawn_interval"], ticks)
 
     playing = True
     screen = "welcome"
@@ -447,7 +468,7 @@ def main():
 
         screen = handle_events(screen, keys_down)
 
-        win.fill(options["background_color"])
+        win.fill(options["colors"]["background"])
 
         if screen == "welcome":
             draw_welcome(win, fonts, options)

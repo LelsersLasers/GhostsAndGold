@@ -1,44 +1,63 @@
 {
-    "window_width": 720,
-    "window_height":800,
-    "window_title": "Ghost Jump",
-
-    "background_color": "#2E3440",
-    "text_color": "#D8DEE9",
-
-    "font_name": "AnnieUseYourTelescope-Regular.ttf",
-    "h1_size": 80,
-    "h2_size": 60,
-    "h3_size": 40,
-    "h4_size": 20,
-
-    "welcome_title_y": 200,
-    "welcome_start_text": "Press [SPACE] to start",
-    "welcome_start_y": 400,
-    "welcome_instructions_text": "Press [I] for instructions",
-    "welcome_instructions_y": 500,
-
-    "death_title_y": 300,
-    "death_title_text": "Game over",
-    "death_restart_y": 400,
-    "death_restart_text": "Press [R] to restart",
-
-    "player_w": 30,
-    "player_h": 50,
-    "player_speed": 300,
-    "player_jump_vel": 800,
-    "player_gravity": 2400,
-
-    "tile_w": 60,
-    "tile_fall_speed": 200,
-    "tile_spawn_interval": 1,
-    "tile_spawn_y": -60,
-    "tile_spawn_xs": [60, 120, 180, 240, 300, 360, 420, 480, 540, 600],
-    "tile_columns": 12,
-    "tile_base_y": 770,
-
-    "tile_spawn_scale_min": 10,
-    "tile_spawn_scale_max": 90,
+    "title": "Ghost Jump",
+    "window": {
+        "width": 720,
+        "height": 800
+    },
+    "colors": {
+        "background": "#2E3440",
+        "text": "#D8DEE9"
+    },
+    "font": {
+        "name": "AnnieUseYourTelescope-Regular.ttf",
+        "size": {
+            "h1": 80,
+            "h2": 60,
+            "h3": 40,
+            "h4": 20
+        }
+    },
+    "welcome": {
+        "title": {
+            "y": 200
+        },
+        "start": {
+            "text": "Press [SPACE] to start",
+            "y": 400
+        },
+        "instructions": {
+            "text": "Press [I] for instructions",
+            "y": 500
+        }
+    },
+    "death": {
+        "title": {
+            "text": "Game Over",
+            "y": 300            
+        },
+        "restart": {
+            "text": "Press [R] to restart",
+            "y": 400
+        }
+    },
+    "player": {
+        "w": 30,
+        "h": 50,
+        "speed": 300,
+        "jump_vel": 800,
+        "gravity": 2400
+    },
+    "tile": {
+        "w": 60,
+        "fall_speed": 200,
+        "spawn_interval": 1,
+        "spawn_y": -60,
+        "spawn_xs": [60, 120, 180, 240, 300, 360, 420, 480, 540, 600],
+        "columns": 12,
+        "base_y": 770,
+        "spawn_scale_min": 10,
+        "spawn_scale_max": 90
+    },
 
     "scroll_speed": 30
 }
