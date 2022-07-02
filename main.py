@@ -263,6 +263,7 @@ def handle_events(state: dict[str, Any]) -> None:
 
     if state["screen"] == "welcome":
         if state["keys_down"][pygame.K_SPACE]:
+            state["tile_spawn"].reset(state["ticks"])
             state["screen"] = "game"
         elif state["keys_down"][pygame.K_i]:
             state["screen"] = "instructions"
@@ -447,7 +448,7 @@ def draw_game(state: dict[str, Any]) -> None:
             state["ticks"] = 1 / 500
             state["scrolling"] = 0
             state["full_rows"] = 1
-            state["tile_spawn"].reset()
+            state["tile_spawn"].reset(state["ticks"])
             state["screen"] = "welcome"
 
 
@@ -516,8 +517,6 @@ def main():
             pass
 
         pygame.display.update()
-
-        # print("Delta: %1.3f\tFPS: %4.2f" % (delta, 1 / delta))
 
 
 if __name__ == "__main__":
