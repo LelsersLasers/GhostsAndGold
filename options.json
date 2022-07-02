@@ -31,5 +31,7 @@
     "tile_base_y": 770,
 
     "tile_spawn_scale_min": 10,
-    "tile_spawn_scale_max": 90
+    "tile_spawn_scale_max": 90,
+
+    "scroll_speed": 30
 }

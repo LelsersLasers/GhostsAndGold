@@ -320,8 +320,9 @@ def draw_game(
     tiles: list[Tile],
     tile_spawn: Interval,
     full_rows: int,
+    scrolling: float,
     options: dict[str, Any],
-) -> int:
+) -> tuple[int, float]:
 
     for tile in tiles:
         tile.update(tiles, delta)
@@ -329,9 +330,10 @@ def draw_game(
 
     count = count_full_rows(tiles, options)
     if count > full_rows:
-        for tile in tiles:
-            tile.fall(options["tile_w"])
-        player.pt.y += options["tile_w"]
+        scrolling += options["tile_w"]
+        # for tile in tiles:
+        #     tile.fall(options["tile_w"])
+        # player.pt.y += options["tile_w"]
         tiles.append(EdgeTile(Vector(0, options["tile_top_y"]), options))
         tiles.append(
             EdgeTile(
@@ -339,6 +341,13 @@ def draw_game(
             )
         )
         full_rows += 1
+
+    if scrolling > 0:
+        scroll_dist = delta * options["scroll_speed"]
+        scrolling -= scroll_dist
+        for tile in tiles:
+            tile.fall(scroll_dist)
+        player.pt.y += scroll_dist
 
     if tile_spawn.update(ticks):
         drop_chances = calc_drop_chances(tiles, options)
@@ -353,7 +362,7 @@ def draw_game(
     player.update(keys_down, tiles, delta)
     player.draw(win)
 
-    return full_rows
+    return full_rows, scrolling
 
 
 def main():
@@ -372,23 +381,23 @@ def main():
 
     player = Player(options)
     tiles: list[Tile] = []
-    tile_y = options["tile_base_y"]
 
+    tile_y = options["tile_base_y"]
     for i in range(options["tile_columns"] - 2):
         tiles.append(Tile(Vector((i + 1) * options["tile_w"], tile_y), options, False))
-
     while tile_y > -options["tile_w"]:
         tiles.append(EdgeTile(Vector(0, tile_y), options))
         tiles.append(EdgeTile(Vector(options["window_width"] - options["tile_w"], tile_y), options))
-        options["tile_top_y"] = tile_y  # TODO: change - modifying options
         tile_y -= options["tile_w"]
+        options["tile_top_y"] = tile_y  # TODO: change - modifying options
 
     last_time = time.time()
     ticks = 1 / 500
+    tile_spawn = Interval(options["tile_spawn_interval"], ticks)
+
+    scrolling: float = 0
 
     full_rows = 1
-
-    tile_spawn = Interval(options["tile_spawn_interval"], ticks)
 
     while playing:
 
@@ -408,8 +417,17 @@ def main():
         if screen == "welcome":
             draw_welcome(win, fonts, options)
         elif screen == "game":
-            full_rows = draw_game(
-                win, keys_down, delta, ticks, player, tiles, tile_spawn, full_rows, options
+            full_rows, scrolling = draw_game(
+                win,
+                keys_down,
+                delta,
+                ticks,
+                player,
+                tiles,
+                tile_spawn,
+                full_rows,
+                scrolling,
+                options,
             )
         elif screen == "instructions":
             pass

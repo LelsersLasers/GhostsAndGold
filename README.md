@@ -16,13 +16,15 @@ python -m mypy main.py
 
 ## TODO
 
-- Directional check sometimes sends sideways to top
+### Bugs
+- Directional check sometimes sends sideways to top?
 
-- Smooth clear
-
+### Main
 
 - 4 different 'colors'
 - art, animations, particles
 - chests/power ups?
 
-- Play with Class.var
+- Play with Class.var (static variables)
+- Or maybe a large "state" dict
+    - with tiles, player, scrolling, etc
