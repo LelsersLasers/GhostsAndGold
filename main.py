@@ -34,6 +34,9 @@ class Interval:
             return True
         return False
 
+    def reset(self, last: float = 1 / 500):
+        self.last = last
+
 
 class Vector:
     def __init__(self, x: float, y: float):
@@ -241,53 +244,72 @@ def create_window(width, height, title) -> pygame.surface.Surface:
     return win
 
 
-def handle_events(screen: str, keys_down: list[bool]) -> str:
+def create_fonts(options: dict[str, Any]) -> dict[str, pygame.font.Font]:
+    return {
+        "h1": pygame.font.Font(options["font"]["name"], options["font"]["size"]["h1"]),
+        "h2": pygame.font.Font(options["font"]["name"], options["font"]["size"]["h2"]),
+        "h3": pygame.font.Font(options["font"]["name"], options["font"]["size"]["h3"]),
+        "h4": pygame.font.Font(options["font"]["name"], options["font"]["size"]["h4"]),
+    }
+
+
+def handle_events(state: dict[str, Any]) -> None:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             quit()
 
-    if keys_down[pygame.K_ESCAPE]:
-        pygame.quit()
-        quit()
-    elif keys_down[pygame.K_SPACE]:
-        return "game"
-    elif keys_down[pygame.K_i]:
-        return "instructions"
+    if state["screen"] == "welcome":
+        if state["keys_down"][pygame.K_SPACE]:
+            state["screen"] = "game"
+        elif state["keys_down"][pygame.K_i]:
+            state["screen"] = "instructions"
+        elif state["keys_down"][pygame.K_ESCAPE]:
+            pygame.quit()
+            quit()
+    elif state["screen"] == "instructions":
+        if state["keys_down"][pygame.K_ESCAPE]:
+            state["screen"] = "welcome"
 
-    return screen
 
-
-def draw_welcome(
-    win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font], options: dict[str, Any]
-) -> None:
-    surf_title = fonts["h1"].render(options["title"], True, options["colors"]["text"])
-    win.blit(
+def draw_welcome(state: dict[str, Any]) -> None:
+    surf_title = state["fonts"]["h1"].render(
+        state["options"]["title"], True, state["options"]["colors"]["text"]
+    )
+    state["win"].blit(
         surf_title,
-        ((win.get_width() - surf_title.get_width()) / 2, options["welcome"]["title"]["y"]),
+        (
+            (state["win"].get_width() - surf_title.get_width()) / 2,
+            state["options"]["welcome"]["title"]["y"],
+        ),
     )
 
-    surf_start = fonts["h3"].render(
-        options["welcome"]["start"]["text"], True, options["colors"]["text"]
+    surf_start = state["fonts"]["h3"].render(
+        state["options"]["welcome"]["start"]["text"], True, state["options"]["colors"]["text"]
     )
-    win.blit(
+    state["win"].blit(
         surf_start,
-        ((win.get_width() - surf_start.get_width()) / 2, options["welcome"]["start"]["y"]),
+        (
+            (state["win"].get_width() - surf_start.get_width()) / 2,
+            state["options"]["welcome"]["start"]["y"],
+        ),
     )
 
-    surf_instructions = fonts["h4"].render(
-        options["welcome"]["instructions"]["text"], True, options["colors"]["text"]
+    surf_instructions = state["fonts"]["h4"].render(
+        state["options"]["welcome"]["instructions"]["text"],
+        True,
+        state["options"]["colors"]["text"],
     )
-    win.blit(
+    state["win"].blit(
         surf_instructions,
         (
-            (win.get_width() - surf_instructions.get_width()) / 2,
-            options["welcome"]["instructions"]["y"],
+            (state["win"].get_width() - surf_instructions.get_width()) / 2,
+            state["options"]["welcome"]["instructions"]["y"],
         ),
     )
 
 
-def count_full_rows(tiles: list[Tile], options: dict[str, Any]) -> int:
+def count_full_rows(tiles: list[Tile], columns: int) -> int:
     tile_ys: dict[float, int] = {}
     for tile in tiles:
         try:
@@ -297,7 +319,7 @@ def count_full_rows(tiles: list[Tile], options: dict[str, Any]) -> int:
 
     count = 0
     for value in tile_ys.values():
-        if value == options["tile"]["columns"]:
+        if value == columns:
             count += 1
 
     return count
@@ -354,67 +376,67 @@ def draw_death(
     )
 
 
-def draw_game(
-    win: pygame.surface.Surface,
-    keys_down: list[bool],
-    delta: float,
-    ticks: float,
-    player: Player,
-    tiles: list[Tile],
-    tile_spawn: Interval,
-    full_rows: int,
-    scrolling: float,
-    fonts: dict[str, pygame.font.Font],
-    options: dict[str, Any],
-) -> tuple[int, float, str]:
+def draw_game(state: dict[str, Any]) -> None:
 
-    for tile in tiles:
-        tile.update(tiles, delta)
-        tile.draw(win)
+    for tile in state["tiles"]:
+        tile.update(state["tiles"], state["delta"])
+        tile.draw(state["win"])
 
-    count = count_full_rows(tiles, options)
-    if count > full_rows:
-        scrolling += options["tile"]["w"]
-        tiles.append(EdgeTile(Vector(0, options["tile"]["top_y"]), options))
-        tiles.append(
+    count = count_full_rows(state["tiles"], state["options"]["tile"]["columns"])
+    if count > state["full_rows"]:
+        state["scrolling"] += state["options"]["tile"]["w"]
+        state["tiles"].append(
+            EdgeTile(Vector(0, state["options"]["tile"]["top_y"]), state["options"])
+        )
+        state["tiles"].append(
             EdgeTile(
-                Vector(options["window"]["width"] - options["tile"]["w"], options["tile"]["top_y"]),
-                options,
+                Vector(
+                    state["options"]["window"]["width"] - state["options"]["tile"]["w"],
+                    state["options"]["tile"]["top_y"],
+                ),
+                state["options"],
             )
         )
-        full_rows += 1
+        state["full_rows"] += 1
 
-    if scrolling > 0:
-        scroll_dist = delta * options["scroll_speed"]
-        scrolling -= scroll_dist
-        for tile in tiles:
+    if state["scrolling"] > 0:
+        scroll_dist = state["delta"] * state["options"]["scroll_speed"]
+        state["scrolling"] -= scroll_dist
+        for tile in state["tiles"]:
             tile.fall(scroll_dist)
-        player.pt.y += scroll_dist
+        state["player"].pt.y += scroll_dist
 
-    if tile_spawn.update(ticks):
-        drop_chances = calc_drop_chances(tiles, options)
+    if state["tile_spawn"].update(state["ticks"]):
+        drop_chances = calc_drop_chances(state["tiles"], state["options"])
         drop_chance_list: list[float] = []
-        for i in range(len(options["tile"]["spawn_xs"])):
-            drop_chance_list += [options["tile"]["spawn_xs"][i]] * drop_chances[i]
+        for i in range(len(state["options"]["tile"]["spawn_xs"])):
+            drop_chance_list += [state["options"]["tile"]["spawn_xs"][i]] * drop_chances[i]
 
-        tiles.append(
-            Tile(Vector(random.choice(drop_chance_list), options["tile"]["spawn_y"]), options)
+        state["tiles"].append(
+            Tile(
+                Vector(random.choice(drop_chance_list), state["options"]["tile"]["spawn_y"]),
+                state["options"],
+            )
         )
 
-    if player.status == "alive":
-        player.update(keys_down, tiles, delta)
-    player.draw(win)
+    if state["player"].status == "alive":
+        state["player"].update(state["keys_down"], state["tiles"], state["delta"])
+    state["player"].draw(state["win"])
 
-    screen = "game"
-    if player.status == "dead":
-        draw_death(win, fonts, options)
-        if keys_down[pygame.K_r]:
-            screen = "welcome"
+    if state["player"].status == "dead":
+        draw_death(state["win"], state["fonts"], state["options"])
+        if state["keys_down"][pygame.K_r]:
+            player, tiles = setup(state["options"])
+            state["player"] = player
+            state["tiles"] = tiles
+            state["ticks"] = 1 / 500
+            state["scrolling"] = 0
+            state["full_rows"] = 1
+            state["tile_spawn"].reset()
+            state["screen"] = "welcome"
 
-    return full_rows, scrolling, screen
 
-
-def setup(options: dict[str, Any]) -> tuple[Player, list[Tile], float, float, int]:
+def setup(options: dict[str, Any]) -> tuple[Player, list[Tile]]:
     player = Player(options)
     tiles: list[Tile] = []
 
@@ -429,66 +451,53 @@ def setup(options: dict[str, Any]) -> tuple[Player, list[Tile], float, float, in
         tile_y -= options["tile"]["w"]
         options["tile"]["top_y"] = tile_y  # TODO: change - modifying options
 
-    return player, tiles, 1 / 500, 0, 1
+    return player, tiles
 
 
 def main():
 
     options = read_options()
+    player, tiles = setup(options)
 
-    win = create_window(
-        options["window"]["width"], options["window"]["height"], options["title"]
-    )
-
-    fonts = {
-        "h1": pygame.font.Font(options["font"]["name"], options["font"]["size"]["h1"]),
-        "h2": pygame.font.Font(options["font"]["name"], options["font"]["size"]["h2"]),
-        "h3": pygame.font.Font(options["font"]["name"], options["font"]["size"]["h3"]),
-        "h4": pygame.font.Font(options["font"]["name"], options["font"]["size"]["h4"]),
+    state = {
+        "win": create_window(
+            options["window"]["width"], options["window"]["height"], options["title"]
+        ),
+        "fonts": create_fonts(options),
+        "options": options,
+        "keys_down": [],
+        "player": player,
+        "tiles": tiles,
+        "delta": 1 / 500,
+        "ticks": 1 / 500,
+        "scrolling": 0,
+        "full_rows": 1,
+        "tile_spawn": Interval(options["tile"]["spawn_interval"], 1 / 500),
+        "screen": "welcome",
     }
 
-    player, tiles, ticks, scrolling, full_rows = setup(options)
-
     last_time = time.time()
-    tile_spawn = Interval(options["tile"]["spawn_interval"], ticks)
-
     playing = True
-    screen = "welcome"
 
     while playing:
 
-        delta = time.time() - last_time
-        if delta <= 0:
-            delta = 1 / 500
+        state["delta"] = time.time() - last_time
+        if state["delta"] <= 0:
+            state["delta"] = 1 / 500
         last_time = time.time()
+        state["ticks"] += state["delta"]
 
-        ticks += delta
+        state["keys_down"] = pygame.key.get_pressed()
 
-        keys_down = pygame.key.get_pressed()
+        handle_events(state)
 
-        screen = handle_events(screen, keys_down)
+        state["win"].fill(state["options"]["colors"]["background"])
 
-        win.fill(options["colors"]["background"])
-
-        if screen == "welcome":
-            draw_welcome(win, fonts, options)
-        elif screen == "game":
-            full_rows, scrolling, screen = draw_game(
-                win,
-                keys_down,
-                delta,
-                ticks,
-                player,
-                tiles,
-                tile_spawn,
-                full_rows,
-                scrolling,
-                fonts,
-                options,
-            )
-            if screen == "welcome":  # restart
-                player, tiles, ticks, scrolling, full_rows = setup(options)
-        elif screen == "instructions":
+        if state["screen"] == "welcome":
+            draw_welcome(state)
+        elif state["screen"] == "game":
+            draw_game(state)
+        elif state["screen"] == "instructions":
             pass
 
         pygame.display.update()

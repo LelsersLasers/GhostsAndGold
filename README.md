@@ -29,5 +29,3 @@ python -m mypy main.py
 - chests/power ups?
 
 - Play with Class.var (static variables)
-- Or maybe a large "state" dict
-    - with tiles, player, scrolling, etc
