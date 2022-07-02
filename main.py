@@ -7,6 +7,7 @@ import math
 import time
 import json
 import random
+import copy
 
 
 class ToggleKey:
@@ -90,7 +91,7 @@ class Hitbox:
     def get_rect(self) -> pygame.Rect:
         return pygame.Rect(self.pt.x, self.pt.y, self.w, self.h)
 
-    def check_collide(self, hb: Hitbox) -> bool:
+    def collide(self, hb: Hitbox) -> bool:
         return (
             self.pt.x < hb.pt.x + hb.w
             and hb.pt.x < self.pt.x + self.w
@@ -113,51 +114,93 @@ class Player(Hitbox):
         self.speed: float = options["player_speed"]
         self.jump_vel: float = options["player_jump_vel"]
         self.gravity: float = options["player_gravity"]
-        self.y_vel: float = 0
+        self.move_vec: Vector = Vector(0, 0)
+
+        self.fall = True
 
         self.space_tk = ToggleKey(True)
+        self.p_tk = ToggleKey()
 
-    def update(self, keys_down: list[bool], tiles: list[Tile], delta: float):
-        last_x = self.pt.x
+    def update(self, keys_down: list[bool], tiles: list[Tile], delta: float) -> None:
+        if self.p_tk.down(keys_down[pygame.K_p]):
+            self.fall = not self.fall
+
         if keys_down[pygame.K_a]:
-            self.pt.x -= self.speed * delta
-        if keys_down[pygame.K_d]:
-            self.pt.x += self.speed * delta
-        for tile in tiles:
-            if self.check_collide(tile):
-                self.pt.x = last_x
-        
+            self.move_vec.x = -self.speed
+        elif keys_down[pygame.K_d]:
+            self.move_vec.x = self.speed
+        else:
+            self.move_vec.x = 0
 
-        self.y_vel += self.gravity * delta
-
+        if self.fall:
+            self.move_vec.y += self.gravity * delta
         if self.space_tk.down(keys_down[pygame.K_SPACE]):
-            self.y_vel = -self.jump_vel
+            self.move_vec.y = -self.jump_vel
 
-        self.pt.y += self.y_vel * delta
+        self.pt.apply(self.move_vec.scalar(delta))
+        current_self: Player = copy.deepcopy(self)  # TODO: not sure if the copy is needed
+
+        for tile in tiles:
+            collision = tile.directional_collide(current_self, delta)
+            if collision == "bottom":
+                self.color = "#BF616A"
+                self.pt.y = tile.pt.y - self.h
+            elif collision == "top":
+                self.pt.y = tile.pt.y - self.h
+                self.move_vec.y = 0
+            elif collision == "left":
+                self.pt.x = tile.pt.x - self.w
+            elif collision == "right":
+                self.pt.x = tile.pt.x + tile.w
 
 
 class Tile(Hitbox):
     def __init__(self, pt: Vector, options: dict[str, Any], falling: bool = True):
-        super().__init__(pt, options["tile_w"], options["tile_w"], "#5E81AC") # TODO: color
+        super().__init__(pt, options["tile_w"], options["tile_w"], "#5E81AC")  # TODO: color
         self.falling = falling
         self.fall_speed = options["tile_fall_speed"]
 
-    def update(self, delta):
+        side_len = self.w - 4
+        self.side_hbs: dict[str, Hitbox] = {
+            "top": Hitbox(Vector(self.pt.x + 2, self.pt.y), side_len, 2, "#BF616A"),
+            "bottom": Hitbox(Vector(self.pt.x + 2, self.pt.y + self.h - 2), side_len, 2, "#BF616A"),
+            "left": Hitbox(Vector(self.pt.x, self.pt.y + 2), 2, side_len, "#BF616A"),
+            "right": Hitbox(Vector(self.pt.x + self.w - 2, self.pt.y + 2), 2, side_len, "#BF616A"),
+        }
+
+    def update(self, tiles: list[Tile], delta: float) -> None:
         if self.falling:
-            self.pt.y += self.fall_speed * delta
+            fall_dist = self.fall_speed * delta
+            self.pt.y += fall_dist
+            for key in self.side_hbs:
+                self.side_hbs[key].pt.y += fall_dist
+            for tile in tiles:
+                if tile != self and self.collide(tile):
+                    self.falling = False
+                    self.pt.y = tile.pt.y - self.h
+
+    def directional_collide(self, player: Player, delta: float) -> str:
+        if self.collide(player):
+            if player.collide(self.side_hbs["top"]):
+                return "top"
+            elif player.collide(self.side_hbs["bottom"]):
+                return "bottom"
+            elif player.collide(self.side_hbs["left"]):
+                return "left"
+            elif player.collide(self.side_hbs["right"]):
+                return "right"
+        return "none"
 
     def draw(self, win: pygame.surface.Surface) -> None:
         super().draw(win)
-        pygame.draw.rect(win, "#8FBCBB", self.get_rect(), 2) # TODO: remove
+        for key in self.side_hbs:
+            self.side_hbs[key].draw(win)
 
 
 class EdgeTile(Tile):
     def __init__(self, pt: Vector, options: dict[str, Any]):
         super().__init__(pt, options, False)
-
-    def draw(self, win: pygame.surface.Surface) -> None:
-        super().draw(win)
-        pygame.draw.rect(win, "#88C0D0", self.get_rect(), 5) # TODO: remove
+        self.color = "#88C0D0"
 
 
 def read_options() -> dict:
@@ -220,7 +263,7 @@ def draw_game(
 ) -> None:
 
     for tile in tiles:
-        tile.update(delta)
+        tile.update(tiles, delta)
         tile.draw(win)
 
     player.update(keys_down, tiles, delta)
@@ -244,14 +287,19 @@ def main():
     player = Player(options)
     tiles: list[Tile] = []
     tile_drop_xs: list[float] = []
+    tile_y = options["tile_base_y"]
 
     for i in range(options["tile_columns"] - 2):
         x = (i + 1) * options["tile_w"]
         tile_drop_xs.append(x)
-        tiles.append(Tile(Vector(x, options["tile_base_y"]), options, False))
+        tiles.append(Tile(Vector(x, tile_y), options, False))
 
-    tiles.append(EdgeTile(Vector(0, options["tile_base_y"]), options))
-    tiles.append(EdgeTile(Vector(options["window_width"] - options["tile_w"], options["tile_base_y"]), options))
+    tiles.append(EdgeTile(Vector(0, tile_y), options))
+    tiles.append(EdgeTile(Vector(options["window_width"] - options["tile_w"], tile_y), options))
+    while tile_y > -options["tile_w"]:
+        tiles.append(EdgeTile(Vector(0, tile_y), options))
+        tiles.append(EdgeTile(Vector(options["window_width"] - options["tile_w"], tile_y), options))
+        tile_y -= options["tile_w"]
 
     last_time = time.time()
     ticks = 0.1
@@ -284,7 +332,7 @@ def main():
 
         pygame.display.update()
 
-        print("Delta: %1.3f\tFPS: %4.2f" % (delta, 1 / delta))
+        # print("Delta: %1.3f\tFPS: %4.2f" % (delta, 1 / delta))
 
 
 if __name__ == "__main__":
