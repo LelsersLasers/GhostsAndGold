@@ -1,16 +1,17 @@
 from __future__ import annotations  # for type hints
 from typing import Any
 
-import pygame  # graphics library
+import pygame
 
 import math
 import time
 import json
+import random
 
 
 class ToggleKey:
-    def __init__(self):
-        self.was_down = False
+    def __init__(self, default: bool = False):
+        self.was_down = default
 
     def down(self, condition: bool) -> bool:
         if not self.was_down and condition:
@@ -112,15 +113,20 @@ class Player(Hitbox):
         self.speed: float = options["player_speed"]
         self.jump_vel: float = options["player_jump_vel"]
         self.gravity: float = options["player_gravity"]
-        self.y_vel = 0
+        self.y_vel: float = 0
 
-        self.space_tk = ToggleKey()
+        self.space_tk = ToggleKey(True)
 
-    def update(self, keys_down: list[bool], delta: float):
+    def update(self, keys_down: list[bool], tiles: list[Tile], delta: float):
+        last_x = self.pt.x
         if keys_down[pygame.K_a]:
             self.pt.x -= self.speed * delta
         if keys_down[pygame.K_d]:
             self.pt.x += self.speed * delta
+        for tile in tiles:
+            if self.check_collide(tile):
+                self.pt.x = last_x
+        
 
         self.y_vel += self.gravity * delta
 
@@ -129,6 +135,29 @@ class Player(Hitbox):
 
         self.pt.y += self.y_vel * delta
 
+
+class Tile(Hitbox):
+    def __init__(self, pt: Vector, options: dict[str, Any], falling: bool = True):
+        super().__init__(pt, options["tile_w"], options["tile_w"], "#5E81AC") # TODO: color
+        self.falling = falling
+        self.fall_speed = options["tile_fall_speed"]
+
+    def update(self, delta):
+        if self.falling:
+            self.pt.y += self.fall_speed * delta
+
+    def draw(self, win: pygame.surface.Surface) -> None:
+        super().draw(win)
+        pygame.draw.rect(win, "#8FBCBB", self.get_rect(), 2) # TODO: remove
+
+
+class EdgeTile(Tile):
+    def __init__(self, pt: Vector, options: dict[str, Any]):
+        super().__init__(pt, options, False)
+
+    def draw(self, win: pygame.surface.Surface) -> None:
+        super().draw(win)
+        pygame.draw.rect(win, "#88C0D0", self.get_rect(), 5) # TODO: remove
 
 
 def read_options() -> dict:
@@ -182,9 +211,19 @@ def draw_welcome(
     )
 
 
-def draw_game(win: pygame.surface.Surface, keys_down: list[bool], delta: float, player: Player):
+def draw_game(
+    win: pygame.surface.Surface,
+    keys_down: list[bool],
+    delta: float,
+    player: Player,
+    tiles: list[Tile],
+) -> None:
 
-    player.update(keys_down, delta)
+    for tile in tiles:
+        tile.update(delta)
+        tile.draw(win)
+
+    player.update(keys_down, tiles, delta)
     player.draw(win)
 
 
@@ -203,9 +242,21 @@ def main():
     screen = "welcome"
 
     player = Player(options)
+    tiles: list[Tile] = []
+    tile_drop_xs: list[float] = []
+
+    for i in range(options["tile_columns"] - 2):
+        x = (i + 1) * options["tile_w"]
+        tile_drop_xs.append(x)
+        tiles.append(Tile(Vector(x, options["tile_base_y"]), options, False))
+
+    tiles.append(EdgeTile(Vector(0, options["tile_base_y"]), options))
+    tiles.append(EdgeTile(Vector(options["window_width"] - options["tile_w"], options["tile_base_y"]), options))
 
     last_time = time.time()
     ticks = 0.1
+
+    r_tk = ToggleKey()
 
     while playing:
 
@@ -218,7 +269,6 @@ def main():
 
         keys_down = pygame.key.get_pressed()
 
-
         screen = handle_events(screen, keys_down)
 
         win.fill(options["background_color"])
@@ -226,7 +276,9 @@ def main():
         if screen == "welcome":
             draw_welcome(win, fonts, options)
         elif screen == "game":
-            draw_game(win, keys_down, delta, player)
+            if r_tk.down(keys_down[pygame.K_r]):
+                tiles.append(Tile(Vector(random.choice(tile_drop_xs), 0), options))
+            draw_game(win, keys_down, delta, player, tiles)
         elif screen == "instructions":
             pass
 
