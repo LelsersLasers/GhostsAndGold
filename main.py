@@ -133,7 +133,9 @@ class Player(Hitbox):
         self.space_tk = ToggleKey(True)
         self.p_tk = ToggleKey()
 
-    def update(self, keys_down: list[bool], tiles: list[Tile], delta: float) -> None:
+        self.status = "alive"
+
+    def key_input(self, keys_down: list[bool]) -> None:
         if keys_down[pygame.K_a]:
             self.move_vec.x = -self.speed
         elif keys_down[pygame.K_d]:
@@ -141,19 +143,23 @@ class Player(Hitbox):
         else:
             self.move_vec.x = 0
 
-        self.move_vec.y += self.gravity * delta
         if self.space_tk.down(keys_down[pygame.K_SPACE]) and self.jumps < 2:
             self.move_vec.y = -self.jump_vel
             self.jumps += 1
 
+    def move(self, delta: float) -> None:
+        self.move_vec.y += self.gravity * delta
         self.pt.apply(self.move_vec.scalar(delta))
+
+    def check_tile_collision(self, tiles: list[Tile]) -> None:
         current_self: Player = copy.deepcopy(self)  # TODO: not sure if the copy is needed
 
         for tile in tiles:
             collision = tile.directional_collide(current_self)
             if collision == "bottom":
                 self.color = "#BF616A"
-                self.pt.y = tile.pt.y - self.h
+                self.status = "dead"
+                self.move_vec.x = 0
             elif collision == "top":
                 self.pt.y = tile.pt.y - self.h
                 self.move_vec.y = 0
@@ -163,6 +169,11 @@ class Player(Hitbox):
                 self.pt.x = tile.pt.x - self.w
             elif collision == "right":
                 self.pt.x = tile.pt.x + tile.w
+
+    def update(self, keys_down: list[bool], tiles: list[Tile], delta: float) -> None:
+        self.key_input(keys_down)
+        self.move(delta)
+        self.check_tile_collision(tiles)
 
 
 class Tile(Hitbox):
@@ -253,12 +264,12 @@ def draw_welcome(
         surf_title, ((win.get_width() - surf_title.get_width()) / 2, options["welcome_title_y"])
     )
 
-    surf_start = fonts["h2"].render(options["welcome_start_text"], True, options["text_color"])
+    surf_start = fonts["h3"].render(options["welcome_start_text"], True, options["text_color"])
     win.blit(
         surf_start, ((win.get_width() - surf_start.get_width()) / 2, options["welcome_start_y"])
     )
 
-    surf_instructions = fonts["h2"].render(
+    surf_instructions = fonts["h4"].render(
         options["welcome_instructions_text"], True, options["text_color"]
     )
     win.blit(
@@ -311,6 +322,22 @@ def calc_drop_chances(tiles: list[Tile], options: dict[str, Any]) -> list[int]:
     return drop_chances
 
 
+def draw_death(
+    win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font], options: dict[str, Any]
+) -> None:
+    darken_rect = pygame.Surface((win.get_width(), win.get_height()), pygame.SRCALPHA)
+    darken_rect.fill((0, 0, 0, 10))
+    win.blit(darken_rect, (0, 0))
+
+    surf_title = fonts["h2"].render(options["death_title_text"], True, options["text_color"])
+    win.blit(surf_title, ((win.get_width() - surf_title.get_width()) / 2, options["death_title_y"]))
+
+    surf_restart = fonts["h3"].render(options["death_restart_text"], True, options["text_color"])
+    win.blit(
+        surf_restart, ((win.get_width() - surf_restart.get_width()) / 2, options["death_restart_y"])
+    )
+
+
 def draw_game(
     win: pygame.surface.Surface,
     keys_down: list[bool],
@@ -321,8 +348,9 @@ def draw_game(
     tile_spawn: Interval,
     full_rows: int,
     scrolling: float,
+    fonts: dict[str, pygame.font.Font],
     options: dict[str, Any],
-) -> tuple[int, float]:
+) -> tuple[int, float, str]:
 
     for tile in tiles:
         tile.update(tiles, delta)
@@ -331,9 +359,6 @@ def draw_game(
     count = count_full_rows(tiles, options)
     if count > full_rows:
         scrolling += options["tile_w"]
-        # for tile in tiles:
-        #     tile.fall(options["tile_w"])
-        # player.pt.y += options["tile_w"]
         tiles.append(EdgeTile(Vector(0, options["tile_top_y"]), options))
         tiles.append(
             EdgeTile(
@@ -359,26 +384,20 @@ def draw_game(
             Tile(Vector(random.choice(drop_chance_list), options["tile_spawn_y"]), options)
         )
 
-    player.update(keys_down, tiles, delta)
+    if player.status == "alive":
+        player.update(keys_down, tiles, delta)
     player.draw(win)
 
-    return full_rows, scrolling
+    screen = "game"
+    if player.status == "dead":
+        draw_death(win, fonts, options)
+        if keys_down[pygame.K_r]:
+            screen = "welcome"
+
+    return full_rows, scrolling, screen
 
 
-def main():
-
-    options = read_options()
-
-    win = create_window(options["window_width"], options["window_height"], options["window_title"])
-
-    fonts = {
-        "h1": pygame.font.Font(options["font_name"], options["h1_size"]),
-        "h2": pygame.font.Font(options["font_name"], options["h2_size"]),
-    }
-
-    playing = True
-    screen = "welcome"
-
+def setup(options: dict[str, Any]) -> tuple[Player, list[Tile], float, float, int]:
     player = Player(options)
     tiles: list[Tile] = []
 
@@ -391,13 +410,29 @@ def main():
         tile_y -= options["tile_w"]
         options["tile_top_y"] = tile_y  # TODO: change - modifying options
 
+    return player, tiles, 1 / 500, 0, 1
+
+
+def main():
+
+    options = read_options()
+
+    win = create_window(options["window_width"], options["window_height"], options["window_title"])
+
+    fonts = {
+        "h1": pygame.font.Font(options["font_name"], options["h1_size"]),
+        "h2": pygame.font.Font(options["font_name"], options["h2_size"]),
+        "h3": pygame.font.Font(options["font_name"], options["h3_size"]),
+        "h4": pygame.font.Font(options["font_name"], options["h4_size"]),
+    }
+
+    player, tiles, ticks, scrolling, full_rows = setup(options)
+
     last_time = time.time()
-    ticks = 1 / 500
     tile_spawn = Interval(options["tile_spawn_interval"], ticks)
 
-    scrolling: float = 0
-
-    full_rows = 1
+    playing = True
+    screen = "welcome"
 
     while playing:
 
@@ -417,7 +452,7 @@ def main():
         if screen == "welcome":
             draw_welcome(win, fonts, options)
         elif screen == "game":
-            full_rows, scrolling = draw_game(
+            full_rows, scrolling, screen = draw_game(
                 win,
                 keys_down,
                 delta,
@@ -427,8 +462,11 @@ def main():
                 tile_spawn,
                 full_rows,
                 scrolling,
+                fonts,
                 options,
             )
+            if screen == "welcome":  # restart
+                player, tiles, ticks, scrolling, full_rows = setup(options)
         elif screen == "instructions":
             pass
 

@@ -21,6 +21,9 @@ python -m mypy main.py
 
 ### Main
 
+
+- Last score
+
 - 4 different 'colors'
 - art, animations, particles
 - chests/power ups?
