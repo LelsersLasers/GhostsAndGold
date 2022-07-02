@@ -175,17 +175,17 @@ class Player(Hitbox):
             elif collision == "right":
                 self.pt.x = tile.pt.x + tile.w
 
-    def update(self, keys_down: list[bool], tiles: list[Tile], delta: float) -> None:
-        self.key_input(keys_down)
-        self.move(delta)
-        self.check_tile_collision(tiles)
+    def update(self, state: dict[str, Any]) -> None:
+        self.key_input(state["keys_down"])
+        self.move(state["delta"])
+        self.check_tile_collision(state["tiles"])
 
 
 class Tile(Hitbox):
-    def __init__(self, pt: Vector, options: dict[str, Any], falling: bool = True):
-        super().__init__(pt, options["tile"]["w"], options["tile"]["w"], "#5E81AC")  # TODO: color
+    def __init__(self, pt: Vector, tile_options: dict[str, Any], falling: bool = True):
+        super().__init__(pt, tile_options["w"], tile_options["w"], "#5E81AC")  # TODO: color
         self.falling = falling
-        self.fall_speed = options["tile"]["fall_speed"]
+        self.fall_speed = tile_options["fall_speed"]
 
         side_len = self.w - 4
         self.side_hbs: dict[str, Hitbox] = {
@@ -195,10 +195,10 @@ class Tile(Hitbox):
             "right": Hitbox(Vector(self.pt.x + self.w - 2, self.pt.y + 2), 2, side_len, "#BF616A"),
         }
 
-    def update(self, tiles: list[Tile], delta: float) -> None:
+    def update(self, state: dict[str, Any]) -> None:
         if self.falling:
-            self.fall(self.fall_speed * delta)
-            for tile in tiles:
+            self.fall(self.fall_speed * state["delta"])
+            for tile in state["tiles"]:
                 if tile != self and self.collide(tile):
                     self.falling = False
                     self.pt.y = tile.pt.y - self.h
@@ -227,8 +227,8 @@ class Tile(Hitbox):
 
 
 class EdgeTile(Tile):
-    def __init__(self, pt: Vector, options: dict[str, Any]):
-        super().__init__(pt, options, False)
+    def __init__(self, pt: Vector, tile_options: dict[str, Any]):
+        super().__init__(pt, tile_options, False)
         self.color = "#88C0D0"
 
 
@@ -237,19 +237,21 @@ def read_options() -> dict:
         return json.load(f)
 
 
-def create_window(width, height, title) -> pygame.surface.Surface:
+def create_window(options: dict[str, Any]) -> pygame.surface.Surface:
     pygame.init()
-    win = pygame.display.set_mode((width, height), pygame.SCALED)
-    pygame.display.set_caption(title)  # TODO: icon
+    win = pygame.display.set_mode(
+        (options["window"]["width"], options["window"]["height"]), pygame.SCALED
+    )
+    pygame.display.set_caption(options["title"])  # TODO: icon
     return win
 
 
-def create_fonts(options: dict[str, Any]) -> dict[str, pygame.font.Font]:
+def create_fonts(font_options: dict[str, Any]) -> dict[str, pygame.font.Font]:
     return {
-        "h1": pygame.font.Font(options["font"]["name"], options["font"]["size"]["h1"]),
-        "h2": pygame.font.Font(options["font"]["name"], options["font"]["size"]["h2"]),
-        "h3": pygame.font.Font(options["font"]["name"], options["font"]["size"]["h3"]),
-        "h4": pygame.font.Font(options["font"]["name"], options["font"]["size"]["h4"]),
+        "h1": pygame.font.Font(font_options["name"], font_options["size"]["h1"]),
+        "h2": pygame.font.Font(font_options["name"], font_options["size"]["h2"]),
+        "h3": pygame.font.Font(font_options["name"], font_options["size"]["h3"]),
+        "h4": pygame.font.Font(font_options["name"], font_options["size"]["h4"]),
     }
 
 
@@ -353,40 +355,47 @@ def calc_drop_chances(tiles: list[Tile], options: dict[str, Any]) -> list[int]:
     return drop_chances
 
 
-def draw_death(
-    win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font], options: dict[str, Any]
-) -> None:
-    darken_rect = pygame.Surface((win.get_width(), win.get_height()), pygame.SRCALPHA)
+def draw_death(state: dict[str, Any]) -> None:
+    darken_rect = pygame.Surface(
+        (state["win"].get_width(), state["win"].get_height()), pygame.SRCALPHA
+    )
     darken_rect.fill((0, 0, 0, 10))
-    win.blit(darken_rect, (0, 0))
+    state["win"].blit(darken_rect, (0, 0))
 
-    surf_title = fonts["h2"].render(
-        options["death"]["title"]["text"], True, options["colors"]["text"]
+    surf_title = state["fonts"]["h2"].render(
+        state["options"]["death"]["title"]["text"], True, state["options"]["colors"]["text"]
     )
-    win.blit(
-        surf_title, ((win.get_width() - surf_title.get_width()) / 2, options["death"]["title"]["y"])
+    state["win"].blit(
+        surf_title,
+        (
+            (state["win"].get_width() - surf_title.get_width()) / 2,
+            state["options"]["death"]["title"]["y"],
+        ),
     )
 
-    surf_restart = fonts["h3"].render(
-        options["death"]["restart"]["text"], True, options["colors"]["text"]
+    surf_restart = state["fonts"]["h3"].render(
+        state["options"]["death"]["restart"]["text"], True, state["options"]["colors"]["text"]
     )
-    win.blit(
+    state["win"].blit(
         surf_restart,
-        ((win.get_width() - surf_restart.get_width()) / 2, options["death"]["restart"]["y"]),
+        (
+            (state["win"].get_width() - surf_restart.get_width()) / 2,
+            state["options"]["death"]["restart"]["y"],
+        ),
     )
 
 
 def draw_game(state: dict[str, Any]) -> None:
 
     for tile in state["tiles"]:
-        tile.update(state["tiles"], state["delta"])
+        tile.update(state)
         tile.draw(state["win"])
 
     count = count_full_rows(state["tiles"], state["options"]["tile"]["columns"])
     if count > state["full_rows"]:
         state["scrolling"] += state["options"]["tile"]["w"]
         state["tiles"].append(
-            EdgeTile(Vector(0, state["options"]["tile"]["top_y"]), state["options"])
+            EdgeTile(Vector(0, state["options"]["tile"]["top_y"]), state["options"]["tile"])
         )
         state["tiles"].append(
             EdgeTile(
@@ -394,7 +403,7 @@ def draw_game(state: dict[str, Any]) -> None:
                     state["options"]["window"]["width"] - state["options"]["tile"]["w"],
                     state["options"]["tile"]["top_y"],
                 ),
-                state["options"],
+                state["options"]["tile"],
             )
         )
         state["full_rows"] += 1
@@ -415,16 +424,16 @@ def draw_game(state: dict[str, Any]) -> None:
         state["tiles"].append(
             Tile(
                 Vector(random.choice(drop_chance_list), state["options"]["tile"]["spawn_y"]),
-                state["options"],
+                state["options"]["tile"],
             )
         )
 
     if state["player"].status == "alive":
-        state["player"].update(state["keys_down"], state["tiles"], state["delta"])
+        state["player"].update(state)
     state["player"].draw(state["win"])
 
     if state["player"].status == "dead":
-        draw_death(state["win"], state["fonts"], state["options"])
+        draw_death(state)
         if state["keys_down"][pygame.K_r]:
             player, tiles = setup(state["options"])
             state["player"] = player
@@ -442,11 +451,13 @@ def setup(options: dict[str, Any]) -> tuple[Player, list[Tile]]:
 
     tile_y = options["tile"]["base_y"]
     for i in range(options["tile"]["columns"] - 2):
-        tiles.append(Tile(Vector((i + 1) * options["tile"]["w"], tile_y), options, False))
+        tiles.append(Tile(Vector((i + 1) * options["tile"]["w"], tile_y), options["tile"], False))
     while tile_y > -options["tile"]["w"]:
-        tiles.append(EdgeTile(Vector(0, tile_y), options))
+        tiles.append(EdgeTile(Vector(0, tile_y), options["tile"]))
         tiles.append(
-            EdgeTile(Vector(options["window"]["width"] - options["tile"]["w"], tile_y), options)
+            EdgeTile(
+                Vector(options["window"]["width"] - options["tile"]["w"], tile_y), options["tile"]
+            )
         )
         tile_y -= options["tile"]["w"]
         options["tile"]["top_y"] = tile_y  # TODO: change - modifying options
@@ -460,10 +471,8 @@ def main():
     player, tiles = setup(options)
 
     state = {
-        "win": create_window(
-            options["window"]["width"], options["window"]["height"], options["title"]
-        ),
-        "fonts": create_fonts(options),
+        "win": create_window(options),
+        "fonts": create_fonts(options["font"]),
         "options": options,
         "keys_down": [],
         "player": player,
