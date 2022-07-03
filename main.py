@@ -46,7 +46,7 @@ class RandomInterval(Interval):
         self.variance = variance
         self.randomize()
 
-    def randomize(self):
+    def randomize(self) -> None:
         self.period = self.base_period + random.uniform(-self.variance, +self.variance)
 
     def update(self, ticks: float) -> bool:
@@ -156,69 +156,6 @@ class Hitbox:
         pygame.draw.rect(win, self.color, self.get_rect())
 
 
-class Player(Hitbox):
-    def __init__(self, options: dict[str, Any]):
-        pt = Vector(
-            (options["window"]["width"] - options["player"]["w"]) / 2,
-            (options["window"]["height"] - options["player"]["h"]) / 2,
-        )
-        super().__init__(
-            pt, options["player"]["w"], options["player"]["h"], "#A3BE8C"
-        )  # TODO: color
-
-        self.speed: float = options["player"]["speed"]
-        self.jump_vel: float = options["player"]["jump_vel"]
-        self.gravity: float = options["player"]["gravity"]
-        self.move_vec: Vector = Vector(0, 0)
-
-        self.jumps = 1
-
-        self.space_tk = ToggleKey(True)
-        self.p_tk = ToggleKey()
-
-        self.status = "alive"
-
-    def key_input(self, keys_down: list[bool]) -> None:
-        if keys_down[pygame.K_a]:
-            self.move_vec.x = -self.speed
-        elif keys_down[pygame.K_d]:
-            self.move_vec.x = self.speed
-        else:
-            self.move_vec.x = 0
-
-        if self.space_tk.down(keys_down[pygame.K_SPACE]) and self.jumps < 2:
-            self.move_vec.y = -self.jump_vel
-            self.jumps += 1
-
-    def move(self, delta: float) -> None:
-        self.move_vec.y += self.gravity * delta
-        self.pt.apply(self.move_vec.scalar(delta))
-
-    def check_tile_collision(self, tiles: list[Tile]) -> None:
-        current_self: Player = copy.deepcopy(self)  # TODO: not sure if the copy is needed
-
-        for tile in tiles:
-            collision = tile.directional_collide(current_self)
-            if collision == "bottom":
-                self.color = "#BF616A"
-                self.status = "dead"
-                self.move_vec.x = 0
-            elif collision == "top":
-                self.pt.y = tile.pt.y - self.h
-                self.move_vec.y = 0
-                self.jumps = 0
-                self.space_tk.down(False)
-            elif collision == "left":
-                self.pt.x = tile.pt.x - self.w
-            elif collision == "right":
-                self.pt.x = tile.pt.x + tile.w
-
-    def update(self, state: State) -> None:
-        self.key_input(state.keys_down)
-        self.move(state.delta)
-        self.check_tile_collision(state.tiles)
-
-
 class Chest(Hitbox):
     def __init__(self, chest_options, color: str, bot_tile: Tile):
         super().__init__(
@@ -248,16 +185,92 @@ class Chest(Hitbox):
                 state.coins.append(Coin(Vector(rand_x, rand_y), state.options["coin"]))
 
 
-class Fall(Hitbox):
+class Movable(Hitbox):
+    def __init__(
+        self, pt: Vector, w: float, h: float, color: str, move_vec: Vector, gravity: float
+    ):
+        super().__init__(pt, w, h, color)
+        self.move_vec: Vector = move_vec
+        self.gravity: float = gravity
+
+    def move(self, delta: float) -> None:
+        self.move_vec.y += self.gravity * delta
+        self.pt.apply(self.move_vec.scalar(delta))
+
+
+class Player(Movable):
+    def __init__(self, options: dict[str, Any]):
+        super().__init__(
+            Vector(
+                (options["window"]["width"] - options["player"]["w"]) / 2,
+                (options["window"]["height"] - options["player"]["h"]) / 2,
+            ),
+            options["player"]["w"],
+            options["player"]["h"],
+            "#A3BE8C",
+            Vector(0, 0),
+            options["player"]["gravity"],
+        )
+
+        self.speed: float = options["player"]["speed"]
+        self.jump_vel: float = options["player"]["jump_vel"]
+        self.jumps = 1
+
+        self.space_tk = ToggleKey(True)
+        self.p_tk = ToggleKey()
+
+        self.status = "alive"
+
+    def key_input(self, keys_down: list[bool]) -> None:
+        if keys_down[pygame.K_a]:
+            self.move_vec.x = -self.speed
+        elif keys_down[pygame.K_d]:
+            self.move_vec.x = self.speed
+        else:
+            self.move_vec.x = 0
+
+        if self.space_tk.down(keys_down[pygame.K_SPACE]) and self.jumps < 2:
+            self.move_vec.y = -self.jump_vel
+            self.jumps += 1
+
+    def check_tile_collision(self, tiles: list[Tile]) -> None:
+        current_self: Player = copy.deepcopy(self)  # TODO: not sure if the copy is needed
+
+        for tile in tiles:
+            collision = tile.directional_collide(current_self)
+            if collision == "bottom":
+                self.color = "#BF616A"
+                self.status = "dead"
+                self.move_vec.x = 0
+            elif collision == "top":
+                self.pt.y = tile.pt.y - self.h
+                self.move_vec.y = 0
+                self.jumps = 0
+                self.space_tk.down(False)
+            elif collision == "left":
+                self.pt.x = tile.pt.x - self.w
+            elif collision == "right":
+                self.pt.x = tile.pt.x + tile.w
+
+    def update(self, state: State) -> None:
+        self.key_input(state.keys_down)
+        self.move(state.delta)
+        self.check_tile_collision(state.tiles)
+
+
+class Fall(Movable):
     def __init__(
         self, pt: Vector, w: float, h: float, color: str, fall_speed: float, falling: bool
     ):
-        super().__init__(pt, w, h, color)
-        self.fall_speed = fall_speed
+        super().__init__(pt, w, h, color, Vector(0, fall_speed), 0)
         self.falling = falling
 
-    def fall(self, dist: float) -> None:
-        self.pt.y += dist
+    def scroll(self, dist: float):
+        move_vec_save = copy.deepcopy(self.move_vec)
+        self.move_vec.x = 0
+        self.move_vec.y = dist
+        self.move(1)
+        self.move_vec = move_vec_save
 
 
 class Tile(Fall):
@@ -276,16 +289,16 @@ class Tile(Fall):
 
     def update(self, state: State) -> None:
         if self.falling:
-            self.fall(self.fall_speed * state.delta)
+            self.move(state.delta)
             for tile in state.tiles:
                 if tile != self and self.collide(tile):
                     self.falling = False
                     self.pt.y = tile.pt.y - self.h
 
-    def fall(self, dist: float) -> None:
-        super().fall(dist)
+    def move(self, delta: float) -> None:
+        super().move(delta)
         for value in self.side_hbs.values():
-            value.pt.y += dist
+            value.pt.apply(self.move_vec.scalar(delta))
 
     def directional_collide(self, hb: Hitbox) -> str:
         if self.collide(hb):
@@ -320,15 +333,14 @@ class Coin(Fall):
 
     def update(self, state: State):
         if self.falling:
-            self.fall(self.fall_speed * state.delta)
-            for tile in state.tiles:
-                collision = tile.directional_collide(self)
-                if collision == "bottom":
-                    state.coins.remove(self)
-                    return  # avoid double-removal chance
-                elif collision == "top":
-                    self.falling = False
-                    break
+            self.move(state.delta)
+        for tile in state.tiles:
+            collision = tile.directional_collide(self)
+            if collision == "bottom":
+                state.coins.remove(self)
+                return  # avoid double-removal chance
+            elif collision == "top":
+                self.falling = False
         if state.player.status == "alive" and self.collide(state.player):
             state.coins.remove(self)
             state.score += 1
@@ -544,9 +556,9 @@ def draw_game(state: State) -> None:
         state.scrolling -= scroll_dist
         # TODO: combine
         for tile in state.tiles:
-            tile.fall(scroll_dist)
+            tile.scroll(scroll_dist)
         for coin in state.coins:
-            coin.fall(scroll_dist)
+            coin.scroll(scroll_dist)
         state.player.pt.y += scroll_dist
 
     if state.tile_spawn.update(state.ticks):

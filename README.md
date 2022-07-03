@@ -30,7 +30,9 @@ python -m mypy main.py
 
 ### Cleaning
 
-- Better flow through player.status == alive
+- Better flow/care with:
+    - Player.status == alive
+    - Fall.falling
 
 
 ### Organization
