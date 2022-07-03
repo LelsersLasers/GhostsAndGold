@@ -71,7 +71,7 @@
     "coin": {
         "w": 15,
         "h": 20,
-        "fall_speed": 100,
+        "fall_speed": 150,
         "spawn_interval_base": 20,
         "spawn_interval_variance": 10,
         "spawn_y": -20

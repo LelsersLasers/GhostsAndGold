@@ -22,6 +22,8 @@ python -m mypy main.py
 ### Main
 
 - On chest proc, "throw" 1-3 coins
+- Random inveral class
+    - use for coin and ?chest?
 
 - 4 different 'colors'
 - art, animations, particles
