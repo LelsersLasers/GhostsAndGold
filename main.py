@@ -228,10 +228,27 @@ class Player(Movable):
         self.space_tk: ToggleKey = ToggleKey(True)
         self.status: str = "alive"
 
-        self.mode: str = "blue"
+        self.mode: str = "white"
         self.mode_passives: dict[str, Any] = options["player"]["mode"]["passives"]
+        self.mode_swap_cd_base: dict[str, float] = options["player"]["mode"]["swap_cds"]
+        self.mode_swap_cds: dict[str, float] = copy.deepcopy(self.mode_swap_cd_base)
+        self.mode_colors: dict[str, str] = options["player"]["mode"]["colors"]
 
     def key_input(self, keys_down: list[bool]) -> None:
+
+        if keys_down[pygame.K_1] and self.mode != "white" and self.mode_swap_cds["white"] <= 0:
+            self.mode = "white"
+            self.mode_swap_cds["white"] = self.mode_swap_cd_base["white"]
+        elif keys_down[pygame.K_2] and self.mode != "red" and self.mode_swap_cds["red"] <= 0:
+            self.mode = "red"
+            self.mode_swap_cds["red"] = self.mode_swap_cd_base["red"]
+        elif keys_down[pygame.K_3] and self.mode != "green" and self.mode_swap_cds["green"] <= 0:
+            self.mode = "green"
+            self.mode_swap_cds["green"] = self.mode_swap_cd_base["green"]
+        elif keys_down[pygame.K_4] and self.mode != "blue" and self.mode_swap_cds["blue"] <= 0:
+            self.mode = "blue"
+            self.mode_swap_cds["blue"] = self.mode_swap_cd_base["blue"]
+
         if keys_down[pygame.K_a] or keys_down[pygame.K_LEFT]:
             self.move_vec.x = -self.speed
         elif keys_down[pygame.K_d] or keys_down[pygame.K_RIGHT]:
@@ -269,6 +286,9 @@ class Player(Movable):
                 self.pt.x = tile.pt.x + tile.w
 
     def update(self, state: State) -> None:
+        self.color = self.mode_colors[self.mode]
+        for key in self.mode_swap_cds:
+            self.mode_swap_cds[key] -= state.delta
         self.key_input(state.keys_down)
         self.move(state.delta)
         self.check_tile_collision(state.tiles)
@@ -288,7 +308,7 @@ class Fall(Movable):
 class Tile(Fall):
     def __init__(self, pt: Vector, tile_options: dict[str, Any], falling: bool = True):
         super().__init__(
-            pt, tile_options["w"], tile_options["w"], "#5E81AC", tile_options["fall_speed"], falling
+            pt, tile_options["w"], tile_options["w"], "#81A1C1", tile_options["fall_speed"], falling
         )  # TODO: color
 
         side_len = self.w - 10
