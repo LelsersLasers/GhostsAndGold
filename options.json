@@ -72,14 +72,20 @@
         "w": 15,
         "h": 20,
         "fall_speed": 150,
-        "spawn_interval_base": 5,
-        "spawn_interval_variance": 2,
-        "spawn_y": -20
+        "spawn_interval_base": 20,
+        "spawn_interval_variance": 10,
+        "spawn_y": -20,
+        "pop": {
+            "speed": 90,
+            "vel": 900,
+            "gravity": 2400,
+            "friction": 180
+        }
     },
     "chest": {
         "w": 50,
         "h": 40,
-        "spawn_chance": 0.1
+        "spawn_chance": 0.5
     },
 
     "scroll_speed": 30

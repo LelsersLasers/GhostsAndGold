@@ -18,6 +18,7 @@ python -m mypy main.py
 
 ### Bugs
 - Directional check sometimes sends sideways to top?
+- Where the coins be going?
 
 ### Main
 

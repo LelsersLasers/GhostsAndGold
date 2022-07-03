@@ -177,12 +177,21 @@ class Chest(Hitbox):
             if collision == "bottom":
                 state.chests.remove(self)
                 return
-        if self.collide(state.player):
+        if state.player.status == "alive" and self.collide(state.player):
             state.chests.remove(self)
-            for _ in range(3):
-                rand_x = self.pt.x + self.w / 2 + random.uniform(-self.w, self.w)
-                rand_y = self.pt.y - self.h / 2 + random.uniform(0, self.h / 2)
-                state.coins.append(Coin(Vector(rand_x, rand_y), state.options["coin"]))
+            num_coins = 1 #random.randint(1, 3)
+            for _ in range(num_coins):
+                c = Coin(self.get_center(), state.options["coin"])
+                c.move_vec = Vector(
+                    random.uniform(
+                        -state.options["coin"]["pop"]["speed"],
+                        state.options["coin"]["pop"]["speed"],
+                    ),
+                    -state.options["coin"]["pop"]["vel"],
+                )
+                c.move_vec.scale(state.options["coin"]["pop"]["vel"])
+                c.gravity = state.options["coin"]["pop"]["gravity"]
+                state.coins.append(c)
 
 
 class Movable(Hitbox):
@@ -241,7 +250,6 @@ class Player(Movable):
             if collision == "bottom":
                 self.color = "#BF616A"
                 self.status = "dead"
-                self.move_vec.x = 0
             elif collision == "top":
                 self.pt.y = tile.pt.y - self.h
                 self.move_vec.y = 0
@@ -279,12 +287,12 @@ class Tile(Fall):
             pt, tile_options["w"], tile_options["w"], "#5E81AC", tile_options["fall_speed"], falling
         )  # TODO: color
 
-        side_len = self.w - 4
+        side_len = self.w - 10
         self.side_hbs: dict[str, Hitbox] = {
-            "top": Hitbox(Vector(self.pt.x + 2, self.pt.y), side_len, 2, "#BF616A"),
-            "bottom": Hitbox(Vector(self.pt.x + 2, self.pt.y + self.h - 2), side_len, 2, "#BF616A"),
-            "left": Hitbox(Vector(self.pt.x, self.pt.y + 2), 2, side_len, "#BF616A"),
-            "right": Hitbox(Vector(self.pt.x + self.w - 2, self.pt.y + 2), 2, side_len, "#BF616A"),
+            "top": Hitbox(Vector(self.pt.x + 5, self.pt.y), side_len, 5, "#BF616A"),
+            "bottom": Hitbox(Vector(self.pt.x + 5, self.pt.y + self.h - 5), side_len, 5, "#BF616A"),
+            "left": Hitbox(Vector(self.pt.x, self.pt.y + 5), 5, side_len, "#BF616A"),
+            "right": Hitbox(Vector(self.pt.x + self.w - 5, self.pt.y + 5), 5, side_len, "#BF616A"),
         }
 
     def update(self, state: State) -> None:
@@ -332,18 +340,40 @@ class Coin(Fall):
         )
 
     def update(self, state: State):
-        if self.falling:
-            self.move(state.delta)
+        self.move(state.delta)
+        self.color = "#EBCB8B"
         for tile in state.tiles:
             collision = tile.directional_collide(self)
             if collision == "bottom":
                 state.coins.remove(self)
                 return  # avoid double-removal chance
             elif collision == "top":
-                self.falling = False
-        if state.player.status == "alive" and self.collide(state.player):
+                self.pt.y = tile.pt.y - self.h + 1
+                self.move_vec.x -= (
+                    state.options["coin"]["pop"]["friction"]
+                    * state.delta
+                    * get_sign(self.move_vec.x)
+                )
+                self.move_vec.y = 0
+                self.color = "#D08770"
+            elif collision == "left":
+                self.pt.x = tile.pt.x - self.w
+                self.move_vec.x = 0
+            elif collision == "right":
+                self.pt.x = tile.pt.x + tile.w
+                self.move_vec.x = 0
+        if state.player.status == "alive" and self.move_vec.y >= 0 and self.collide(state.player):
             state.coins.remove(self)
             state.score += 1
+
+
+def get_sign(x: float) -> int:
+    if x == 0:
+        return 0
+    elif x > 0:
+        return 1
+    else:
+        return -1
 
 
 def read_options() -> dict:
@@ -519,6 +549,7 @@ def draw_death(state: State) -> None:
 
 def draw_game(state: State) -> None:
 
+    # TODO: combine
     for tile in state.tiles:
         tile.update(state)
         tile.draw(state.win)
@@ -612,10 +643,9 @@ def draw_game(state: State) -> None:
     if state.player.status == "dead":
         draw_death(state)
         if state.keys_down[pygame.K_r]:
-            player, tiles = setup(state.options)
-            state.player = player
-            state.tiles = tiles
+            state.player, state.tiles = setup(state.options)
             state.coins = []
+            state.chests = []
             state.scrolling = 0
             state.full_rows = 1
             state.screen = "welcome"
