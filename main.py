@@ -39,6 +39,23 @@ class Interval:
         self.last = last
 
 
+class RandomInterval(Interval):
+    def __init__(self, base_period: float, variance: float, last: float = 1 / 500):
+        super().__init__(-1, last)  # the -1 is set with the randomize()
+        self.base_period = base_period
+        self.variance = variance
+        self.randomize()
+
+    def randomize(self):
+        self.period = self.base_period + random.uniform(-self.variance, +self.variance)
+
+    def update(self, ticks: float) -> bool:
+        if super().update(ticks):
+            self.randomize()
+            return True
+        return False
+
+
 class Vector:
     def __init__(self, x: float, y: float):
         self.x: float = x
@@ -107,7 +124,7 @@ class State:
     scrolling: float
     full_rows: int
     tile_spawn: Interval
-    coin_spawn: Interval
+    coin_spawn: RandomInterval
     screen: str
 
 
@@ -312,7 +329,7 @@ class Coin(Fall):
                 elif collision == "top":
                     self.falling = False
                     break
-        if self.collide(state.player):
+        if state.player.status == "alive" and self.collide(state.player):
             state.coins.remove(self)
             state.score += 1
 
@@ -562,10 +579,6 @@ def draw_game(state: State) -> None:
                 state.options["coin"],
             )
         )
-        state.coin_spawn.period = state.options["coin"]["spawn_interval_base"] + random.uniform(
-            -state.options["coin"]["spawn_interval_variance"],
-            state.options["coin"]["spawn_interval_variance"],
-        )
 
     if state.player.status == "alive":
         state.player.update(state)
@@ -636,7 +649,11 @@ def main():
         0,
         1,
         Interval(options["tile"]["spawn_interval"], 1 / 500),
-        Interval(options["coin"]["spawn_interval_base"], 1 / 500),
+        RandomInterval(
+            options["coin"]["spawn_interval_base"],
+            options["coin"]["spawn_interval_variance"],
+            1 / 500,
+        ),
         "welcome",
     )
 
