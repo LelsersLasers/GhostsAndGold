@@ -14,12 +14,16 @@
             "h1": 80,
             "h2": 60,
             "h3": 40,
-            "h4": 20
+            "h4": 30
         }
     },
     "welcome": {
         "title": {
-            "y": 200
+            "y": 175
+        },
+        "score": {
+            "text": "Last score: %i",
+            "y": 300
         },
         "start": {
             "text": "Press [SPACE] to start",
@@ -28,6 +32,12 @@
         "instructions": {
             "text": "Press [I] for instructions",
             "y": 500
+        }
+    },
+    "game": {
+        "score": {
+            "text": "Score: %i",
+            "y": 50
         }
     },
     "death": {
@@ -50,13 +60,13 @@
     "tile": {
         "w": 60,
         "fall_speed": 200,
-        "spawn_interval": 1,
+        "spawn_interval": 0.8,
         "spawn_y": -60,
         "spawn_xs": [60, 120, 180, 240, 300, 360, 420, 480, 540, 600],
         "columns": 12,
         "base_y": 770,
-        "spawn_scale_min": 5,
-        "spawn_scale_max": 95
+        "spawn_scale_min": 1,
+        "spawn_scale_max": 99
     },
     "coin": {
         "w": 15,

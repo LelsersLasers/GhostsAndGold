@@ -261,6 +261,9 @@ class Coin(Fall):
                 elif collision == "top":
                     self.falling = False
                     break
+        if self.collide(state["player"]):
+            state["coins"].remove(self)
+            state["score"] += 1
 
 
 def read_options() -> dict:
@@ -296,6 +299,7 @@ def handle_events(state: dict[str, Any]) -> None:
         if state["keys_down"][pygame.K_SPACE]:
             state["tile_spawn"].reset(state["ticks"])
             state["coin_spawn"].reset(state["ticks"])
+            state["score"] = 0
             state["screen"] = "game"
         elif state["keys_down"][pygame.K_i]:
             state["screen"] = "instructions"
@@ -318,6 +322,18 @@ def draw_welcome(state: dict[str, Any]) -> None:
             state["options"]["welcome"]["title"]["y"],
         ),
     )
+
+    if state["score"] != -1:
+        surf_score = state["fonts"]["h4"].render(
+           state["options"]["welcome"]["score"]["text"] % state["score"], True, state["options"]["colors"]["text"]
+        )
+        state["win"].blit(
+            surf_score,
+            (
+                (state["win"].get_width() - surf_score.get_width()) / 2,
+                state["options"]["welcome"]["score"]["y"],
+            ),
+        )
 
     surf_start = state["fonts"]["h3"].render(
         state["options"]["welcome"]["start"]["text"], True, state["options"]["colors"]["text"]
@@ -497,6 +513,17 @@ def draw_game(state: dict[str, Any]) -> None:
         state["player"].update(state)
     state["player"].draw(state["win"])
 
+    surf_score = state["fonts"]["h4"].render(
+        state["options"]["game"]["score"]["text"] % state["score"], True, state["options"]["colors"]["text"]
+    )
+    state["win"].blit(
+        surf_score,
+        (
+            (state["win"].get_width() - surf_score.get_width()) / 2,
+            state["options"]["game"]["score"]["y"],
+        ),
+    )
+
     if state["player"].status == "dead":
         draw_death(state)
         if state["keys_down"][pygame.K_r]:
@@ -544,6 +571,7 @@ def main():
         "coins": [],
         "delta": 1 / 500,
         "ticks": 1 / 500,
+        "score": -1,
         "scrolling": 0,
         "full_rows": 1,
         "tile_spawn": Interval(options["tile"]["spawn_interval"], 1 / 500),
