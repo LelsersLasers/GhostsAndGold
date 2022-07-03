@@ -88,7 +88,7 @@
         "fall_speed": 200,
         "spawn_interval_base": 2,
         "spawn_interval_min": 0.3,
-        "spawn_interval_rate": -0.002833,
+        "spawn_interval_log_rate": -0.68588,
         "spawn_y": -60,
         "spawn_xs": [60, 120, 180, 240, 300, 360, 420, 480, 540, 600],
         "columns": 12,

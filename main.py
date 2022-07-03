@@ -687,10 +687,9 @@ def draw_game(state: State) -> None:
 
         state.tile_spawn.period = max(
             state.options["tile"]["spawn_interval_base"]
-            + state.options["tile"]["spawn_interval_rate"] * state.ticks,
+            + state.options["tile"]["spawn_interval_log_rate"] * math.log(state.ticks + 1, 10),
             state.options["tile"]["spawn_interval_min"],
         )
-        print(state.tile_spawn.period)
 
     if state.coin_spawn.update(state.ticks):
         state.coins.append(
