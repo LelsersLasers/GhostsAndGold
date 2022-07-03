@@ -21,6 +21,8 @@ python -m mypy main.py
 
 ### Main
 
+- On chest proc, "throw" 1-3 coins
+
 - 4 different 'colors'
 - art, animations, particles
 - chests/power ups?

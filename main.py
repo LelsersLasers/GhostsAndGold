@@ -181,6 +181,35 @@ class Player(Hitbox):
         self.check_tile_collision(state["tiles"])
 
 
+class Chest(Hitbox):
+    def __init__(self, chest_options, color: str, bot_tile: Tile):
+        super().__init__(
+            Vector(
+                bot_tile.pt.x + (bot_tile.w - chest_options["w"]) / 2,
+                bot_tile.pt.y - chest_options["h"],
+            ),
+            chest_options["w"],
+            chest_options["h"],
+            color,
+        )
+        self.bot_tile = bot_tile
+
+    def update(self, state: dict[str, Any]) -> None:
+        self.pt.y = self.bot_tile.pt.y - self.h
+
+        for tile in state["tiles"]:
+            collision = tile.directional_collide(self)
+            if collision == "bottom":
+                state["chests"].remove(self)
+                return
+        if self.collide(state["player"]):
+            state["chests"].remove(self)
+            for _ in range(3):
+                rand_x = self.pt.x + self.w / 2 + random.uniform(-self.w, self.w)
+                rand_y = self.pt.y - self.h / 2 + random.uniform(0, self.h / 2)
+                state["coins"].append(Coin(Vector(rand_x, rand_y), state["options"]["coin"]))
+
+
 class Fall(Hitbox):
     def __init__(
         self, pt: Vector, w: float, h: float, color: str, fall_speed: float, falling: bool
@@ -257,13 +286,13 @@ class Coin(Fall):
                 collision = tile.directional_collide(self)
                 if collision == "bottom":
                     state["coins"].remove(self)
-                    break
+                    return  # avoid double-removal chance
                 elif collision == "top":
                     self.falling = False
                     break
         if self.collide(state["player"]):
             state["coins"].remove(self)
-            state["score"] += 1
+            state["score"] += 5
 
 
 def read_options() -> dict:
@@ -325,7 +354,9 @@ def draw_welcome(state: dict[str, Any]) -> None:
 
     if state["score"] != -1:
         surf_score = state["fonts"]["h4"].render(
-           state["options"]["welcome"]["score"]["text"] % state["score"], True, state["options"]["colors"]["text"]
+            state["options"]["welcome"]["score"]["text"] % state["score"],
+            True,
+            state["options"]["colors"]["text"],
         )
         state["win"].blit(
             surf_score,
@@ -443,6 +474,10 @@ def draw_game(state: dict[str, Any]) -> None:
         tile.update(state)
         tile.draw(state["win"])
 
+    for chest in state["chests"]:
+        chest.update(state)
+        chest.draw(state["win"])
+
     for coin in state["coins"]:
         coin.update(state)
         coin.draw(state["win"])
@@ -466,6 +501,8 @@ def draw_game(state: dict[str, Any]) -> None:
         )
         state["full_rows"] += 1
         state["scrolling"] += state["options"]["tile"]["w"]
+        if state["player"].status == "alive":
+            state["score"] += 1
 
     if state["scrolling"] > 0:
         scroll_dist = state["delta"] * state["options"]["scroll_speed"]
@@ -480,12 +517,14 @@ def draw_game(state: dict[str, Any]) -> None:
         for i in range(len(state["options"]["tile"]["spawn_xs"])):
             drop_chance_list += [state["options"]["tile"]["spawn_xs"][i]] * drop_chances[i]
 
-        state["tiles"].append(
-            Tile(
-                Vector(random.choice(drop_chance_list), state["options"]["tile"]["spawn_y"]),
-                state["options"]["tile"],
-            )
+        new_tile = Tile(
+            Vector(random.choice(drop_chance_list), state["options"]["tile"]["spawn_y"]),
+            state["options"]["tile"],
         )
+        state["tiles"].append(new_tile)
+        chest_chance = random.random()
+        if chest_chance < state["options"]["chest"]["spawn_chance"]:
+            state["chests"].append(Chest(state["options"]["chest"], "#B48EAD", new_tile))
 
     if state["coin_spawn"].update(state["ticks"]):
         state["coins"].append(
@@ -514,7 +553,9 @@ def draw_game(state: dict[str, Any]) -> None:
     state["player"].draw(state["win"])
 
     surf_score = state["fonts"]["h4"].render(
-        state["options"]["game"]["score"]["text"] % state["score"], True, state["options"]["colors"]["text"]
+        state["options"]["game"]["score"]["text"] % state["score"],
+        True,
+        state["options"]["colors"]["text"],
     )
     state["win"].blit(
         surf_score,
@@ -569,6 +610,7 @@ def main():
         "player": player,
         "tiles": tiles,
         "coins": [],
+        "chests": [],
         "delta": 1 / 500,
         "ticks": 1 / 500,
         "score": -1,

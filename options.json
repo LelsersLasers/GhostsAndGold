@@ -76,6 +76,11 @@
         "spawn_interval_variance": 10,
         "spawn_y": -20
     },
+    "chest": {
+        "w": 50,
+        "h": 40,
+        "spawn_chance": 0.1
+    },
 
     "scroll_speed": 30
 }
