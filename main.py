@@ -179,7 +179,7 @@ class Chest(Hitbox):
                 return
         if state.player.status == "alive" and self.collide(state.player):
             state.chests.remove(self)
-            num_coins = 1 #random.randint(1, 3)
+            num_coins = random.choice(state.options["coin"]["pop"]["coin_chances"])
             for _ in range(num_coins):
                 c = Coin(self.get_center(), state.options["coin"])
                 c.move_vec = Vector(
@@ -231,14 +231,17 @@ class Player(Movable):
         self.status = "alive"
 
     def key_input(self, keys_down: list[bool]) -> None:
-        if keys_down[pygame.K_a]:
+        if keys_down[pygame.K_a] or keys_down[pygame.K_LEFT]:
             self.move_vec.x = -self.speed
-        elif keys_down[pygame.K_d]:
+        elif keys_down[pygame.K_d] or keys_down[pygame.K_RIGHT]:
             self.move_vec.x = self.speed
         else:
             self.move_vec.x = 0
 
-        if self.space_tk.down(keys_down[pygame.K_SPACE]) and self.jumps < 2:
+        if (
+            self.space_tk.down(keys_down[pygame.K_SPACE] or keys_down[pygame.K_UP])
+            and self.jumps < 2
+        ):
             self.move_vec.y = -self.jump_vel
             self.jumps += 1
 
@@ -274,11 +277,7 @@ class Fall(Movable):
         self.falling = falling
 
     def scroll(self, dist: float):
-        move_vec_save = copy.deepcopy(self.move_vec)
-        self.move_vec.x = 0
-        self.move_vec.y = dist
-        self.move(1)
-        self.move_vec = move_vec_save
+        self.pt.y += dist
 
 
 class Tile(Fall):
@@ -302,6 +301,11 @@ class Tile(Fall):
                 if tile != self and self.collide(tile):
                     self.falling = False
                     self.pt.y = tile.pt.y - self.h
+
+    def scroll(self, dist: float) -> None:
+        super().scroll(dist)
+        for value in self.side_hbs.values():
+            value.pt.y += dist
 
     def move(self, delta: float) -> None:
         super().move(delta)
@@ -341,7 +345,6 @@ class Coin(Fall):
 
     def update(self, state: State):
         self.move(state.delta)
-        self.color = "#EBCB8B"
         for tile in state.tiles:
             collision = tile.directional_collide(self)
             if collision == "bottom":
@@ -355,7 +358,6 @@ class Coin(Fall):
                     * get_sign(self.move_vec.x)
                 )
                 self.move_vec.y = 0
-                self.color = "#D08770"
             elif collision == "left":
                 self.pt.x = tile.pt.x - self.w
                 self.move_vec.x = 0

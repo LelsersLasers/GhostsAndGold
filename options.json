@@ -76,6 +76,7 @@
         "spawn_interval_variance": 10,
         "spawn_y": -20,
         "pop": {
+            "coin_chances": [1, 1, 2, 2, 2, 3],
             "speed": 90,
             "vel": 900,
             "gravity": 2400,
@@ -85,7 +86,7 @@
     "chest": {
         "w": 50,
         "h": 40,
-        "spawn_chance": 0.5
+        "spawn_chance": 0.1
     },
 
     "scroll_speed": 30
