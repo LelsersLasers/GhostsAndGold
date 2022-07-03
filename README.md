@@ -49,12 +49,12 @@ python -m mypy main.py
 
 ### Main
 
-- On chest proc, "throw" 1-3 coins
-- Use random interval for chest spawn?
-
-- 4 different 'colors'
-- art, animations, particles
-- chests/power ups?
+- Modes:
+    - Actives?
+    - Is 4 too many?
+    - Remove all together (replace with just 1 active)
+- Polish
+    - art, animations, particles, lights, etc
 
 ### Cleaning
 

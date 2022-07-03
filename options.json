@@ -38,6 +38,12 @@
         "score": {
             "text": "Score: %i",
             "y": 50
+        },
+        "cd_box": {
+            "base_y": 25,
+            "base_x": 5,
+            "w": 50,
+            "h": 50
         }
     },
     "death": {
@@ -80,7 +86,9 @@
     "tile": {
         "w": 60,
         "fall_speed": 200,
-        "spawn_interval": 0.8,
+        "spawn_interval_base": 2,
+        "spawn_interval_min": 0.3,
+        "spawn_interval_rate": -0.002833,
         "spawn_y": -60,
         "spawn_xs": [60, 120, 180, 240, 300, 360, 420, 480, 540, 600],
         "columns": 12,
