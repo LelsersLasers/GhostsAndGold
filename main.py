@@ -180,6 +180,8 @@ class Chest(Hitbox):
         if state.player.status == "alive" and self.collide(state.player):
             state.chests.remove(self)
             num_coins = random.choice(state.options["coin"]["pop"]["coin_chances"])
+            if state.player.mode == "blue":
+                num_coins = random.choice(state.player.mode_passives["coin_chances"])
             for _ in range(num_coins):
                 c = Coin(self.get_center(), state.options["coin"])
                 c.move_vec = Vector(
@@ -220,15 +222,14 @@ class Player(Movable):
             Vector(0, 0),
             options["player"]["gravity"],
         )
-
         self.speed: float = options["player"]["speed"]
         self.jump_vel: float = options["player"]["jump_vel"]
-        self.jumps = 1
+        self.jumps: int = 1
+        self.space_tk: ToggleKey = ToggleKey(True)
+        self.status: str = "alive"
 
-        self.space_tk = ToggleKey(True)
-        self.p_tk = ToggleKey()
-
-        self.status = "alive"
+        self.mode: str = "blue"
+        self.mode_passives: dict[str, Any] = options["player"]["mode"]["passives"]
 
     def key_input(self, keys_down: list[bool]) -> None:
         if keys_down[pygame.K_a] or keys_down[pygame.K_LEFT]:
@@ -237,12 +238,16 @@ class Player(Movable):
             self.move_vec.x = self.speed
         else:
             self.move_vec.x = 0
+        if self.mode == "red":
+            self.move_vec.x *= self.mode_passives["speed"]
 
         if (
             self.space_tk.down(keys_down[pygame.K_SPACE] or keys_down[pygame.K_UP])
             and self.jumps < 2
         ):
             self.move_vec.y = -self.jump_vel
+            if self.mode == "white":
+                self.move_vec.y *= self.mode_passives["jump"]
             self.jumps += 1
 
     def check_tile_collision(self, tiles: list[Tile]) -> None:
@@ -296,7 +301,10 @@ class Tile(Fall):
 
     def update(self, state: State) -> None:
         if self.falling:
-            self.move(state.delta)
+            delta = state.delta
+            if state.player.mode == "green":
+                delta *= state.player.mode_passives["fall"]
+            self.move(delta)
             for tile in state.tiles:
                 if tile != self and self.collide(tile):
                     self.falling = False

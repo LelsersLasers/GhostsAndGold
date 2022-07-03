@@ -55,7 +55,15 @@
         "h": 50,
         "speed": 300,
         "jump_vel": 800,
-        "gravity": 2400
+        "gravity": 2400,
+        "mode": {
+            "passives": {
+                "jump": 1.25,
+                "speed": 1.25,
+                "fall": 0.75,
+                "coin_chances": [1, 2, 2, 3, 3, 3, 4]
+            }
+        }
     },
     "tile": {
         "w": 60,

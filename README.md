@@ -13,6 +13,34 @@ python -m black --line-length 100 main.py
 python -m mypy main.py
 
 
+## Modes
+
+- White
+    - default
+    - Passive:
+        - Increased jump height
+    - Active
+        - Teleport to top of screen
+        - Medium CD
+- Red
+    - Passive:
+        - Increased speed (left right)
+    - Active:
+        - Dash direction moving
+        - Lowish CD
+- Green
+    - Passive:
+        - Tiles fall slower
+    - Active:
+        - shield that breaks falling tile
+            - will pop a chest
+        - long CD
+- Blue
+    - Passive:
+        - Increased coin pop chance
+    - Active:
+        - Drop coin at random location
+
 
 ## TODO
 
@@ -33,6 +61,11 @@ python -m mypy main.py
 - Better flow/care with:
     - Player.status == alive
     - Fall.falling
+- Types
+    - All functions have return type
+    - All parameters have type
+    - All member variables have type
+- When using options in class vs member variables
 
 
 ### Organization
