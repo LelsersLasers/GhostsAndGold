@@ -29,4 +29,10 @@ python -m mypy main.py
 - art, animations, particles
 - chests/power ups?
 
+### Organization
+
 - Play with Class.var (static variables)
+- Multi class inheritance
+- Setup like GGEZ
+    - State/controller with a update and render method
+    - State.update(), state.draw() instead of update(state), draw(state)
