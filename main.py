@@ -177,7 +177,7 @@ class Chest(Hitbox):
             if collision == "bottom":
                 state.chests.remove(self)
                 return
-        if state.player.status == "alive" and self.collide(state.player):
+        if state.player.alive and self.collide(state.player):
             state.chests.remove(self)
             num_coins = random.choice(state.options["coin"]["pop"]["coin_chances"])
             if state.player.mode == "green":
@@ -226,7 +226,8 @@ class Player(Movable):
         self.jump_vel: float = options["player"]["jump_vel"]
         self.jumps: int = 1
         self.space_tk: ToggleKey = ToggleKey(True)
-        self.status: str = "alive"
+        self.alive: bool = True
+        self.last_dir = "right"
 
         self.modes: list[str] = ["green", "blue"]
         self.mode: str = "green"
@@ -238,18 +239,25 @@ class Player(Movable):
         self.mode_cds: dict[str, float] = copy.deepcopy(self.mode_cds_base)
 
     def key_input(self, keys_down: list[bool]) -> None:
-        
         if keys_down[pygame.K_1]:
             self.mode = "green"
         elif keys_down[pygame.K_2]:
             self.mode = "blue"
 
-        if keys_down[pygame.K_a] or keys_down[pygame.K_LEFT]:
-            self.move_vec.x = -self.speed
-        elif keys_down[pygame.K_d] or keys_down[pygame.K_RIGHT]:
+        self.move_vec.x = 0
+        if keys_down[pygame.K_d] or keys_down[pygame.K_RIGHT]:
             self.move_vec.x = self.speed
-        else:
-            self.move_vec.x = 0
+            self.last_dir = "right"
+        elif keys_down[pygame.K_a] or keys_down[pygame.K_LEFT]:
+            self.move_vec.x = -self.speed
+            self.last_dir = "left"
+
+        if self.mode == "green" and self.mode_cds["green"] == 0 and keys_down[pygame.K_e]:
+            if self.last_dir == "right":
+                self.pt.x += self.mode_options["green"]["blink_dist"]
+            elif self.last_dir == "left":
+                self.pt.x -= self.mode_options["green"]["blink_dist"]
+            self.mode_cds["green"] = self.mode_cds_base["green"]
 
         if (
             self.space_tk.down(keys_down[pygame.K_SPACE] or keys_down[pygame.K_UP])
@@ -263,8 +271,13 @@ class Player(Movable):
 
         for tile in tiles:
             collision = tile.directional_collide(current_self)
-            if collision == "bottom":
-                self.status = "dead"
+            if collision != "none" and type(tile) == EdgeTile:
+                if self.last_dir == "right":
+                    self.pt.x = tile.pt.x - self.w
+                elif self.last_dir == "left":
+                    self.pt.x = tile.pt.x + tile.w
+            elif collision == "bottom":
+                self.alive = False
             elif collision == "top":
                 self.pt.y = tile.pt.y - self.h
                 self.move_vec.y = 0
@@ -280,7 +293,14 @@ class Player(Movable):
         for key in self.mode_cds:
             self.mode_cds[key] -= state.delta
             self.mode_cds[key] = max(0, self.mode_cds[key])
+
         self.key_input(state.keys_down)
+
+        if self.pt.x < 0:
+            self.pt.x = 0
+        elif self.pt.x + self.w > state.win.get_width():
+            self.pt.x = state.win.get_width() - self.w
+
         self.move(state.delta)
         self.check_tile_collision(state.tiles)
 
@@ -383,7 +403,7 @@ class Coin(Fall):
             elif collision == "right":
                 self.pt.x = tile.pt.x + tile.w
                 self.move_vec.x = 0
-        if state.player.status == "alive" and self.move_vec.y >= 0 and self.collide(state.player):
+        if state.player.alive and self.move_vec.y >= 0 and self.collide(state.player):
             state.coins.remove(self)
             state.score += 1
 
@@ -570,17 +590,17 @@ def draw_death(state: State) -> None:
 
 def draw_hud(state: State) -> None:
     for i in range(len(state.player.modes)):
-        pt = Vector(
-            state.options["game"]["cd_box"]["xs"][i],
-            state.options["game"]["cd_box"]["y"]
-        )
+        pt = Vector(state.options["game"]["cd_box"]["xs"][i], state.options["game"]["cd_box"]["y"])
         full_rect = (
             int(pt.x),
             int(pt.y),
             int(state.options["game"]["cd_box"]["w"]),
             int(state.options["game"]["cd_box"]["h"]),
         )
-        percent = state.player.mode_cds[state.player.modes[i]] / state.player.mode_cds_base[state.player.modes[i]]
+        percent = (
+            state.player.mode_cds[state.player.modes[i]]
+            / state.player.mode_cds_base[state.player.modes[i]]
+        )
         cd_rect = (
             int(pt.x),
             int(pt.y + state.options["game"]["cd_box"]["h"] * percent),
@@ -589,7 +609,9 @@ def draw_hud(state: State) -> None:
         )
 
         pygame.draw.rect(state.win, state.options["colors"]["text"], full_rect)
-        pygame.draw.rect(state.win, state.player.mode_options[state.player.modes[i]]["color"], cd_rect)
+        pygame.draw.rect(
+            state.win, state.player.mode_options[state.player.modes[i]]["color"], cd_rect
+        )
         pygame.draw.rect(state.win, state.options["colors"]["text"], full_rect, 3)
 
         surf_cd = state.fonts["h4"].render(
@@ -694,7 +716,7 @@ def draw_game(state: State) -> None:
             )
         )
 
-    if state.player.status == "alive":
+    if state.player.alive:
         state.player.update(state)
     state.player.draw(state.win)
 
@@ -713,7 +735,7 @@ def draw_game(state: State) -> None:
 
     draw_hud(state)
 
-    if state.player.status == "dead":
+    if not state.player.alive:
         draw_death(state)
         if state.keys_down[pygame.K_r]:
             state.player, state.tiles = setup(state.options)

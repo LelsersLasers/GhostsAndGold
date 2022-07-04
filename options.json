@@ -66,8 +66,9 @@
         "mode": {
             "green": {
                 "coin_chances": [1, 2, 2, 3, 3, 3, 4],
-                "cd": 3,
-                "color": "#A3BE8C"
+                "cd": 4,
+                "color": "#A3BE8C",
+                "blink_dist": 240
             },
             "blue": {
                 "fall": 0.75,

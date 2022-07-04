@@ -19,7 +19,7 @@ python -m mypy main.py
     - Passive:
         - increased drop chance from chests, increased chests
     - Active:
-        - Dash
+        - Blink
 - Blue
     - Passive:
         - Tiles fall slower
