@@ -35,6 +35,7 @@
         }
     },
     "game": {
+        "darken_alpha": 45,
         "score": {
             "text": "Score: %i",
             "y": 80
@@ -55,6 +56,20 @@
         "restart": {
             "text": "Press [R] to restart",
             "y": 400
+        }
+    },
+    "pause": {
+        "title": {
+            "text": "Paused",
+            "y": 200
+        },
+        "resume": {
+            "text": "Press [ESCAPE] to resume",
+            "y": 400
+        },
+        "quit": {
+            "text": "Press [Q] to quit",
+            "y": 500
         }
     },
     "player": {

@@ -113,6 +113,8 @@ class State:
     win: pygame.surface.Surface
     fonts: dict[str, pygame.font.Font]
     options: dict[str, Any]
+    paused: bool
+    screen: str
     keys_down: list[bool]
     player: Player
     tiles: list[Tile]
@@ -125,7 +127,7 @@ class State:
     full_rows: int
     tile_spawn: Interval
     coin_spawn: RandomInterval
-    screen: str
+    esc_tk: ToggleKey
 
 
 class Hitbox:
@@ -480,6 +482,19 @@ def handle_events(state: State) -> None:
     elif state.screen == "instructions":
         if state.keys_down[pygame.K_ESCAPE]:
             state.screen = "welcome"
+    elif state.screen == "game":
+        if state.esc_tk.down(state.keys_down[pygame.K_ESCAPE]):
+            state.paused = not state.paused
+        elif (not state.player.alive and state.keys_down[pygame.K_r]) or (
+            state.paused and state.keys_down[pygame.K_q]
+        ):
+            state.player, state.tiles = setup(state.options)
+            state.coins = []
+            state.chests = []
+            state.scrolling = 0
+            state.full_rows = 1
+            state.paused = False
+            state.screen = "welcome"
 
 
 def draw_welcome(state: State) -> None:
@@ -580,10 +595,14 @@ def calc_drop_chances(tiles: list[Tile], options: dict[str, Any]) -> list[int]:
     return drop_chances
 
 
-def draw_death(state: State) -> None:
+def draw_darken(state: State) -> None:
     darken_rect = pygame.Surface((state.win.get_width(), state.win.get_height()), pygame.SRCALPHA)
-    darken_rect.fill((0, 0, 0, 10))
+    darken_rect.fill((0, 0, 0, state.options["game"]["darken_alpha"]))
     state.win.blit(darken_rect, (0, 0))
+
+
+def draw_death(state: State) -> None:
+    draw_darken(state)
 
     surf_title = state.fonts["h2"].render(
         state.options["death"]["title"]["text"], True, state.options["colors"]["text"]
@@ -604,6 +623,123 @@ def draw_death(state: State) -> None:
         (
             (state.win.get_width() - surf_restart.get_width()) / 2,
             state.options["death"]["restart"]["y"],
+        ),
+    )
+
+
+def draw_unpause(state: State) -> None:
+    # Prob some way to do this without the '# type: ignore'
+    entities: list[Hitbox] = state.tiles + state.chests + state.coins  # type: ignore
+    for e in entities:
+        e.update(state)
+        e.draw(state.win)
+
+    count = count_full_rows(state.tiles, state.options["tile"]["columns"])
+    if count > state.full_rows:
+        state.tiles.append(
+            EdgeTile(
+                Vector(0, state.options["tile"]["top_y"] - state.scrolling),
+                state.options["tile"],
+            )
+        )
+        state.tiles.append(
+            EdgeTile(
+                Vector(
+                    state.options["window"]["width"] - state.options["tile"]["w"],
+                    state.options["tile"]["top_y"] - state.scrolling,
+                ),
+                state.options["tile"],
+            )
+        )
+        state.full_rows += 1
+        state.scrolling += state.options["tile"]["w"]
+
+    if state.scrolling > 0:
+        scroll_dist = state.delta * state.options["scroll_speed"]
+        state.scrolling -= scroll_dist
+        falling: list[Fall] = state.tiles + state.coins  # type: ignore
+        for f in falling:
+            f.scroll(scroll_dist)
+        state.player.pt.y += scroll_dist
+
+    if state.tile_spawn.update(state.ticks):
+        drop_chances = calc_drop_chances(state.tiles, state.options)
+        drop_chance_list: list[float] = []
+        for i in range(len(state.options["tile"]["spawn_xs"])):
+            drop_chance_list += [state.options["tile"]["spawn_xs"][i]] * drop_chances[i]
+
+        new_tile = Tile(
+            Vector(random.choice(drop_chance_list), state.options["tile"]["spawn_y"]),
+            state.options["tile"],
+        )
+        state.tiles.append(new_tile)
+        chest_chance = random.random()
+        if chest_chance < state.options["chest"]["spawn_chance"]:
+            state.chests.append(Chest(state.options["chest"], "#B48EAD", new_tile))
+
+        state.tile_spawn.period = max(
+            state.options["tile"]["spawn_interval_base"]
+            + state.options["tile"]["spawn_interval_log_rate"] * math.log(state.ticks + 1, 10),
+            state.options["tile"]["spawn_interval_min"],
+        )
+
+    if state.coin_spawn.update(state.ticks):
+        state.coins.append(
+            Coin(
+                Vector(
+                    random.uniform(
+                        state.options["tile"]["w"],
+                        state.options["window"]["width"]
+                        - state.options["tile"]["w"]
+                        - state.options["coin"]["w"],
+                    ),
+                    state.options["coin"]["spawn_y"],
+                ),
+                state.options["coin"],
+            )
+        )
+
+    if state.player.alive:
+        state.player.update(state)
+
+
+def draw_pause(state: State) -> None:
+    draw_darken(state)
+
+    entities: list[Hitbox] = state.tiles + state.chests + state.coins  # type: ignore
+    for e in entities:
+        e.draw(state.win)
+
+    surf_title = state.fonts["h2"].render(
+        state.options["pause"]["title"]["text"], True, state.options["colors"]["text"]
+    )
+    state.win.blit(
+        surf_title,
+        (
+            (state.win.get_width() - surf_title.get_width()) / 2,
+            state.options["pause"]["title"]["y"],
+        ),
+    )
+
+    surf_resume = state.fonts["h3"].render(
+        state.options["pause"]["resume"]["text"], True, state.options["colors"]["text"]
+    )
+    state.win.blit(
+        surf_resume,
+        (
+            (state.win.get_width() - surf_resume.get_width()) / 2,
+            state.options["pause"]["resume"]["y"],
+        ),
+    )
+
+    surf_quit = state.fonts["h4"].render(
+        state.options["pause"]["quit"]["text"], True, state.options["colors"]["text"]
+    )
+    state.win.blit(
+        surf_quit,
+        (
+            (state.win.get_width() - surf_quit.get_width()) / 2,
+            state.options["pause"]["quit"]["y"],
         ),
     )
 
@@ -655,80 +791,9 @@ def draw_hud(state: State) -> None:
 
 
 def draw_game(state: State) -> None:
+    if not state.paused:
+        draw_unpause(state)
 
-    # Prob some way to do this without the '# type: ignore'
-    entities: list[Hitbox] = state.tiles + state.chests + state.coins  # type: ignore
-    for e in entities:
-        e.update(state)
-        e.draw(state.win)
-
-    count = count_full_rows(state.tiles, state.options["tile"]["columns"])
-    if count > state.full_rows:
-        state.tiles.append(
-            EdgeTile(
-                Vector(0, state.options["tile"]["top_y"] - state.scrolling),
-                state.options["tile"],
-            )
-        )
-        state.tiles.append(
-            EdgeTile(
-                Vector(
-                    state.options["window"]["width"] - state.options["tile"]["w"],
-                    state.options["tile"]["top_y"] - state.scrolling,
-                ),
-                state.options["tile"],
-            )
-        )
-        state.full_rows += 1
-        state.scrolling += state.options["tile"]["w"]
-
-    if state.scrolling > 0:
-        scroll_dist = state.delta * state.options["scroll_speed"]
-        state.scrolling -= scroll_dist
-        entities: list[Fall] = state.tiles + state.coins  # type: ignore
-        for e in state.tiles:
-            e.scroll(scroll_dist)
-        state.player.pt.y += scroll_dist
-
-    if state.tile_spawn.update(state.ticks):
-        drop_chances = calc_drop_chances(state.tiles, state.options)
-        drop_chance_list: list[float] = []
-        for i in range(len(state.options["tile"]["spawn_xs"])):
-            drop_chance_list += [state.options["tile"]["spawn_xs"][i]] * drop_chances[i]
-
-        new_tile = Tile(
-            Vector(random.choice(drop_chance_list), state.options["tile"]["spawn_y"]),
-            state.options["tile"],
-        )
-        state.tiles.append(new_tile)
-        chest_chance = random.random()
-        if chest_chance < state.options["chest"]["spawn_chance"]:
-            state.chests.append(Chest(state.options["chest"], "#B48EAD", new_tile))
-
-        state.tile_spawn.period = max(
-            state.options["tile"]["spawn_interval_base"]
-            + state.options["tile"]["spawn_interval_log_rate"] * math.log(state.ticks + 1, 10),
-            state.options["tile"]["spawn_interval_min"],
-        )
-
-    if state.coin_spawn.update(state.ticks):
-        state.coins.append(
-            Coin(
-                Vector(
-                    random.uniform(
-                        state.options["tile"]["w"],
-                        state.options["window"]["width"]
-                        - state.options["tile"]["w"]
-                        - state.options["coin"]["w"],
-                    ),
-                    state.options["coin"]["spawn_y"],
-                ),
-                state.options["coin"],
-            )
-        )
-
-    if state.player.alive:
-        state.player.update(state)
     state.player.draw(state.win)
 
     surf_score = state.fonts["h4"].render(
@@ -746,15 +811,10 @@ def draw_game(state: State) -> None:
 
     draw_hud(state)
 
-    if not state.player.alive:
+    if state.paused:
+        draw_pause(state)
+    elif not state.player.alive:
         draw_death(state)
-        if state.keys_down[pygame.K_r]:
-            state.player, state.tiles = setup(state.options)
-            state.coins = []
-            state.chests = []
-            state.scrolling = 0
-            state.full_rows = 1
-            state.screen = "welcome"
 
 
 def setup(options: dict[str, Any]) -> tuple[Player, list[Tile]]:
@@ -786,6 +846,8 @@ def main():
         create_window(options),
         create_fonts(options["font"]),
         options,
+        False,
+        "welcome",
         [],
         player,
         tiles,
@@ -802,7 +864,7 @@ def main():
             options["coin"]["spawn_interval_variance"],
             1 / 500,
         ),
-        "welcome",
+        ToggleKey(),
     )
 
     last_time = time.time()
@@ -814,7 +876,8 @@ def main():
         if state.delta <= 0:
             state.delta = 1 / 500
         last_time = time.time()
-        state.ticks += state.delta
+        if not state.paused:
+            state.ticks += state.delta
 
         state.keys_down = pygame.key.get_pressed()
 

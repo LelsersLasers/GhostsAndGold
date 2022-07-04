@@ -55,6 +55,9 @@ python -m mypy main.py
 - When using options in class vs member variables
 - Try to remove "# type: ignore"
 - Sequence vs list?
+- Where the key_board input is
+    - Where the TKs are
+- Where the resets, removals, etc are
 
 
 ### Organization
