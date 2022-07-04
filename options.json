@@ -108,7 +108,7 @@
         "spawn_scale_min": 1,
         "spawn_scale_max": 99,
         "heavy_increase": 1.5,
-        "heavy_chance": 0.4
+        "heavy_chance": 0.05
     },
     "coin": {
         "w": 15,

@@ -89,6 +89,9 @@ class Vector:
     def calc_length(self) -> float:
         return math.sqrt(self.x**2 + self.y**2)
 
+    def calc_dist_to(self, vec: Vector) -> float:
+        return self.subtract(vec).calc_length()
+
     def add(self, vec: Vector) -> Vector:
         return Vector(self.x + vec.x, self.y + vec.y)
 
@@ -327,7 +330,6 @@ class Fall(Movable):
         self, pt: Vector, w: float, h: float, color: str, fall_speed: float, falling: bool
     ):
         super().__init__(pt, w, h, color, Vector(0, fall_speed), 0)
-        self.falling = falling
 
     def scroll(self, dist: float):
         self.pt.y += dist
@@ -344,7 +346,7 @@ class Tile(Fall):
         super().__init__(
             pt, tile_options["w"], tile_options["w"], color, tile_options["fall_speed"], falling
         )  # TODO: color
-
+        self.bot_tile: Union[Tile, None] = None
         side_len = self.w - 10
         self.side_hbs: dict[str, Hitbox] = {
             "top": Hitbox(Vector(self.pt.x + 5, self.pt.y), side_len, 5, "#BF616A"),
@@ -354,7 +356,7 @@ class Tile(Fall):
         }
 
     def update(self, state: State) -> None:
-        if self.falling:
+        if self.bot_tile == None or (self.bot_tile != None and not self.bot_tile in state.tiles):
             delta = state.delta
             if state.player.mode == "blue":
                 delta *= state.player.mode_options["blue"]["fall"]
@@ -364,8 +366,9 @@ class Tile(Fall):
     def land(self, tiles: list[Tile]) -> None:
         for tile in tiles:
             if tile != self and self.collide(tile):
-                self.falling = False
+                self.bot_tile = tile
                 self.pt.y = tile.pt.y - self.h
+                break
 
     def move(self, delta: float) -> None:
         super().move(delta)
@@ -410,9 +413,11 @@ class HeavyTile(Tile):
     def land(self, tiles: list[Tile]) -> None:
         for tile in tiles:
             if tile != self and self.collide(tile):
-                if type(tile) != EdgeTile:
-                    tiles.remove(tile)
                 tiles.remove(self)
+                for tiles2 in tiles:
+                    if type(tiles2) != EdgeTile and self.get_center().calc_dist_to(tiles2.get_center()) < self.w * 2:
+                        tiles.remove(tiles2)
+                break
 
 
 class Coin(Fall):
