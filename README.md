@@ -45,6 +45,7 @@ python -m mypy main.py
 
 ### Cleaning
 
+- Not need to convert to (r, g, b)
 - Better flow/care with:
     - Player.status == alive
     - Fall.falling

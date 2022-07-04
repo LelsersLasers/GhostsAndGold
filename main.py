@@ -1,4 +1,4 @@
-from __future__ import annotations  # for type hints
+from __future__ import annotations
 from typing import Any
 from dataclasses import dataclass  # for struct like classes
 
@@ -497,54 +497,47 @@ def handle_events(state: State) -> None:
             state.screen = "welcome"
 
 
+def draw_centered_text(
+    win: pygame.surface.Surface,
+    font: pygame.font.Font,
+    text: str,
+    y: float,
+    color: tuple[int, int, int],
+) -> None:
+    # TODO/Note: color is actually hex color string, not tuple
+    surf_text = font.render(text, True, color)
+    win.blit(surf_text, ((win.get_width() - surf_text.get_width()) / 2, y))
+
+
 def draw_welcome(state: State) -> None:
-    surf_title = state.fonts["h1"].render(
-        state.options["title"], True, state.options["colors"]["text"]
-    )
-    state.win.blit(
-        surf_title,
-        (
-            (state.win.get_width() - surf_title.get_width()) / 2,
-            state.options["welcome"]["title"]["y"],
-        ),
-    )
-
-    if state.score != -1:
-        surf_score = state.fonts["h4"].render(
-            state.options["welcome"]["score"]["text"] % state.score,
-            True,
-            state.options["colors"]["text"],
-        )
-        state.win.blit(
-            surf_score,
-            (
-                (state.win.get_width() - surf_score.get_width()) / 2,
-                state.options["welcome"]["score"]["y"],
-            ),
-        )
-
-    surf_start = state.fonts["h3"].render(
-        state.options["welcome"]["start"]["text"], True, state.options["colors"]["text"]
-    )
-    state.win.blit(
-        surf_start,
-        (
-            (state.win.get_width() - surf_start.get_width()) / 2,
-            state.options["welcome"]["start"]["y"],
-        ),
-    )
-
-    surf_instructions = state.fonts["h4"].render(
-        state.options["welcome"]["instructions"]["text"],
-        True,
+    draw_centered_text(
+        state.win,
+        state.fonts["h1"],
+        state.options["title"],
+        state.options["welcome"]["title"]["y"],
         state.options["colors"]["text"],
     )
-    state.win.blit(
-        surf_instructions,
-        (
-            (state.win.get_width() - surf_instructions.get_width()) / 2,
-            state.options["welcome"]["instructions"]["y"],
-        ),
+    if state.score != -1:
+        draw_centered_text(
+            state.win,
+            state.fonts["h4"],
+            state.options["welcome"]["score"]["text"] % state.score,
+            state.options["welcome"]["score"]["y"],
+            state.options["colors"]["text"],
+        )
+    draw_centered_text(
+        state.win,
+        state.fonts["h3"],
+        state.options["welcome"]["start"]["text"],
+        state.options["welcome"]["start"]["y"],
+        state.options["colors"]["text"],
+    )
+    draw_centered_text(
+        state.win,
+        state.fonts["h4"],
+        state.options["welcome"]["instructions"]["text"],
+        state.options["welcome"]["instructions"]["y"],
+        state.options["colors"]["text"],
     )
 
 
@@ -603,27 +596,19 @@ def draw_darken(state: State) -> None:
 
 def draw_death(state: State) -> None:
     draw_darken(state)
-
-    surf_title = state.fonts["h2"].render(
-        state.options["death"]["title"]["text"], True, state.options["colors"]["text"]
+    draw_centered_text(
+        state.win,
+        state.fonts["h2"],
+        state.options["death"]["title"]["text"],
+        state.options["death"]["title"]["y"],
+        state.options["colors"]["text"],
     )
-    state.win.blit(
-        surf_title,
-        (
-            (state.win.get_width() - surf_title.get_width()) / 2,
-            state.options["death"]["title"]["y"],
-        ),
-    )
-
-    surf_restart = state.fonts["h3"].render(
-        state.options["death"]["restart"]["text"], True, state.options["colors"]["text"]
-    )
-    state.win.blit(
-        surf_restart,
-        (
-            (state.win.get_width() - surf_restart.get_width()) / 2,
-            state.options["death"]["restart"]["y"],
-        ),
+    draw_centered_text(
+        state.win,
+        state.fonts["h3"],
+        state.options["death"]["restart"]["text"],
+        state.options["death"]["restart"]["y"],
+        state.options["colors"]["text"],
     )
 
 
@@ -710,37 +695,26 @@ def draw_pause(state: State) -> None:
     for e in entities:
         e.draw(state.win)
 
-    surf_title = state.fonts["h2"].render(
-        state.options["pause"]["title"]["text"], True, state.options["colors"]["text"]
+    draw_centered_text(
+        state.win,
+        state.fonts["h2"],
+        state.options["pause"]["title"]["text"],
+        state.options["pause"]["title"]["y"],
+        state.options["colors"]["text"],
     )
-    state.win.blit(
-        surf_title,
-        (
-            (state.win.get_width() - surf_title.get_width()) / 2,
-            state.options["pause"]["title"]["y"],
-        ),
+    draw_centered_text(
+        state.win,
+        state.fonts["h3"],
+        state.options["pause"]["resume"]["text"],
+        state.options["pause"]["resume"]["y"],
+        state.options["colors"]["text"],
     )
-
-    surf_resume = state.fonts["h3"].render(
-        state.options["pause"]["resume"]["text"], True, state.options["colors"]["text"]
-    )
-    state.win.blit(
-        surf_resume,
-        (
-            (state.win.get_width() - surf_resume.get_width()) / 2,
-            state.options["pause"]["resume"]["y"],
-        ),
-    )
-
-    surf_quit = state.fonts["h4"].render(
-        state.options["pause"]["quit"]["text"], True, state.options["colors"]["text"]
-    )
-    state.win.blit(
-        surf_quit,
-        (
-            (state.win.get_width() - surf_quit.get_width()) / 2,
-            state.options["pause"]["quit"]["y"],
-        ),
+    draw_centered_text(
+        state.win,
+        state.fonts["h4"],
+        state.options["pause"]["quit"]["text"],
+        state.options["pause"]["quit"]["y"],
+        state.options["colors"]["text"],
     )
 
 
@@ -781,13 +755,7 @@ def draw_hud(state: State) -> None:
                 (state.options["game"]["cd_box"]["h"] - surf_cd.get_height()) / 2,
             )
         )
-        state.win.blit(
-            surf_cd,
-            (
-                text_pt.x,
-                text_pt.y,
-            ),
-        )
+        state.win.blit(surf_cd, (text_pt.x, text_pt.y))
 
 
 def draw_game(state: State) -> None:
@@ -796,17 +764,12 @@ def draw_game(state: State) -> None:
 
     state.player.draw(state.win)
 
-    surf_score = state.fonts["h4"].render(
+    draw_centered_text(
+        state.win,
+        state.fonts["h4"],
         state.options["game"]["score"]["text"] % state.score,
-        True,
+        state.options["game"]["score"]["y"],
         state.options["colors"]["text"],
-    )
-    state.win.blit(
-        surf_score,
-        (
-            (state.win.get_width() - surf_score.get_width()) / 2,
-            state.options["game"]["score"]["y"],
-        ),
     )
 
     draw_hud(state)
