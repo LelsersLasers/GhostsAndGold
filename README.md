@@ -15,31 +15,18 @@ python -m mypy main.py
 
 ## Modes
 
-- White
-    - default
-    - Passive:
-        - Increased jump height
-    - Active
-        - Teleport to top of screen
-        - Medium CD
-- Red
-    - Passive:
-        - Increased speed (left right)
-    - Active:
-        - Dash direction moving
-        - Lowish CD
 - Green
+    - Passive:
+        - increased drop chance from chests, increased chests
+    - Active:
+        - Dash
+- Blue
     - Passive:
         - Tiles fall slower
     - Active:
-        - shield that breaks falling tile
-            - will pop a chest
-        - long CD
-- Blue
-    - Passive:
-        - Increased coin pop chance
-    - Active:
-        - Drop coin at random location
+        - Shield for 1 sec
+        - If tile falls on it, it breaks
+            - Pops chest
 
 
 ## TODO

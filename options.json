@@ -37,11 +37,12 @@
     "game": {
         "score": {
             "text": "Score: %i",
-            "y": 50
+            "y": 80
         },
         "cd_box": {
-            "base_y": 25,
-            "base_x": 5,
+            "text": "%.1f",
+            "xs": [310, 360],
+            "y": 20,
             "w": 50,
             "h": 50
         }
@@ -63,23 +64,15 @@
         "jump_vel": 800,
         "gravity": 2400,
         "mode": {
-            "passives": {
-                "jump": 1.25,
-                "speed": 1.25,
+            "green": {
+                "coin_chances": [1, 2, 2, 3, 3, 3, 4],
+                "cd": 3,
+                "color": "#A3BE8C"
+            },
+            "blue": {
                 "fall": 0.75,
-                "coin_chances": [1, 2, 2, 3, 3, 3, 4]
-            },
-            "swap_cds": {
-                "white": 5,
-                "red": 5,
-                "green": 10,
-                "blue": 4
-            },
-            "colors": {
-                "white": "#ECEFF4",
-                "red": "#BF616A",
-                "green": "#A3BE8C",
-                "blue": "#5E81AC"
+                "cd": 10,
+                "color": "#5E81AC"
             }
         }
     },

@@ -180,8 +180,8 @@ class Chest(Hitbox):
         if state.player.status == "alive" and self.collide(state.player):
             state.chests.remove(self)
             num_coins = random.choice(state.options["coin"]["pop"]["coin_chances"])
-            if state.player.mode == "blue":
-                num_coins = random.choice(state.player.mode_passives["coin_chances"])
+            if state.player.mode == "green":
+                num_coins = random.choice(state.player.mode_options["green"]["coin_chances"])
             for _ in range(num_coins):
                 c = Coin(self.get_center(), state.options["coin"])
                 c.move_vec = Vector(
@@ -228,23 +228,21 @@ class Player(Movable):
         self.space_tk: ToggleKey = ToggleKey(True)
         self.status: str = "alive"
 
-        self.modes: list[str] = ["white", "red", "green", "blue"]
-        self.mode: str = "white"
-        self.mode_passives: dict[str, Any] = options["player"]["mode"]["passives"]
-        self.mode_swap_cds_base: dict[str, float] = options["player"]["mode"]["swap_cds"]
-        self.mode_swap_cds: dict[str, float] = copy.deepcopy(self.mode_swap_cds_base)
-        self.mode_colors: dict[str, str] = options["player"]["mode"]["colors"]
+        self.modes: list[str] = ["green", "blue"]
+        self.mode: str = "green"
+        self.mode_options: dict[str, Any] = options["player"]["mode"]
+        self.mode_cds_base: dict[str, float] = {
+            "green": options["player"]["mode"]["green"]["cd"],
+            "blue": options["player"]["mode"]["blue"]["cd"],
+        }
+        self.mode_cds: dict[str, float] = copy.deepcopy(self.mode_cds_base)
 
     def key_input(self, keys_down: list[bool]) -> None:
-        swap_keys = [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4]
-        for i in range(len(self.modes)):
-            if (
-                self.mode != self.modes[i]
-                and keys_down[swap_keys[i]]
-                and self.mode_swap_cds[self.modes[i]] == 0
-            ):
-                self.mode = self.modes[i]
-                self.mode_swap_cds[self.modes[i]] = self.mode_swap_cds_base[self.modes[i]]
+        
+        if keys_down[pygame.K_1]:
+            self.mode = "green"
+        elif keys_down[pygame.K_2]:
+            self.mode = "blue"
 
         if keys_down[pygame.K_a] or keys_down[pygame.K_LEFT]:
             self.move_vec.x = -self.speed
@@ -252,16 +250,12 @@ class Player(Movable):
             self.move_vec.x = self.speed
         else:
             self.move_vec.x = 0
-        if self.mode == "red":
-            self.move_vec.x *= self.mode_passives["speed"]
 
         if (
             self.space_tk.down(keys_down[pygame.K_SPACE] or keys_down[pygame.K_UP])
             and self.jumps < 2
         ):
             self.move_vec.y = -self.jump_vel
-            if self.mode == "white":
-                self.move_vec.y *= self.mode_passives["jump"]
             self.jumps += 1
 
     def check_tile_collision(self, tiles: list[Tile]) -> None:
@@ -282,11 +276,10 @@ class Player(Movable):
                 self.pt.x = tile.pt.x + tile.w
 
     def update(self, state: State) -> None:
-        self.color = self.mode_colors[self.mode]
-        for key in self.mode_swap_cds:
-            self.mode_swap_cds[key] -= state.delta
-            if self.mode_swap_cds[key] < 0:
-                self.mode_swap_cds[key] = 0
+        self.color = self.mode_options[self.mode]["color"]
+        for key in self.mode_cds:
+            self.mode_cds[key] -= state.delta
+            self.mode_cds[key] = max(0, self.mode_cds[key])
         self.key_input(state.keys_down)
         self.move(state.delta)
         self.check_tile_collision(state.tiles)
@@ -320,8 +313,8 @@ class Tile(Fall):
     def update(self, state: State) -> None:
         if self.falling:
             delta = state.delta
-            if state.player.mode == "green":
-                delta *= state.player.mode_passives["fall"]
+            if state.player.mode == "blue":
+                delta *= state.player.mode_options["blue"]["fall"]
             self.move(delta)
             for tile in state.tiles:
                 if tile != self and self.collide(tile):
@@ -578,8 +571,8 @@ def draw_death(state: State) -> None:
 def draw_hud(state: State) -> None:
     for i in range(len(state.player.modes)):
         pt = Vector(
-            state.options["game"]["cd_box"]["base_x"],
-            state.options["game"]["cd_box"]["base_y"] + i * state.options["game"]["cd_box"]["h"],
+            state.options["game"]["cd_box"]["xs"][i],
+            state.options["game"]["cd_box"]["y"]
         )
         full_rect = (
             int(pt.x),
@@ -587,26 +580,20 @@ def draw_hud(state: State) -> None:
             int(state.options["game"]["cd_box"]["w"]),
             int(state.options["game"]["cd_box"]["h"]),
         )
+        percent = state.player.mode_cds[state.player.modes[i]] / state.player.mode_cds_base[state.player.modes[i]]
         cd_rect = (
             int(pt.x),
-            int(pt.y),
-            int(
-                state.options["game"]["cd_box"]["w"]
-                * (
-                    1
-                    - state.player.mode_swap_cds[state.player.modes[i]]
-                    / state.player.mode_swap_cds_base[state.player.modes[i]]
-                )
-            ),
-            int(state.options["game"]["cd_box"]["h"]),
+            int(pt.y + state.options["game"]["cd_box"]["h"] * percent),
+            int(state.options["game"]["cd_box"]["w"]),
+            int(state.options["game"]["cd_box"]["h"] * (1 - percent)),
         )
 
         pygame.draw.rect(state.win, state.options["colors"]["text"], full_rect)
-        pygame.draw.rect(state.win, state.player.mode_colors[state.player.modes[i]], cd_rect)
+        pygame.draw.rect(state.win, state.player.mode_options[state.player.modes[i]]["color"], cd_rect)
         pygame.draw.rect(state.win, state.options["colors"]["text"], full_rect, 3)
 
         surf_cd = state.fonts["h4"].render(
-            "%.1f" % state.player.mode_swap_cds[state.player.modes[i]],
+            state.options["game"]["cd_box"]["text"] % state.player.mode_cds[state.player.modes[i]],
             True,
             state.options["colors"]["background"],
         )
