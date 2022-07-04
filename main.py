@@ -281,12 +281,7 @@ class Player(Movable):
 
         for tile in tiles:
             collision = tile.directional_collide(current_self)
-            if collision != "none" and type(tile) == EdgeTile:
-                if self.last_dir == "right":
-                    self.pt.x = tile.pt.x - self.w
-                elif self.last_dir == "left":
-                    self.pt.x = tile.pt.x + tile.w
-            elif collision == "bottom":
+            if collision == "bottom":
                 if self.shield > 0:
                     self.shield = 0
                     tiles.remove(tile)
@@ -313,10 +308,10 @@ class Player(Movable):
 
         self.key_input(state.keys_down)
 
-        if self.pt.x < 0:
-            self.pt.x = 0
-        elif self.pt.x + self.w > state.win.get_width():
-            self.pt.x = state.win.get_width() - self.w
+        if self.pt.x < state.options["tile"]["w"]:
+            self.pt.x = state.options["tile"]["w"]
+        elif self.pt.x + self.w + state.options["tile"]["w"] > state.win.get_width():
+            self.pt.x = state.win.get_width() - self.w - state.options["tile"]["w"]
 
         self.move(state.delta)
         self.check_tile_collision(state.tiles)
