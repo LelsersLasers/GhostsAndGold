@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any
+from typing import Any, Union
 from dataclasses import dataclass  # for struct like classes
 
 import pygame
@@ -339,9 +339,15 @@ class Fall(Movable):
 
 
 class Tile(Fall):
-    def __init__(self, pt: Vector, tile_options: dict[str, Any], falling: bool = True):
+    def __init__(
+        self,
+        pt: Vector,
+        tile_options: dict[str, Any],
+        falling: bool = True,
+        color: str = "#81A1C1",
+    ):
         super().__init__(
-            pt, tile_options["w"], tile_options["w"], "#81A1C1", tile_options["fall_speed"], falling
+            pt, tile_options["w"], tile_options["w"], color, tile_options["fall_speed"], falling
         )  # TODO: color
 
         side_len = self.w - 10
@@ -358,20 +364,23 @@ class Tile(Fall):
             if state.player.mode == "blue":
                 delta *= state.player.mode_options["blue"]["fall"]
             self.move(delta)
-            for tile in state.tiles:
-                if tile != self and self.collide(tile):
-                    self.falling = False
-                    self.pt.y = tile.pt.y - self.h
+            self.land(state.tiles)
 
-    def scroll(self, dist: float) -> None:
-        super().scroll(dist)
-        for value in self.side_hbs.values():
-            value.pt.y += dist
+    def land(self, tiles: list[Tile]) -> None:
+        for tile in tiles:
+            if tile != self and self.collide(tile):
+                self.falling = False
+                self.pt.y = tile.pt.y - self.h
 
     def move(self, delta: float) -> None:
         super().move(delta)
         for value in self.side_hbs.values():
             value.pt.apply(self.move_vec.scalar(delta))
+
+    def scroll(self, dist: float) -> None:
+        super().scroll(dist)
+        for value in self.side_hbs.values():
+            value.pt.y += dist
 
     def directional_collide(self, hb: Hitbox) -> str:
         if self.collide(hb):
@@ -394,8 +403,21 @@ class Tile(Fall):
 
 class EdgeTile(Tile):
     def __init__(self, pt: Vector, tile_options: dict[str, Any]):
-        super().__init__(pt, tile_options, False)
-        self.color = "#88C0D0"
+        super().__init__(pt, tile_options, False, "#88C0D0")
+        self.move_vec.y = 0
+
+
+class HeavyTile(Tile):
+    def __init__(self, pt: Vector, tile_options: dict[str, Any]):
+        super().__init__(pt, tile_options, True, "#8FBCBB")
+        self.move_vec.y *= tile_options["heavy_increase"]
+
+    def land(self, tiles: list[Tile]) -> None:
+        for tile in tiles:
+            if tile != self and self.collide(tile):
+                if type(tile) != EdgeTile:
+                    tiles.remove(tile)
+                tiles.remove(self)
 
 
 class Coin(Fall):
@@ -557,35 +579,42 @@ def count_full_rows(tiles: list[Tile], columns: int) -> int:
     return count
 
 
-def calc_drop_chances(tiles: list[Tile], options: dict[str, Any]) -> list[int]:
-    top_tile: dict[float, float] = {}
-    for tile in tiles:
+def calc_drop_chances(state: State) -> list[int]:
+    top_tiles: list[float] = []
+    for _ in state.options["tile"]["spawn_xs"]:
+        top_tiles.append(state.options["tile"]["base_y"] - state.options["tile"]["w"])
+    for tile in state.tiles:
         if type(tile) != EdgeTile:
-            try:
-                if top_tile[tile.pt.x] > tile.pt.y:
-                    top_tile[tile.pt.x] = tile.pt.y
-            except KeyError:
-                top_tile[tile.pt.x] = tile.pt.y
+            idx = state.options["tile"]["spawn_xs"].index(tile.pt.x)
+            if top_tiles[idx] > tile.pt.y:
+                top_tiles[idx] = tile.pt.y
 
-    max_value: float = max(top_tile.values())
-    min_value: float = min(top_tile.values())
+    max_value: float = max(top_tiles)
+    min_value: float = min(top_tiles)
 
     old_range = max_value - min_value
-    new_range = options["tile"]["spawn_scale_max"] - options["tile"]["spawn_scale_min"]
+    new_range = state.options["tile"]["spawn_scale_max"] - state.options["tile"]["spawn_scale_min"]
 
     drop_chances: list[int] = []
-    for value in top_tile.values():
-        if value < 0:
-            new_value = 0
+    for y in top_tiles:
+        if y < 0:
+            chance = 0
         else:
             try:
-                new_value = ((value - min_value) * new_range) / old_range
+                chance = ((y - min_value) * new_range) / old_range
             except ZeroDivisionError:
-                new_value = 0
-            new_value += options["tile"]["spawn_scale_min"]
-        drop_chances.append(int(new_value))
+                chance = 0
+            chance += state.options["tile"]["spawn_scale_min"]
+        drop_chances.append(int(chance))
 
     return drop_chances
+
+
+def invert_drop_chances(chances: list[int], total: int) -> list[int]:
+    inverted: list[int] = []
+    for chance in chances:
+        inverted.append(total - chance)
+    return inverted
 
 
 def draw_darken(state: State) -> None:
@@ -648,15 +677,31 @@ def draw_unpause(state: State) -> None:
         state.player.pt.y += scroll_dist
 
     if state.tile_spawn.update(state.ticks):
-        drop_chances = calc_drop_chances(state.tiles, state.options)
+        drop_chances = calc_drop_chances(state)
         drop_chance_list: list[float] = []
-        for i in range(len(state.options["tile"]["spawn_xs"])):
-            drop_chance_list += [state.options["tile"]["spawn_xs"][i]] * drop_chances[i]
 
-        new_tile = Tile(
-            Vector(random.choice(drop_chance_list), state.options["tile"]["spawn_y"]),
-            state.options["tile"],
-        )
+        # TODO: clean the types here - why is union[X, None] needed?
+        new_tile: Union[Tile, None] = None
+        heavy_chance = random.random()
+        if heavy_chance < state.options["tile"]["heavy_chance"]:
+            drop_chances = invert_drop_chances(
+                drop_chances,
+                state.options["tile"]["spawn_scale_max"] + state.options["tile"]["spawn_scale_min"],
+            )
+            # TODO: repeated for loop
+            for i in range(len(state.options["tile"]["spawn_xs"])):
+                drop_chance_list += [state.options["tile"]["spawn_xs"][i]] * drop_chances[i]
+            new_tile = HeavyTile(
+                Vector(random.choice(drop_chance_list), state.options["tile"]["spawn_y"]),
+                state.options["tile"],
+            )
+        else:
+            for i in range(len(state.options["tile"]["spawn_xs"])):
+                drop_chance_list += [state.options["tile"]["spawn_xs"][i]] * drop_chances[i]
+            new_tile = Tile(
+                Vector(random.choice(drop_chance_list), state.options["tile"]["spawn_y"]),
+                state.options["tile"],
+            )
         state.tiles.append(new_tile)
         chest_chance = random.random()
         if chest_chance < state.options["chest"]["spawn_chance"]:
@@ -787,6 +832,12 @@ def setup(options: dict[str, Any]) -> tuple[Player, list[Tile]]:
     tile_y = options["tile"]["base_y"]
     for i in range(options["tile"]["columns"] - 2):
         tiles.append(Tile(Vector((i + 1) * options["tile"]["w"], tile_y), options["tile"], False))
+        tiles.append(
+            EdgeTile(
+                Vector((i + 1) * options["tile"]["w"], tile_y + options["tile"]["w"]),
+                options["tile"],
+            )
+        )
     while tile_y > -options["tile"]["w"]:
         tiles.append(EdgeTile(Vector(0, tile_y), options["tile"]))
         tiles.append(

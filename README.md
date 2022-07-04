@@ -37,8 +37,8 @@ python -m mypy main.py
 ### Main
 
 - Heavy tiles
-    - When they last they kill/blow up around them
-- Pause menu
+    - Blow up surrounding tiles?
+- "Unscroll"
 - Instructions screen
 - Polish
     - art, animations, particles, lights, etc
