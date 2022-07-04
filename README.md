@@ -38,7 +38,6 @@ python -m mypy main.py
 
 - Heavy tiles
     - Blow up surrounding tiles?
-- "Unscroll"
 - Instructions screen
 - Polish
     - art, animations, particles, lights, etc

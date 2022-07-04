@@ -610,13 +610,6 @@ def calc_drop_chances(state: State) -> list[int]:
     return drop_chances
 
 
-def invert_drop_chances(chances: list[int], total: int) -> list[int]:
-    inverted: list[int] = []
-    for chance in chances:
-        inverted.append(total - chance)
-    return inverted
-
-
 def draw_darken(state: State) -> None:
     darken_rect = pygame.Surface((state.win.get_width(), state.win.get_height()), pygame.SRCALPHA)
     darken_rect.fill((0, 0, 0, state.options["game"]["darken_alpha"]))
@@ -649,27 +642,31 @@ def draw_unpause(state: State) -> None:
         e.draw(state.win)
 
     count = count_full_rows(state.tiles, state.options["tile"]["columns"])
-    if count > state.full_rows:
-        state.tiles.append(
-            EdgeTile(
-                Vector(0, state.options["tile"]["top_y"] - state.scrolling),
-                state.options["tile"],
+    if count != state.full_rows:
+        if count > state.full_rows:
+            state.tiles.append(
+                EdgeTile(
+                    Vector(0, state.options["tile"]["top_y"] - state.scrolling),
+                    state.options["tile"],
+                )
             )
-        )
-        state.tiles.append(
-            EdgeTile(
-                Vector(
-                    state.options["window"]["width"] - state.options["tile"]["w"],
-                    state.options["tile"]["top_y"] - state.scrolling,
-                ),
-                state.options["tile"],
+            state.tiles.append(
+                EdgeTile(
+                    Vector(
+                        state.options["window"]["width"] - state.options["tile"]["w"],
+                        state.options["tile"]["top_y"] - state.scrolling,
+                    ),
+                    state.options["tile"],
+                )
             )
-        )
-        state.full_rows += 1
-        state.scrolling += state.options["tile"]["w"]
 
-    if state.scrolling > 0:
-        scroll_dist = state.delta * state.options["scroll_speed"]
+        state.scrolling += state.options["tile"]["w"] * (count - state.full_rows)
+        state.full_rows = count
+
+    # TODO: better solution than dividing by 10
+    if abs(state.scrolling) > state.options["tile"]["w"] / state.options["game"]["scroll_divisor"]:
+        pass
+        scroll_dist = state.delta * state.options["scroll_speed"] * get_sign(state.scrolling)
         state.scrolling -= scroll_dist
         falling: list[Fall] = state.tiles + state.coins  # type: ignore
         for f in falling:
@@ -677,25 +674,18 @@ def draw_unpause(state: State) -> None:
         state.player.pt.y += scroll_dist
 
     if state.tile_spawn.update(state.ticks):
-        drop_chances = calc_drop_chances(state)
-        drop_chance_list: list[float] = []
-
         # TODO: clean the types here - why is union[X, None] needed?
         new_tile: Union[Tile, None] = None
         heavy_chance = random.random()
         if heavy_chance < state.options["tile"]["heavy_chance"]:
-            drop_chances = invert_drop_chances(
-                drop_chances,
-                state.options["tile"]["spawn_scale_max"] + state.options["tile"]["spawn_scale_min"],
-            )
             # TODO: repeated for loop
-            for i in range(len(state.options["tile"]["spawn_xs"])):
-                drop_chance_list += [state.options["tile"]["spawn_xs"][i]] * drop_chances[i]
             new_tile = HeavyTile(
-                Vector(random.choice(drop_chance_list), state.options["tile"]["spawn_y"]),
+                Vector(random.choice(state.options["tile"]["spawn_xs"]), state.options["tile"]["spawn_y"]),
                 state.options["tile"],
             )
         else:
+            drop_chances = calc_drop_chances(state)
+            drop_chance_list: list[float] = []
             for i in range(len(state.options["tile"]["spawn_xs"])):
                 drop_chance_list += [state.options["tile"]["spawn_xs"][i]] * drop_chances[i]
             new_tile = Tile(
