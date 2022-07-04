@@ -36,10 +36,10 @@ python -m mypy main.py
 
 ### Main
 
-- Modes:
-    - Actives?
-    - Is 4 too many?
-    - Remove all together (replace with just 1 active)
+- Heavy tiles
+    - When they last they kill/blow up around them
+- Pause menu
+- Instructions screen
 - Polish
     - art, animations, particles, lights, etc
 
@@ -53,6 +53,8 @@ python -m mypy main.py
     - All parameters have type
     - All member variables have type
 - When using options in class vs member variables
+- Try to remove "# type: ignore"
+- Sequence vs list?
 
 
 ### Organization

@@ -152,6 +152,9 @@ class Hitbox:
             and hb.pt.y < self.pt.y + self.h
         )
 
+    def update(self, state: State) -> None:
+        pass
+
     def draw(self, win: pygame.surface.Surface) -> None:
         pygame.draw.rect(win, self.color, self.get_rect())
 
@@ -177,7 +180,7 @@ class Chest(Hitbox):
             if collision == "bottom":
                 state.chests.remove(self)
                 return
-        if state.player.alive and self.collide(state.player):
+        if (state.player.alive and self.collide(state.player)) or not self.bot_tile in state.tiles:
             state.chests.remove(self)
             num_coins = random.choice(state.options["coin"]["pop"]["coin_chances"])
             if state.player.mode == "green":
@@ -227,7 +230,8 @@ class Player(Movable):
         self.jumps: int = 1
         self.space_tk: ToggleKey = ToggleKey(True)
         self.alive: bool = True
-        self.last_dir = "right"
+        self.last_dir: str = "right"
+        self.shield: float = 0
 
         self.modes: list[str] = ["green", "blue"]
         self.mode: str = "green"
@@ -252,12 +256,16 @@ class Player(Movable):
             self.move_vec.x = -self.speed
             self.last_dir = "left"
 
-        if self.mode == "green" and self.mode_cds["green"] == 0 and keys_down[pygame.K_e]:
+        if self.mode == "green" and self.mode_cds["green"] == 0 and keys_down[pygame.K_q]:
             if self.last_dir == "right":
                 self.pt.x += self.mode_options["green"]["blink_dist"]
             elif self.last_dir == "left":
                 self.pt.x -= self.mode_options["green"]["blink_dist"]
             self.mode_cds["green"] = self.mode_cds_base["green"]
+
+        if self.mode == "blue" and self.mode_cds["blue"] == 0 and keys_down[pygame.K_q]:
+            self.shield = self.mode_options["blue"]["shield_time"]
+            self.mode_cds["blue"] = self.mode_cds_base["blue"]
 
         if (
             self.space_tk.down(keys_down[pygame.K_SPACE] or keys_down[pygame.K_UP])
@@ -277,7 +285,11 @@ class Player(Movable):
                 elif self.last_dir == "left":
                     self.pt.x = tile.pt.x + tile.w
             elif collision == "bottom":
-                self.alive = False
+                if self.shield > 0:
+                    self.shield = 0
+                    tiles.remove(tile)
+                else:
+                    self.alive = False
             elif collision == "top":
                 self.pt.y = tile.pt.y - self.h
                 self.move_vec.y = 0
@@ -294,6 +306,9 @@ class Player(Movable):
             self.mode_cds[key] -= state.delta
             self.mode_cds[key] = max(0, self.mode_cds[key])
 
+        self.shield -= state.delta
+        self.shield = max(0, self.shield)
+
         self.key_input(state.keys_down)
 
         if self.pt.x < 0:
@@ -303,6 +318,11 @@ class Player(Movable):
 
         self.move(state.delta)
         self.check_tile_collision(state.tiles)
+
+    def draw(self, win: pygame.surface.Surface) -> None:
+        super().draw(win)
+        if self.shield > 0:
+            pygame.draw.rect(win, self.mode_options["blue"]["shield_color"], self.get_rect(), 5)
 
 
 class Fall(Movable):
@@ -636,18 +656,11 @@ def draw_hud(state: State) -> None:
 
 def draw_game(state: State) -> None:
 
-    # TODO: combine
-    for tile in state.tiles:
-        tile.update(state)
-        tile.draw(state.win)
-
-    for chest in state.chests:
-        chest.update(state)
-        chest.draw(state.win)
-
-    for coin in state.coins:
-        coin.update(state)
-        coin.draw(state.win)
+    # Prob some way to do this without the '# type: ignore'
+    entities: list[Hitbox] = state.tiles + state.chests + state.coins  # type: ignore
+    for e in entities:
+        e.update(state)
+        e.draw(state.win)
 
     count = count_full_rows(state.tiles, state.options["tile"]["columns"])
     if count > state.full_rows:
@@ -672,11 +685,9 @@ def draw_game(state: State) -> None:
     if state.scrolling > 0:
         scroll_dist = state.delta * state.options["scroll_speed"]
         state.scrolling -= scroll_dist
-        # TODO: combine
-        for tile in state.tiles:
-            tile.scroll(scroll_dist)
-        for coin in state.coins:
-            coin.scroll(scroll_dist)
+        entities: list[Fall] = state.tiles + state.coins  # type: ignore
+        for e in state.tiles:
+            e.scroll(scroll_dist)
         state.player.pt.y += scroll_dist
 
     if state.tile_spawn.update(state.ticks):

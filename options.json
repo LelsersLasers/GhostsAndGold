@@ -73,7 +73,9 @@
             "blue": {
                 "fall": 0.75,
                 "cd": 10,
-                "color": "#5E81AC"
+                "color": "#5E81AC",
+                "shield_time": 2,
+                "shield_color": "#D08770"
             }
         }
     },
