@@ -104,7 +104,7 @@
         "spawn_y": -60,
         "spawn_xs": [60, 120, 180, 240, 300, 360, 420, 480, 540, 600],
         "columns": 12,
-        "base_y": 770,
+        "base_y": 710,
         "spawn_scale_min": 1,
         "spawn_scale_max": 99,
         "heavy": {

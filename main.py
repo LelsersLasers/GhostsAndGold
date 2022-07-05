@@ -389,39 +389,44 @@ class Tile(Fall):
         super().__init__(
             pt, tile_options["w"], tile_options["w"], color, tile_options["fall_speed"]
         )  # TODO: color
-        self.bot_tile: Union[Tile, None] = None
-        side_len = self.w - 10
-        self.side_hbs: dict[str, Hitbox] = {
-            "top": Hitbox(Vector(self.pt.x + 5, self.pt.y), side_len, 5, "#BF616A"),
-            "bottom": Hitbox(Vector(self.pt.x + 5, self.pt.y + self.h - 5), side_len, 5, "#BF616A"),
-            "left": Hitbox(Vector(self.pt.x, self.pt.y + 5), 5, side_len, "#BF616A"),
-            "right": Hitbox(Vector(self.pt.x + self.w - 5, self.pt.y + 5), 5, side_len, "#BF616A"),
+        self.side_len = self.w - 10
+        self.side_hbs: dict[str, Hitbox] = {}
+        self.update_side_hbs()
+
+    def update_side_hbs(self) -> None:
+        # TODO: is it slow to always recreate the hbs
+        self.side_hbs = {
+            "top": Hitbox(Vector(self.pt.x + 5, self.pt.y), self.side_len, 5, "#BF616A"),
+            "bottom": Hitbox(
+                Vector(self.pt.x + 5, self.pt.y + self.h - 5), self.side_len, 5, "#BF616A"
+            ),
+            "left": Hitbox(Vector(self.pt.x, self.pt.y + 5), 5, self.side_len, "#BF616A"),
+            "right": Hitbox(
+                Vector(self.pt.x + self.w - 5, self.pt.y + 5), 5, self.side_len, "#BF616A"
+            ),
         }
 
     def update(self, state: State) -> None:
-        if self.bot_tile == None or (self.bot_tile != None and not self.bot_tile in state.tiles):
-            delta = state.delta
-            if state.player.mode == "blue":
-                delta *= state.player.mode_options["blue"]["fall"]
-            self.move(delta)
-            self.land(state)
+        delta = state.delta
+        if state.player.mode == "blue":
+            delta *= state.player.mode_options["blue"]["fall"]
+        self.move(delta)
+        self.land(state)
 
     def land(self, state: State) -> None:
         for tile in state.tiles:
             if tile != self and self.collide(tile):
-                self.bot_tile = tile
                 self.pt.y = tile.pt.y - self.h
+                self.update_side_hbs()
                 break
 
     def move(self, delta: float) -> None:
         super().move(delta)
-        for value in self.side_hbs.values():
-            value.pt.apply(self.move_vec.scalar(delta))
+        self.update_side_hbs()
 
     def scroll(self, dist: float) -> None:
         super().scroll(dist)
-        for value in self.side_hbs.values():
-            value.pt.y += dist
+        self.update_side_hbs()
 
     def directional_collide(self, hb: Hitbox) -> str:
         if self.collide(hb):
@@ -503,7 +508,7 @@ class Coin(Fall):
                 state.coins.remove(self)
                 return  # avoid double-removal chance
             elif collision == "top":
-                self.pt.y = tile.pt.y - self.h + 1
+                self.pt.y = tile.pt.y - self.h  # TODO: does this need a +1?
                 self.move_vec.x -= (
                     state.options["coin"]["pop"]["friction"]
                     * state.delta
@@ -603,7 +608,7 @@ def handle_events(state: State) -> None:
             state.effects = []
             state.ticks = 0
             state.scrolling = 0
-            state.full_rows = 2
+            state.full_rows = 4
             state.paused = False
             state.screen = "welcome"
 
@@ -754,7 +759,6 @@ def draw_unpause(state: State) -> None:
 
     # TODO: better solution than dividing by 10
     if abs(state.scrolling) > state.options["tile"]["w"] / state.options["game"]["scroll_divisor"]:
-        pass
         scroll_dist = state.delta * state.options["scroll_speed"] * get_sign(state.scrolling)
         state.scrolling -= scroll_dist
         to_scroll: list[Moveable] = state.tiles + state.coins + state.effects  # type: ignore
@@ -911,16 +915,17 @@ def setup(options: dict[str, Any]) -> tuple[Player, list[Tile]]:
     tiles: list[Tile] = []
 
     tile_y = options["tile"]["base_y"]
+    tile_types = [Tile, Tile, EdgeTile, EdgeTile]
     for i in range(options["tile"]["columns"] - 2):
-        tiles.append(Tile(Vector((i + 1) * options["tile"]["w"], tile_y), options["tile"]))
-        tiles.append(
-            EdgeTile(
-                Vector((i + 1) * options["tile"]["w"], tile_y + options["tile"]["w"]),
-                options["tile"],
+        for j in range(len(tile_types)):
+            tiles.append(
+                tile_types[j](
+                    Vector((i + 1) * options["tile"]["w"], tile_y + j * options["tile"]["w"]),
+                    options["tile"],
+                )
             )
-        )
 
-    tile_y += options["tile"]["w"]
+    tile_y += (len(tile_types) - 1) * options["tile"]["w"]
     while tile_y > -options["tile"]["w"]:
         tiles.append(EdgeTile(Vector(0, tile_y), options["tile"]))
         tiles.append(
@@ -955,7 +960,7 @@ def main():
         1 / 500,
         -1,
         0,
-        2,
+        4,
         Interval(options["tile"]["spawn_interval_base"], 1 / 500),
         RandomInterval(
             options["coin"]["spawn_interval_base"],

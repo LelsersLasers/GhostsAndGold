@@ -33,14 +33,10 @@ python -m mypy main.py
 
 ### Bugs
 
-- Not all tiles fall!
 - Directional check sometimes sends sideways to top?
 
 ### Main
 
-- Display 1.5 rows at the bottom
-    - Instead of 0.5 rows
-    - To garantee that there is 1.5, have to do 2 EdgeTile rows
 - Shield has set time?
     - Or 1 time block?
 - Instructions screen
