@@ -40,6 +40,7 @@ python -m mypy main.py
 - Shield has set time?
     - Or 1 time block?
 - Instructions screen
+- Sprite batching
 - Polish
     - art, animations, particles, lights, etc
 

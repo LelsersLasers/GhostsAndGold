@@ -389,22 +389,26 @@ class Tile(Fall):
         super().__init__(
             pt, tile_options["w"], tile_options["w"], color, tile_options["fall_speed"]
         )  # TODO: color
-        self.side_len = self.w - 10
-        self.side_hbs: dict[str, Hitbox] = {}
+        self.hbs_size: float = tile_options["hbs_size"]
+        self.hbs_len: float = self.w - 2 * tile_options["hbs_size"]
+        self.side_hbs: dict[str, Hitbox] = {
+            "top": Hitbox(Vector(-1, -1), self.hbs_len, self.hbs_size, "#BF616A"),
+            "bottom": Hitbox(Vector(-1, -1), self.hbs_len, self.hbs_size, "#BF616A"),
+            "left": Hitbox(Vector(-1, -1), self.hbs_size, self.hbs_len, "#BF616A"),
+            "right": Hitbox(Vector(-1, -1), self.hbs_size, self.hbs_len, "#BF616A"),
+        }
         self.update_side_hbs()
 
     def update_side_hbs(self) -> None:
-        # TODO: is it slow to always recreate the hbs
-        self.side_hbs = {
-            "top": Hitbox(Vector(self.pt.x + 5, self.pt.y), self.side_len, 5, "#BF616A"),
-            "bottom": Hitbox(
-                Vector(self.pt.x + 5, self.pt.y + self.h - 5), self.side_len, 5, "#BF616A"
-            ),
-            "left": Hitbox(Vector(self.pt.x, self.pt.y + 5), 5, self.side_len, "#BF616A"),
-            "right": Hitbox(
-                Vector(self.pt.x + self.w - 5, self.pt.y + 5), 5, self.side_len, "#BF616A"
-            ),
-        }
+        # TODO: is it slow to always recreate the Vectors?
+        self.side_hbs["top"].pt = Vector(self.pt.x + self.hbs_size, self.pt.y)
+        self.side_hbs["bottom"].pt = Vector(
+            self.pt.x + self.hbs_size, self.pt.y + self.h - self.hbs_size
+        )
+        self.side_hbs["left"].pt = Vector(self.pt.x, self.pt.y + self.hbs_size)
+        self.side_hbs["right"].pt = Vector(
+            self.pt.x + self.w - self.hbs_size, self.pt.y + self.hbs_size
+        )
 
     def update(self, state: State) -> None:
         delta = state.delta
