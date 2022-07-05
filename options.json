@@ -108,9 +108,9 @@
         "spawn_scale_min": 1,
         "spawn_scale_max": 99,
         "heavy": {
-            "r": 120,
+            "r": 80,
             "fall": 1.5,
-            "chance": 0.5,
+            "chance": 0.05,
             "draw_time": 0.1
         }
     },

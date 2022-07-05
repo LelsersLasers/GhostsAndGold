@@ -450,13 +450,22 @@ class HeavyTile(Tile):
         for tile in state.tiles:
             if tile != self and self.collide(tile):
                 state.tiles.remove(self)
-                for tiles2 in state.tiles:
-                    if (
-                        type(tiles2) != EdgeTile
-                        and self.get_center().calc_dist_to(tiles2.get_center())
-                        < state.options["tile"]["heavy"]["r"]
-                    ):
-                        state.tiles.remove(tiles2)
+                for tile2 in state.tiles:
+                    if type(tile2) != EdgeTile:
+                        tile_collide = circle_rect_collide(tile2, self.get_center(), state.options["tile"]["heavy"]["r"])
+                        if tile_collide:
+                            state.tiles.remove(tile2)
+
+                player_collide = circle_rect_collide(
+                    state.player, self.get_center(), state.options["tile"]["heavy"]["r"]
+                )
+
+                if player_collide:
+                    if state.player.shield > 0:
+                        state.player.shield = 0
+                    else:
+                        state.player.alive = False
+
                 state.effects.append(
                     CircleEffect(
                         self.get_center(),
@@ -468,44 +477,6 @@ class HeavyTile(Tile):
                     )
                 )
 
-                # Yes this was easier than doing the math
-                circle_surf = pygame.Surface(
-                    (
-                        state.options["tile"]["heavy"]["r"] * 2,
-                        state.options["tile"]["heavy"]["r"] * 2,
-                    )
-                )
-                circle_surf.fill((0, 0, 255))
-                circle_surf.set_colorkey((0, 0, 255))
-                pygame.draw.circle(
-                    circle_surf,
-                    (255, 0, 0),
-                    (state.options["tile"]["heavy"]["r"], state.options["tile"]["heavy"]["r"]),
-                    state.options["tile"]["heavy"]["r"],
-                )
-                circle_mask = pygame.mask.from_surface(circle_surf)
-
-                player_surf = pygame.Surface((state.player.w, state.player.h))
-                player_surf.fill(state.player.color)
-                player_mask = pygame.mask.from_surface(player_surf)
-
-                touch = circle_mask.overlap(
-                    player_mask,
-                    state.player.pt.subtract(
-                        self.get_center().subtract(
-                            Vector(
-                                state.options["tile"]["heavy"]["r"],
-                                state.options["tile"]["heavy"]["r"],
-                            )
-                        )
-                    ).get_int_tuple(),
-                )
-
-                if touch != None:
-                    if state.player.shield > 0:
-                        state.player.shield = 0
-                    else:
-                        state.player.alive = False
                 break
 
 
@@ -548,6 +519,24 @@ def get_sign(x: float) -> int:
         return 1
     else:
         return -1
+
+
+def circle_rect_collide(rect: Hitbox, center: Vector, r: float) -> bool:
+    # Yes this was easier than doing the math
+    circle_surf = pygame.Surface((r * 2, r * 2))
+    circle_surf.fill((0, 0, 255))
+    circle_surf.set_colorkey((0, 0, 255))
+    pygame.draw.circle(circle_surf, (255, 0, 0), (r, r), r)
+    circle_mask = pygame.mask.from_surface(circle_surf)
+
+    rect_surf = pygame.Surface((rect.w, rect.h))
+    rect_surf.fill((255, 0, 0))
+    rect_mask = pygame.mask.from_surface(rect_surf)
+
+    touch = circle_mask.overlap(
+        rect_mask, rect.pt.subtract(center.subtract(Vector(r, r))).get_int_tuple()
+    )
+    return touch != None
 
 
 def read_options() -> dict:
@@ -921,6 +910,8 @@ def setup(options: dict[str, Any]) -> tuple[Player, list[Tile]]:
                 options["tile"],
             )
         )
+
+    tile_y += options["tile"]["w"]
     while tile_y > -options["tile"]["w"]:
         tiles.append(EdgeTile(Vector(0, tile_y), options["tile"]))
         tiles.append(
@@ -955,7 +946,7 @@ def main():
         1 / 500,
         -1,
         0,
-        1,
+        2,
         Interval(options["tile"]["spawn_interval_base"], 1 / 500),
         RandomInterval(
             options["coin"]["spawn_interval_base"],
