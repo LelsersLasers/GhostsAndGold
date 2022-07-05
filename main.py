@@ -68,8 +68,14 @@ class Vector:
         self.x = vec.x
         self.y = vec.y
 
+    def get_int(self) -> Vector:
+        return Vector(int(self.x), int(self.y))
+
     def get_tuple(self) -> tuple[float, float]:
         return (self.x, self.y)
+
+    def get_int_tuple(self) -> tuple[int, int]:
+        return (int(self.x), int(self.y))
 
     def get_angle(self) -> float:
         try:
@@ -123,6 +129,7 @@ class State:
     tiles: list[Tile]
     coins: list[Coin]
     chests: list[Chest]
+    effects: list[Effect]
     delta: float
     ticks: float
     score: int
@@ -215,6 +222,38 @@ class Movable(Hitbox):
     def move(self, delta: float) -> None:
         self.move_vec.y += self.gravity * delta
         self.pt.apply(self.move_vec.scalar(delta))
+
+
+class Effect(Movable):
+    def __init__(
+        self,
+        pt: Vector,
+        w: float,
+        h: float,
+        color: str,
+        move_vec: Vector,
+        gravity: float,
+        duration: float,
+    ):
+        super().__init__(pt, w, h, color, move_vec, gravity)
+        self.duration: float = duration
+
+    def update(self, state: State) -> None:
+        self.move(state.delta)
+        self.duration -= state.delta
+        if self.duration <= 0:
+            state.effects.remove(self)
+
+
+class CircleEffect(Effect):
+    # Note: w = h which are both r
+    def __init__(
+        self, pt: Vector, r: float, color: str, move_vec: Vector, gravity: float, duration: float
+    ):
+        super().__init__(pt, r, r, color, move_vec, gravity, duration)
+
+    def draw(self, win: pygame.surface.Surface) -> None:
+        pygame.draw.circle(win, self.color, self.pt.get_tuple(), self.w)
 
 
 class Player(Movable):
@@ -326,9 +365,7 @@ class Player(Movable):
 
 
 class Fall(Movable):
-    def __init__(
-        self, pt: Vector, w: float, h: float, color: str, fall_speed: float, falling: bool
-    ):
+    def __init__(self, pt: Vector, w: float, h: float, color: str, fall_speed: float):
         super().__init__(pt, w, h, color, Vector(0, fall_speed), 0)
 
     def scroll(self, dist: float):
@@ -340,11 +377,10 @@ class Tile(Fall):
         self,
         pt: Vector,
         tile_options: dict[str, Any],
-        falling: bool = True,
         color: str = "#81A1C1",
     ):
         super().__init__(
-            pt, tile_options["w"], tile_options["w"], color, tile_options["fall_speed"], falling
+            pt, tile_options["w"], tile_options["w"], color, tile_options["fall_speed"]
         )  # TODO: color
         self.bot_tile: Union[Tile, None] = None
         side_len = self.w - 10
@@ -361,10 +397,10 @@ class Tile(Fall):
             if state.player.mode == "blue":
                 delta *= state.player.mode_options["blue"]["fall"]
             self.move(delta)
-            self.land(state.tiles)
+            self.land(state)
 
-    def land(self, tiles: list[Tile]) -> None:
-        for tile in tiles:
+    def land(self, state: State) -> None:
+        for tile in state.tiles:
             if tile != self and self.collide(tile):
                 self.bot_tile = tile
                 self.pt.y = tile.pt.y - self.h
@@ -401,29 +437,82 @@ class Tile(Fall):
 
 class EdgeTile(Tile):
     def __init__(self, pt: Vector, tile_options: dict[str, Any]):
-        super().__init__(pt, tile_options, False, "#88C0D0")
+        super().__init__(pt, tile_options, "#88C0D0")
         self.move_vec.y = 0
 
 
 class HeavyTile(Tile):
     def __init__(self, pt: Vector, tile_options: dict[str, Any]):
-        super().__init__(pt, tile_options, True, "#8FBCBB")
-        self.move_vec.y *= tile_options["heavy_increase"]
+        super().__init__(pt, tile_options, "#8FBCBB")
+        self.move_vec.y *= tile_options["heavy"]["fall"]
 
-    def land(self, tiles: list[Tile]) -> None:
-        for tile in tiles:
+    def land(self, state: State) -> None:
+        for tile in state.tiles:
             if tile != self and self.collide(tile):
-                tiles.remove(self)
-                for tiles2 in tiles:
-                    if type(tiles2) != EdgeTile and self.get_center().calc_dist_to(tiles2.get_center()) < self.w * 2:
-                        tiles.remove(tiles2)
+                state.tiles.remove(self)
+                for tiles2 in state.tiles:
+                    if (
+                        type(tiles2) != EdgeTile
+                        and self.get_center().calc_dist_to(tiles2.get_center())
+                        < state.options["tile"]["heavy"]["r"]
+                    ):
+                        state.tiles.remove(tiles2)
+                state.effects.append(
+                    CircleEffect(
+                        self.get_center(),
+                        state.options["tile"]["heavy"]["r"],
+                        "#BF616A",
+                        Vector(0, 0),
+                        0,
+                        state.options["tile"]["heavy"]["draw_time"],
+                    )
+                )
+
+                # Yes this was easier than doing the math
+                circle_surf = pygame.Surface(
+                    (
+                        state.options["tile"]["heavy"]["r"] * 2,
+                        state.options["tile"]["heavy"]["r"] * 2,
+                    )
+                )
+                circle_surf.fill((0, 0, 255))
+                circle_surf.set_colorkey((0, 0, 255))
+                pygame.draw.circle(
+                    circle_surf,
+                    (255, 0, 0),
+                    (state.options["tile"]["heavy"]["r"], state.options["tile"]["heavy"]["r"]),
+                    state.options["tile"]["heavy"]["r"],
+                )
+                circle_mask = pygame.mask.from_surface(circle_surf)
+
+                player_surf = pygame.Surface((state.player.w, state.player.h))
+                player_surf.fill(state.player.color)
+                player_mask = pygame.mask.from_surface(player_surf)
+
+                touch = circle_mask.overlap(
+                    player_mask,
+                    state.player.pt.subtract(
+                        self.get_center().subtract(
+                            Vector(
+                                state.options["tile"]["heavy"]["r"],
+                                state.options["tile"]["heavy"]["r"],
+                            )
+                        )
+                    ).get_int_tuple(),
+                )
+
+                if touch != None:
+                    if state.player.shield > 0:
+                        state.player.shield = 0
+                    else:
+                        state.player.alive = False
                 break
 
 
 class Coin(Fall):
     def __init__(self, pt: Vector, coin_options: dict[str, Any]):
         super().__init__(
-            pt, coin_options["w"], coin_options["h"], "#EBCB8B", coin_options["fall_speed"], True
+            pt, coin_options["w"], coin_options["h"], "#EBCB8B", coin_options["fall_speed"]
         )
 
     def update(self, state: State):
@@ -469,7 +558,7 @@ def read_options() -> dict:
 def create_window(options: dict[str, Any]) -> pygame.surface.Surface:
     pygame.init()
     win = pygame.display.set_mode(
-        (options["window"]["width"], options["window"]["height"]), pygame.SCALED
+        (options["window"]["width"], options["window"]["height"]), pygame.SCALED | pygame.NOFRAME
     )
     pygame.display.set_caption(options["title"])  # TODO: icon
     return win
@@ -513,6 +602,7 @@ def handle_events(state: State) -> None:
             state.player, state.tiles = setup(state.options)
             state.coins = []
             state.chests = []
+            state.effects = []
             state.scrolling = 0
             state.full_rows = 1
             state.paused = False
@@ -636,7 +726,7 @@ def draw_death(state: State) -> None:
 
 def draw_unpause(state: State) -> None:
     # Prob some way to do this without the '# type: ignore'
-    entities: list[Hitbox] = state.tiles + state.chests + state.coins  # type: ignore
+    entities: list[Hitbox] = state.tiles + state.chests + state.coins + state.effects  # type: ignore
     for e in entities:
         e.update(state)
         e.draw(state.win)
@@ -677,10 +767,13 @@ def draw_unpause(state: State) -> None:
         # TODO: clean the types here - why is union[X, None] needed?
         new_tile: Union[Tile, None] = None
         heavy_chance = random.random()
-        if heavy_chance < state.options["tile"]["heavy_chance"]:
+        if heavy_chance < state.options["tile"]["heavy"]["chance"]:
             # TODO: repeated for loop
             new_tile = HeavyTile(
-                Vector(random.choice(state.options["tile"]["spawn_xs"]), state.options["tile"]["spawn_y"]),
+                Vector(
+                    random.choice(state.options["tile"]["spawn_xs"]),
+                    state.options["tile"]["spawn_y"],
+                ),
                 state.options["tile"],
             )
         else:
@@ -726,7 +819,7 @@ def draw_unpause(state: State) -> None:
 def draw_pause(state: State) -> None:
     draw_darken(state)
 
-    entities: list[Hitbox] = state.tiles + state.chests + state.coins  # type: ignore
+    entities: list[Hitbox] = state.tiles + state.chests + state.coins + state.effects  # type: ignore
     for e in entities:
         e.draw(state.win)
 
@@ -821,7 +914,7 @@ def setup(options: dict[str, Any]) -> tuple[Player, list[Tile]]:
 
     tile_y = options["tile"]["base_y"]
     for i in range(options["tile"]["columns"] - 2):
-        tiles.append(Tile(Vector((i + 1) * options["tile"]["w"], tile_y), options["tile"], False))
+        tiles.append(Tile(Vector((i + 1) * options["tile"]["w"], tile_y), options["tile"]))
         tiles.append(
             EdgeTile(
                 Vector((i + 1) * options["tile"]["w"], tile_y + options["tile"]["w"]),
@@ -855,6 +948,7 @@ def main():
         [],
         player,
         tiles,
+        [],
         [],
         [],
         1 / 500,

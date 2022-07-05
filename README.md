@@ -36,8 +36,8 @@ python -m mypy main.py
 
 ### Main
 
-- Heavy tiles
-    - Blow up surrounding tiles?
+- Shield has set time?
+    - Or 1 time block?
 - Instructions screen
 - Polish
     - art, animations, particles, lights, etc
@@ -47,7 +47,6 @@ python -m mypy main.py
 - Not need to convert to (r, g, b)
 - Better flow/care with:
     - Player.status == alive
-    - Fall.falling
 - Types
     - All functions have return type
     - All parameters have type
