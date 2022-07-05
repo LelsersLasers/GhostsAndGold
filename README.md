@@ -32,6 +32,8 @@ python -m mypy main.py
 ## TODO
 
 ### Bugs
+
+- Not all tiles fall!
 - Directional check sometimes sends sideways to top?
 
 ### Main

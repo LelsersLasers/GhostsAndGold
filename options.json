@@ -111,7 +111,7 @@
             "r": 80,
             "fall": 1.5,
             "chance": 0.05,
-            "draw_time": 0.1
+            "draw_time": 0.3
         }
     },
     "coin": {

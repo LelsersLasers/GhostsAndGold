@@ -223,6 +223,9 @@ class Movable(Hitbox):
         self.move_vec.y += self.gravity * delta
         self.pt.apply(self.move_vec.scalar(delta))
 
+    def scroll(self, dist: float):
+        self.pt.y += dist
+
 
 class Effect(Movable):
     def __init__(
@@ -237,6 +240,7 @@ class Effect(Movable):
     ):
         super().__init__(pt, w, h, color, move_vec, gravity)
         self.duration: float = duration
+        self.base_duration: float = duration
 
     def update(self, state: State) -> None:
         self.move(state.delta)
@@ -251,6 +255,12 @@ class CircleEffect(Effect):
         self, pt: Vector, r: float, color: str, move_vec: Vector, gravity: float, duration: float
     ):
         super().__init__(pt, r, r, color, move_vec, gravity, duration)
+        self.base_r = r
+        self.log_rate = -self.base_r / math.log(duration + 1, 10)
+
+    def update(self, state: State) -> None:
+        super().update(state)
+        self.w = self.log_rate * math.log(self.base_duration - self.duration + 1, 10) + self.base_r
 
     def draw(self, win: pygame.surface.Surface) -> None:
         pygame.draw.circle(win, self.color, self.pt.get_tuple(), self.w)
@@ -368,9 +378,6 @@ class Fall(Movable):
     def __init__(self, pt: Vector, w: float, h: float, color: str, fall_speed: float):
         super().__init__(pt, w, h, color, Vector(0, fall_speed), 0)
 
-    def scroll(self, dist: float):
-        self.pt.y += dist
-
 
 class Tile(Fall):
     def __init__(
@@ -452,7 +459,9 @@ class HeavyTile(Tile):
                 state.tiles.remove(self)
                 for tile2 in state.tiles:
                     if type(tile2) != EdgeTile:
-                        tile_collide = circle_rect_collide(tile2, self.get_center(), state.options["tile"]["heavy"]["r"])
+                        tile_collide = circle_rect_collide(
+                            tile2, self.get_center(), state.options["tile"]["heavy"]["r"]
+                        )
                         if tile_collide:
                             state.tiles.remove(tile2)
 
@@ -592,8 +601,9 @@ def handle_events(state: State) -> None:
             state.coins = []
             state.chests = []
             state.effects = []
+            state.ticks = 0
             state.scrolling = 0
-            state.full_rows = 1
+            state.full_rows = 2
             state.paused = False
             state.screen = "welcome"
 
@@ -747,9 +757,9 @@ def draw_unpause(state: State) -> None:
         pass
         scroll_dist = state.delta * state.options["scroll_speed"] * get_sign(state.scrolling)
         state.scrolling -= scroll_dist
-        falling: list[Fall] = state.tiles + state.coins  # type: ignore
-        for f in falling:
-            f.scroll(scroll_dist)
+        to_scroll: list[Moveable] = state.tiles + state.coins + state.effects  # type: ignore
+        for ts in to_scroll:
+            ts.scroll(scroll_dist)
         state.player.pt.y += scroll_dist
 
     if state.tile_spawn.update(state.ticks):
@@ -757,7 +767,6 @@ def draw_unpause(state: State) -> None:
         new_tile: Union[Tile, None] = None
         heavy_chance = random.random()
         if heavy_chance < state.options["tile"]["heavy"]["chance"]:
-            # TODO: repeated for loop
             new_tile = HeavyTile(
                 Vector(
                     random.choice(state.options["tile"]["spawn_xs"]),
