@@ -370,7 +370,7 @@ class Player(Movable):
                 self.pt.x = state.win.get_width() - self.w - state.options["tile"]["w"]
 
             self.move(state.delta)
-        self.check_tile_collision(state.tiles)
+            self.check_tile_collision(state.tiles)
 
     def draw(self, win: pygame.surface.Surface) -> None:
         super().draw(win)
@@ -656,7 +656,7 @@ def draw_welcome(state: State) -> None:
     )
 
 
-def count_full_rows(tiles: list[Tile], columns: int) -> int:
+def count_full_rows(tiles: list[Tile], columns: int) -> tuple[int, list[Tile], list[Tile]]:
     tile_ys: dict[float, int] = {}
     for tile in tiles:
         try:
@@ -669,7 +669,22 @@ def count_full_rows(tiles: list[Tile], columns: int) -> int:
         if value == columns:
             count += 1
 
-    return count
+    third_row_tiles: list[Tile] = []
+    below_tiles: list[Tile] = []
+
+    if count >= 5:
+        sorted_keys = sorted(tile_ys.keys(), reverse=True)
+        for key in sorted_keys:
+            if tile_ys[key] != columns:
+                sorted_keys.remove(key)
+        third_row_y = sorted_keys[2]
+        for tile in tiles:
+            if tile.pt.y == third_row_y:
+                third_row_tiles.append(tile)
+            elif tile.pt.y > third_row_y:
+                below_tiles.append(tile)
+
+    return count, third_row_tiles, below_tiles
 
 
 def calc_drop_chances(state: State) -> list[int]:
@@ -735,7 +750,7 @@ def draw_unpause(state: State) -> None:
         if e.pt.y < state.win.get_height() and e.pt.y > -e.h:
             e.draw(state.win)
 
-    count = count_full_rows(state.tiles, state.options["tile"]["columns"])
+    count, third_row_tiles, below_tiles = count_full_rows(state.tiles, state.options["tile"]["columns"])
     if count != state.full_rows:
         if count > state.full_rows:
             state.tiles.append(
@@ -756,6 +771,14 @@ def draw_unpause(state: State) -> None:
 
         state.scrolling += state.options["tile"]["w"] * (count - state.full_rows)
         state.full_rows = count
+    if count >= 5:
+        for tile in third_row_tiles:
+            state.tiles.remove(tile)
+        for tile in below_tiles:
+            tile.pt.y -= tile.h
+
+        count, third_row_tiles, below_tiles = count_full_rows(state.tiles, state.options["tile"]["columns"])
+        state.full_rows -= 1
 
     # TODO: better solution than dividing by 10
     if abs(state.scrolling) > state.options["tile"]["w"] / state.options["game"]["scroll_divisor"]:
@@ -907,7 +930,7 @@ def draw_hud(state: State) -> None:
     )
 
     surf_rows = state.fonts["h5"].render(
-        state.options["game"]["rows"]["text"] % max(0, state.full_rows - 4),
+        state.options["game"]["rows"]["text"] % state.full_rows,
         True,
         state.options["colors"]["text"],
     )

@@ -42,15 +42,23 @@ C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
 
 ### Main
 
+- Avoid showing edge tile bottom
+- "Down thrust"
+- Same auto log rate calc for tile spawn vs ticks as circle effect update
+- PERFORMANCE
+    - Once X rows of full tiles, remove a row
+        - Remove at 1 higher than current to avoid showing edge tile bottom
+    - Replace pygame.draw with blit?
+    - I loop through the tiles like a billion times
 - Shield has set time?
     - Or 1 time block?
 - Instructions screen
-- Sprite batching
 - Polish
     - art, animations, particles, lights, etc
 
 ### Cleaning
 
+- Scroll + remove row
 - Not need to convert to (r, g, b)
 - Better flow/care with:
     - Player.status == alive
