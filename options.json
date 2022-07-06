@@ -49,11 +49,21 @@
             "w": 50,
             "h": 50
         },
-        "stats": {
+        "fps": {
             "text": "fps: %i",
             "x": 63,
             "y": 2,
             "refresh": 0.1
+        },
+        "tiles": {
+            "text": "tiles: %i",
+            "x": 63,
+            "y": 22
+        },
+        "rows": {
+            "text": "rows: %i",
+            "x": 63,
+            "y": 42
         }
     },
     "death": {

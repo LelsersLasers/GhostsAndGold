@@ -887,13 +887,31 @@ def draw_hud(state: State) -> None:
     if state.fps_draw.update(state.ticks):
         state.display_fps = int(1 / state.delta)
 
-    surf_stats = state.fonts["h5"].render(
-        state.options["game"]["stats"]["text"] % state.display_fps,
+    surf_fps = state.fonts["h5"].render(
+        state.options["game"]["fps"]["text"] % state.display_fps,
         True,
         state.options["colors"]["text"],
     )
     state.win.blit(
-        surf_stats, ((state.options["game"]["stats"]["x"], state.options["game"]["stats"]["y"]))
+        surf_fps, ((state.options["game"]["fps"]["x"], state.options["game"]["fps"]["y"]))
+    )
+
+    surf_tiles = state.fonts["h5"].render(
+        state.options["game"]["tiles"]["text"] % len(state.tiles),
+        True,
+        state.options["colors"]["text"],
+    )
+    state.win.blit(
+        surf_tiles, ((state.options["game"]["tiles"]["x"], state.options["game"]["tiles"]["y"]))
+    )
+
+    surf_rows = state.fonts["h5"].render(
+        state.options["game"]["rows"]["text"] % state.full_rows,
+        True,
+        state.options["colors"]["text"],
+    )
+    state.win.blit(
+        surf_rows, ((state.options["game"]["rows"]["x"], state.options["game"]["rows"]["y"]))
     )
 
 
@@ -992,7 +1010,7 @@ def main():
             options["coin"]["spawn_interval_variance"],
             1 / 500,
         ),
-        Interval(options["game"]["stats"]["refresh"], 1 / 500),
+        Interval(options["game"]["fps"]["refresh"], 1 / 500),
         500,
         ToggleKey(),
     )
