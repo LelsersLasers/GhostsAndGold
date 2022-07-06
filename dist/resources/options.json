@@ -1,0 +1,157 @@
+{
+    "title": "Ghost Jump",
+    "window": {
+        "width": 720,
+        "height": 800
+    },
+    "colors": {
+        "background": "#2E3440",
+        "text": "#D8DEE9"
+    },
+    "font": {
+        "name": "resources/AnnieUseYourTelescope-Regular.ttf",
+        "size": {
+            "h1": 80,
+            "h2": 60,
+            "h3": 40,
+            "h4": 30,
+            "h5": 20
+        }
+    },
+    "welcome": {
+        "title": {
+            "y": 175
+        },
+        "score": {
+            "text": "Last score: %i",
+            "y": 300
+        },
+        "start": {
+            "text": "Press [SPACE] to start",
+            "y": 400
+        },
+        "instructions": {
+            "text": "Press [I] for instructions",
+            "y": 500
+        }
+    },
+    "game": {
+        "darken_alpha": 45,
+        "scroll_divisor": 10,
+        "score": {
+            "text": "Score: %i",
+            "y": 80
+        },
+        "cd_box": {
+            "text": "%.1f",
+            "xs": [310, 360],
+            "y": 20,
+            "w": 50,
+            "h": 50
+        },
+        "fps": {
+            "text": "fps: %i",
+            "x": 63,
+            "y": 2,
+            "refresh": 0.1
+        },
+        "tiles": {
+            "text": "tiles: %i",
+            "x": 63,
+            "y": 22
+        },
+        "rows": {
+            "text": "rows: %i",
+            "x": 63,
+            "y": 42
+        }
+    },
+    "death": {
+        "title": {
+            "text": "Game Over",
+            "y": 300            
+        },
+        "restart": {
+            "text": "Press [R] to restart",
+            "y": 400
+        }
+    },
+    "pause": {
+        "title": {
+            "text": "Paused",
+            "y": 200
+        },
+        "resume": {
+            "text": "Press [ESCAPE] to resume",
+            "y": 400
+        },
+        "quit": {
+            "text": "Press [Q] to quit",
+            "y": 500
+        }
+    },
+    "player": {
+        "w": 30,
+        "h": 50,
+        "speed": 300,
+        "jump_vel": 800,
+        "gravity": 2400,
+        "mode": {
+            "green": {
+                "coin_chances": [1, 2, 2, 3, 3, 3, 4],
+                "cd": 4,
+                "color": "#A3BE8C",
+                "blink_dist": 240
+            },
+            "blue": {
+                "fall": 0.75,
+                "cd": 10,
+                "color": "#5E81AC",
+                "shield_time": 2,
+                "shield_color": "#D08770"
+            }
+        }
+    },
+    "tile": {
+        "w": 60,
+        "hbs_size": 5,
+        "fall_speed": 200,
+        "spawn_interval_base": 2,
+        "spawn_interval_min": 0.3,
+        "spawn_interval_log_rate": -0.68588,
+        "spawn_y": -60,
+        "spawn_xs": [60, 120, 180, 240, 300, 360, 420, 480, 540, 600],
+        "columns": 12,
+        "base_y": 710,
+        "spawn_scale_min": 1,
+        "spawn_scale_max": 99,
+        "heavy": {
+            "r": 80,
+            "fall": 1.5,
+            "chance": 0.05,
+            "draw_time": 0.3
+        }
+    },
+    "coin": {
+        "w": 15,
+        "h": 20,
+        "fall_speed": 150,
+        "spawn_interval_base": 20,
+        "spawn_interval_variance": 10,
+        "spawn_y": -20,
+        "pop": {
+            "coin_chances": [1, 1, 2, 2, 2, 3],
+            "speed": 90,
+            "vel": 900,
+            "gravity": 2400,
+            "friction": 180
+        }
+    },
+    "chest": {
+        "w": 50,
+        "h": 40,
+        "spawn_chance": 0.1
+    },
+
+    "scroll_speed": 30
+}

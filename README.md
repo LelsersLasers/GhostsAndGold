@@ -12,6 +12,10 @@ python -m black --line-length 100 main.py
 
 python -m mypy main.py
 
+### Package to .exe
+
+C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
+
 
 ## Modes
 

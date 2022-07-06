@@ -561,8 +561,8 @@ def circle_rect_collide(rect: Hitbox, center: Vector, r: float) -> bool:
     return touch != None
 
 
-def read_options() -> dict:
-    with open("options.json", "r") as f:
+def read_options(path: str) -> dict:
+    with open(path, "r") as f:
         return json.load(f)
 
 
@@ -983,7 +983,7 @@ def reset(state: State):
 
 def main():
 
-    options = read_options()
+    options = read_options("resources/options.json")
     player, tiles = setup(options)
 
     state = State(
@@ -1026,8 +1026,6 @@ def main():
 
         state.keys_down = pygame.key.get_pressed()
 
-        handle_events(state)
-
         state.win.fill(state.options["colors"]["background"])
 
         if state.screen == "welcome":
@@ -1038,6 +1036,9 @@ def main():
             pass
 
         pygame.display.update()
+
+        # Goes at end b/c program could only end from here
+        handle_events(state)
 
 
 if __name__ == "__main__":
