@@ -730,7 +730,8 @@ def draw_unpause(state: State) -> None:
     entities: list[Hitbox] = state.tiles + state.chests + state.coins + state.effects  # type: ignore
     for e in entities:
         e.update(state)
-        e.draw(state.win)
+        if e.pt.y < state.win.get_height() and e.pt.y > -e.h:
+            e.draw(state.win)
 
     count = count_full_rows(state.tiles, state.options["tile"]["columns"])
     if count != state.full_rows:
@@ -820,7 +821,8 @@ def draw_pause(state: State) -> None:
 
     entities: list[Hitbox] = state.tiles + state.chests + state.coins + state.effects  # type: ignore
     for e in entities:
-        e.draw(state.win)
+        if e.pt.y < state.win.get_height() and e.pt.y > -e.h:
+            e.draw(state.win)
 
     draw_centered_text(
         state.win,
