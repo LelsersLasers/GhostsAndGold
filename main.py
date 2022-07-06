@@ -140,6 +140,7 @@ class State:
     fps_draw: Interval
     display_fps: int
     esc_tk: ToggleKey
+    playing: bool
 
 
 class Hitbox:
@@ -352,22 +353,23 @@ class Player(Movable):
                 self.pt.x = tile.pt.x + tile.w
 
     def update(self, state: State) -> None:
-        self.color = self.mode_options[self.mode]["color"]
-        for key in self.mode_cds:
-            self.mode_cds[key] -= state.delta
-            self.mode_cds[key] = max(0, self.mode_cds[key])
+        if self.alive:
+            self.color = self.mode_options[self.mode]["color"]
+            for key in self.mode_cds:
+                self.mode_cds[key] -= state.delta
+                self.mode_cds[key] = max(0, self.mode_cds[key])
 
-        self.shield -= state.delta
-        self.shield = max(0, self.shield)
+            self.shield -= state.delta
+            self.shield = max(0, self.shield)
 
-        self.key_input(state.keys_down)
+            self.key_input(state.keys_down)
 
-        if self.pt.x < state.options["tile"]["w"]:
-            self.pt.x = state.options["tile"]["w"]
-        elif self.pt.x + self.w + state.options["tile"]["w"] > state.win.get_width():
-            self.pt.x = state.win.get_width() - self.w - state.options["tile"]["w"]
+            if self.pt.x < state.options["tile"]["w"]:
+                self.pt.x = state.options["tile"]["w"]
+            elif self.pt.x + self.w + state.options["tile"]["w"] > state.win.get_width():
+                self.pt.x = state.win.get_width() - self.w - state.options["tile"]["w"]
 
-        self.move(state.delta)
+            self.move(state.delta)
         self.check_tile_collision(state.tiles)
 
     def draw(self, win: pygame.surface.Surface) -> None:
@@ -587,7 +589,7 @@ def handle_events(state: State) -> None:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
-            quit()
+            state.playing = False
 
     if state.screen == "welcome":
         if state.keys_down[pygame.K_SPACE]:
@@ -597,7 +599,7 @@ def handle_events(state: State) -> None:
             state.screen = "instructions"
         elif state.keys_down[pygame.K_ESCAPE]:
             pygame.quit()
-            quit()
+            state.playing = False
     elif state.screen == "instructions":
         if state.keys_down[pygame.K_ESCAPE]:
             state.screen = "welcome"
@@ -727,7 +729,7 @@ def draw_death(state: State) -> None:
 
 def draw_unpause(state: State) -> None:
     # Prob some way to do this without the '# type: ignore'
-    entities: list[Hitbox] = state.tiles + state.chests + state.coins + state.effects  # type: ignore
+    entities: list[Hitbox] = state.tiles + state.chests + state.coins + state.effects + [state.player]  # type: ignore
     for e in entities:
         e.update(state)
         if e.pt.y < state.win.get_height() and e.pt.y > -e.h:
@@ -812,14 +814,11 @@ def draw_unpause(state: State) -> None:
             )
         )
 
-    if state.player.alive:
-        state.player.update(state)
-
 
 def draw_pause(state: State) -> None:
     draw_darken(state)
 
-    entities: list[Hitbox] = state.tiles + state.chests + state.coins + state.effects  # type: ignore
+    entities: list[Hitbox] = state.tiles + state.chests + state.coins + state.effects + [state.player]  # type: ignore
     for e in entities:
         if e.pt.y < state.win.get_height() and e.pt.y > -e.h:
             e.draw(state.win)
@@ -908,7 +907,7 @@ def draw_hud(state: State) -> None:
     )
 
     surf_rows = state.fonts["h5"].render(
-        state.options["game"]["rows"]["text"] % state.full_rows,
+        state.options["game"]["rows"]["text"] % max(0, state.full_rows - 4),
         True,
         state.options["colors"]["text"],
     )
@@ -921,8 +920,6 @@ def draw_game(state: State) -> None:
     if not state.paused:
         draw_unpause(state)
         state.ticks += state.delta
-
-    state.player.draw(state.win)
 
     draw_centered_text(
         state.win,
@@ -1015,12 +1012,12 @@ def main():
         Interval(options["game"]["fps"]["refresh"], 1 / 500),
         500,
         ToggleKey(),
+        True,
     )
 
     last_time = time.time()
-    playing = True
 
-    while playing:
+    while state.playing:
 
         state.delta = time.time() - last_time
         if state.delta <= 0:
