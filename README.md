@@ -46,6 +46,9 @@ python -m mypy main.py
 
 ### Cleaning
 
+- State.ticks
+    - Use only in game
+    - (Can change if ticks is needed outside the game)
 - Not need to convert to (r, g, b)
 - Better flow/care with:
     - Player.status == alive

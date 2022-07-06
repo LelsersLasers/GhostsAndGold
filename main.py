@@ -137,6 +137,8 @@ class State:
     full_rows: int
     tile_spawn: Interval
     coin_spawn: RandomInterval
+    fps_draw: Interval
+    display_fps: int
     esc_tk: ToggleKey
 
 
@@ -577,6 +579,7 @@ def create_fonts(font_options: dict[str, Any]) -> dict[str, pygame.font.Font]:
         "h2": pygame.font.Font(font_options["name"], font_options["size"]["h2"]),
         "h3": pygame.font.Font(font_options["name"], font_options["size"]["h3"]),
         "h4": pygame.font.Font(font_options["name"], font_options["size"]["h4"]),
+        "h5": pygame.font.Font(font_options["name"], font_options["size"]["h5"]),
     }
 
 
@@ -590,6 +593,7 @@ def handle_events(state: State) -> None:
         if state.keys_down[pygame.K_SPACE]:
             state.tile_spawn.reset(state.ticks)
             state.coin_spawn.reset(state.ticks)
+            state.fps_draw.reset(state.ticks)
             state.score = 0
             state.screen = "game"
         elif state.keys_down[pygame.K_i]:
@@ -891,6 +895,18 @@ def draw_hud(state: State) -> None:
         )
         state.win.blit(surf_cd, (text_pt.x, text_pt.y))
 
+    if state.fps_draw.update(state.ticks):
+        state.display_fps = int(1 / state.delta)
+
+    surf_stats = state.fonts["h5"].render(
+        state.options["game"]["stats"]["text"] % state.display_fps,
+        True,
+        state.options["colors"]["text"],
+    )
+    state.win.blit(
+        surf_stats, ((state.options["game"]["stats"]["x"], state.options["game"]["stats"]["y"]))
+    )
+
 
 def draw_game(state: State) -> None:
     if not state.paused:
@@ -971,6 +987,8 @@ def main():
             options["coin"]["spawn_interval_variance"],
             1 / 500,
         ),
+        Interval(options["game"]["stats"]["refresh"], 1 / 500),
+        500,
         ToggleKey(),
     )
 
