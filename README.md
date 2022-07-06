@@ -34,6 +34,7 @@ python -m mypy main.py
 ### Bugs
 
 - Directional check sometimes sends sideways to top?
+- Directional check sometimes misses??
 
 ### Main
 
@@ -46,9 +47,6 @@ python -m mypy main.py
 
 ### Cleaning
 
-- State.ticks
-    - Use only in game
-    - (Can change if ticks is needed outside the game)
 - Not need to convert to (r, g, b)
 - Better flow/care with:
     - Player.status == alive

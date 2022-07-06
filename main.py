@@ -567,7 +567,7 @@ def read_options() -> dict:
 def create_window(options: dict[str, Any]) -> pygame.surface.Surface:
     pygame.init()
     win = pygame.display.set_mode(
-        (options["window"]["width"], options["window"]["height"]), pygame.SCALED | pygame.NOFRAME
+        (options["window"]["width"], options["window"]["height"]), pygame.SCALED
     )
     pygame.display.set_caption(options["title"])  # TODO: icon
     return win
@@ -591,10 +591,7 @@ def handle_events(state: State) -> None:
 
     if state.screen == "welcome":
         if state.keys_down[pygame.K_SPACE]:
-            state.tile_spawn.reset(state.ticks)
-            state.coin_spawn.reset(state.ticks)
-            state.fps_draw.reset(state.ticks)
-            state.score = 0
+            reset(state)
             state.screen = "game"
         elif state.keys_down[pygame.K_i]:
             state.screen = "instructions"
@@ -610,14 +607,6 @@ def handle_events(state: State) -> None:
         elif (not state.player.alive and state.keys_down[pygame.K_r]) or (
             state.paused and state.keys_down[pygame.K_q]
         ):
-            state.player, state.tiles = setup(state.options)
-            state.coins = []
-            state.chests = []
-            state.effects = []
-            state.ticks = 0
-            state.scrolling = 0
-            state.full_rows = 4
-            state.paused = False
             state.screen = "welcome"
 
 
@@ -911,6 +900,7 @@ def draw_hud(state: State) -> None:
 def draw_game(state: State) -> None:
     if not state.paused:
         draw_unpause(state)
+        state.ticks += state.delta
 
     state.player.draw(state.win)
 
@@ -959,6 +949,21 @@ def setup(options: dict[str, Any]) -> tuple[Player, list[Tile]]:
     return player, tiles
 
 
+def reset(state: State):
+    state.player, state.tiles = setup(state.options)
+    state.coins = []
+    state.chests = []
+    state.effects = []
+    state.ticks = 1 / 500
+    state.scrolling = 0
+    state.full_rows = 4
+    state.paused = False
+    state.tile_spawn.reset(state.ticks)
+    state.coin_spawn.reset(state.ticks)
+    state.fps_draw.reset(state.ticks)
+    state.score = 0
+
+
 def main():
 
     options = read_options()
@@ -1001,8 +1006,6 @@ def main():
         if state.delta <= 0:
             state.delta = 1 / 500
         last_time = time.time()
-        if not state.paused:
-            state.ticks += state.delta
 
         state.keys_down = pygame.key.get_pressed()
 
