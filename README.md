@@ -42,7 +42,6 @@ C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
 
 ### Main
 
-- Avoid showing edge tile bottom
 - "Down thrust"
 - Same auto log rate calc for tile spawn vs ticks as circle effect update
 - PERFORMANCE

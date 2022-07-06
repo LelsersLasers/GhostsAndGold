@@ -200,8 +200,6 @@ class Chest(Hitbox):
         if (state.player.alive and self.collide(state.player)) or not self.bot_tile in state.tiles:
             state.chests.remove(self)
             num_coins = random.choice(state.options["coin"]["pop"]["coin_chances"])
-            if state.player.mode == "green":
-                num_coins = random.choice(state.player.mode_options["green"]["coin_chances"])
             for _ in range(num_coins):
                 c = Coin(self.get_center(), state.options["coin"])
                 c.move_vec = Vector(
@@ -289,24 +287,8 @@ class Player(Movable):
         self.jumps: int = 1
         self.space_tk: ToggleKey = ToggleKey(True)
         self.alive: bool = True
-        self.last_dir: str = "right"
-        self.shield: float = 0
-
-        self.modes: list[str] = ["green", "blue"]
-        self.mode: str = "green"
-        self.mode_options: dict[str, Any] = options["player"]["mode"]
-        self.mode_cds_base: dict[str, float] = {
-            "green": options["player"]["mode"]["green"]["cd"],
-            "blue": options["player"]["mode"]["blue"]["cd"],
-        }
-        self.mode_cds: dict[str, float] = copy.deepcopy(self.mode_cds_base)
 
     def key_input(self, keys_down: list[bool]) -> None:
-        if keys_down[pygame.K_1]:
-            self.mode = "green"
-        elif keys_down[pygame.K_2]:
-            self.mode = "blue"
-
         self.move_vec.x = 0
         if keys_down[pygame.K_d] or keys_down[pygame.K_RIGHT]:
             self.move_vec.x = self.speed
@@ -314,17 +296,6 @@ class Player(Movable):
         elif keys_down[pygame.K_a] or keys_down[pygame.K_LEFT]:
             self.move_vec.x = -self.speed
             self.last_dir = "left"
-
-        if self.mode == "green" and self.mode_cds["green"] == 0 and keys_down[pygame.K_q]:
-            if self.last_dir == "right":
-                self.pt.x += self.mode_options["green"]["blink_dist"]
-            elif self.last_dir == "left":
-                self.pt.x -= self.mode_options["green"]["blink_dist"]
-            self.mode_cds["green"] = self.mode_cds_base["green"]
-
-        if self.mode == "blue" and self.mode_cds["blue"] == 0 and keys_down[pygame.K_q]:
-            self.shield = self.mode_options["blue"]["shield_time"]
-            self.mode_cds["blue"] = self.mode_cds_base["blue"]
 
         if (
             self.space_tk.down(keys_down[pygame.K_SPACE] or keys_down[pygame.K_UP])
@@ -339,11 +310,7 @@ class Player(Movable):
         for tile in tiles:
             collision = tile.directional_collide(current_self)
             if collision == "bottom":
-                if self.shield > 0:
-                    self.shield = 0
-                    tiles.remove(tile)
-                else:
-                    self.alive = False
+                self.alive = False
             elif collision == "top":
                 self.pt.y = tile.pt.y - self.h
                 self.move_vec.y = 0
@@ -356,14 +323,6 @@ class Player(Movable):
 
     def update(self, state: State) -> None:
         if self.alive:
-            self.color = self.mode_options[self.mode]["color"]
-            for key in self.mode_cds:
-                self.mode_cds[key] -= state.delta
-                self.mode_cds[key] = max(0, self.mode_cds[key])
-
-            self.shield -= state.delta
-            self.shield = max(0, self.shield)
-
             self.key_input(state.keys_down)
 
             if self.pt.x < state.options["tile"]["w"]:
@@ -373,11 +332,8 @@ class Player(Movable):
 
             self.move(state.delta)
             self.check_tile_collision(state.tiles)
-
-    def draw(self, win: pygame.surface.Surface) -> None:
-        super().draw(win)
-        if self.shield > 0:
-            pygame.draw.rect(win, self.mode_options["blue"]["shield_color"], self.get_rect(), 5)
+        else:
+            self.color = "#BF616A"
 
 
 class Fall(Movable):
@@ -417,10 +373,7 @@ class Tile(Fall):
         )
 
     def update(self, state: State) -> None:
-        delta = state.delta
-        if state.player.mode == "blue":
-            delta *= state.player.mode_options["blue"]["fall"]
-        self.move(delta)
+        self.move(state.delta)
         self.land(state)
 
     def land(self, state: State) -> None:
@@ -485,10 +438,7 @@ class HeavyTile(Tile):
                 )
 
                 if player_collide:
-                    if state.player.shield > 0:
-                        state.player.shield = 0
-                    else:
-                        state.player.alive = False
+                    state.player.alive = False
 
                 state.effects.append(
                     CircleEffect(
@@ -874,43 +824,14 @@ def draw_pause(state: State) -> None:
 
 
 def draw_hud(state: State) -> None:
-    for i in range(len(state.player.modes)):
-        pt = Vector(state.options["game"]["cd_box"]["xs"][i], state.options["game"]["cd_box"]["y"])
-        full_rect = (
-            int(pt.x),
-            int(pt.y),
-            int(state.options["game"]["cd_box"]["w"]),
-            int(state.options["game"]["cd_box"]["h"]),
-        )
-        percent = (
-            state.player.mode_cds[state.player.modes[i]]
-            / state.player.mode_cds_base[state.player.modes[i]]
-        )
-        cd_rect = (
-            int(pt.x),
-            int(pt.y + state.options["game"]["cd_box"]["h"] * percent),
-            int(state.options["game"]["cd_box"]["w"]),
-            int(state.options["game"]["cd_box"]["h"] * (1 - percent)),
-        )
 
-        pygame.draw.rect(state.win, state.options["colors"]["text"], full_rect)
-        pygame.draw.rect(
-            state.win, state.player.mode_options[state.player.modes[i]]["color"], cd_rect
-        )
-        pygame.draw.rect(state.win, state.options["colors"]["text"], full_rect, 3)
-
-        surf_cd = state.fonts["h4"].render(
-            state.options["game"]["cd_box"]["text"] % state.player.mode_cds[state.player.modes[i]],
-            True,
-            state.options["colors"]["background"],
-        )
-        text_pt = pt.add(
-            Vector(
-                (state.options["game"]["cd_box"]["w"] - surf_cd.get_width()) / 2,
-                (state.options["game"]["cd_box"]["h"] - surf_cd.get_height()) / 2,
-            )
-        )
-        state.win.blit(surf_cd, (text_pt.x, text_pt.y))
+    draw_centered_text(
+        state.win,
+        state.fonts["h4"],
+        state.options["game"]["score"]["text"] % state.score,
+        state.options["game"]["score"]["y"],
+        state.options["colors"]["text"],
+    )
 
     if state.fps_draw.update(state.ticks):
         state.display_fps = int(1 / state.delta)
@@ -947,14 +868,6 @@ def draw_game(state: State) -> None:
     if not state.paused:
         draw_unpause(state)
         state.ticks += state.delta
-
-    draw_centered_text(
-        state.win,
-        state.fonts["h4"],
-        state.options["game"]["score"]["text"] % state.score,
-        state.options["game"]["score"]["y"],
-        state.options["colors"]["text"],
-    )
 
     draw_hud(state)
 

@@ -42,13 +42,6 @@
             "text": "Score: %i",
             "y": 80
         },
-        "cd_box": {
-            "text": "%.1f",
-            "xs": [310, 360],
-            "y": 20,
-            "w": 50,
-            "h": 50
-        },
         "fps": {
             "text": "fps: %i",
             "x": 63,
@@ -95,22 +88,8 @@
         "h": 50,
         "speed": 300,
         "jump_vel": 800,
-        "gravity": 2400,
-        "mode": {
-            "green": {
-                "coin_chances": [1, 2, 2, 3, 3, 3, 4],
-                "cd": 4,
-                "color": "#A3BE8C",
-                "blink_dist": 240
-            },
-            "blue": {
-                "fall": 0.75,
-                "cd": 10,
-                "color": "#5E81AC",
-                "shield_time": 2,
-                "shield_color": "#D08770"
-            }
-        }
+        "thrust_vel": 400,
+        "gravity": 2400
     },
     "tile": {
         "w": 60,
@@ -123,7 +102,7 @@
         "spawn_xs": [60, 120, 180, 240, 300, 360, 420, 480, 540, 600],
         "columns": 12,
         "row_limit": 4,
-        "base_y": 710,
+        "base_y": 770,
         "spawn_scale_min": 1,
         "spawn_scale_max": 99,
         "heavy": {
