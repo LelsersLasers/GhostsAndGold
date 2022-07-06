@@ -40,7 +40,7 @@
         "scroll_divisor": 10,
         "score": {
             "text": "Score: %i",
-            "y": 80
+            "y": 20
         },
         "fps": {
             "text": "fps: %i",
@@ -89,7 +89,9 @@
         "speed": 300,
         "jump_vel": 800,
         "thrust_vel": 400,
-        "gravity": 2400
+        "gravity": 2400,
+        "alive_color": "#A3BE8C",
+        "dead_color": "#BF616A"
     },
     "tile": {
         "w": 60,
@@ -105,11 +107,16 @@
         "base_y": 710,
         "spawn_scale_min": 1,
         "spawn_scale_max": 99,
+        "color": "#81A1C1",
+        "edge_color": "#88C0D0",
+        "hbs_color": "#BF616A",
         "heavy": {
             "r": 80,
             "fall": 1.5,
             "chance": 0.05,
-            "draw_time": 0.3
+            "draw_time": 0.3,
+            "color": "#8FBCBB",
+            "exposion_color": "#BF616A"
         }
     },
     "coin": {
@@ -119,6 +126,7 @@
         "spawn_interval_base": 20,
         "spawn_interval_variance": 10,
         "spawn_y": -20,
+        "color": "#EBCB8B",
         "pop": {
             "coin_chances": [1, 1, 2, 2, 2, 3],
             "speed": 90,
@@ -130,7 +138,8 @@
     "chest": {
         "w": 50,
         "h": 40,
-        "spawn_chance": 0.1
+        "spawn_chance": 0.1,
+        "color": "#B48EAD"
     },
 
     "scroll_speed": 30

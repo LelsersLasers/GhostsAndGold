@@ -178,7 +178,7 @@ class Hitbox:
 
 
 class Chest(Hitbox):
-    def __init__(self, chest_options, color: str, bot_tile: Tile):
+    def __init__(self, chest_options, bot_tile: Tile):
         super().__init__(
             Vector(
                 bot_tile.pt.x + (bot_tile.w - chest_options["w"]) / 2,
@@ -186,7 +186,7 @@ class Chest(Hitbox):
             ),
             chest_options["w"],
             chest_options["h"],
-            color,
+            chest_options["color"],
         )
         self.bot_tile = bot_tile
 
@@ -279,7 +279,7 @@ class Player(Movable):
             ),
             options["player"]["w"],
             options["player"]["h"],
-            "#A3BE8C",
+            options["player"]["alive_color"],
             Vector(0, 0),
             options["player"]["gravity"],
         )
@@ -338,7 +338,7 @@ class Player(Movable):
             self.move(state.delta)
             self.check_tile_collision(state.tiles)
         else:
-            self.color = "#BF616A"
+            self.color = state.options["player"]["dead_color"]
 
 
 class Fall(Movable):
@@ -351,7 +351,7 @@ class Tile(Fall):
         self,
         pt: Vector,
         tile_options: dict[str, Any],
-        color: str = "#81A1C1",
+        color: str,
     ):
         super().__init__(
             pt, tile_options["w"], tile_options["w"], color, tile_options["fall_speed"]
@@ -359,10 +359,12 @@ class Tile(Fall):
         self.hbs_size: float = tile_options["hbs_size"]
         self.hbs_len: float = self.w - 2 * tile_options["hbs_size"]
         self.side_hbs: dict[str, Hitbox] = {
-            "top": Hitbox(Vector(-1, -1), self.hbs_len, self.hbs_size, "#BF616A"),
-            "bottom": Hitbox(Vector(-1, -1), self.hbs_len, self.hbs_size, "#BF616A"),
-            "left": Hitbox(Vector(-1, -1), self.hbs_size, self.hbs_len, "#BF616A"),
-            "right": Hitbox(Vector(-1, -1), self.hbs_size, self.hbs_len, "#BF616A"),
+            "top": Hitbox(Vector(-1, -1), self.hbs_len, self.hbs_size, tile_options["hbs_color"]),
+            "bottom": Hitbox(
+                Vector(-1, -1), self.hbs_len, self.hbs_size, tile_options["hbs_color"]
+            ),
+            "left": Hitbox(Vector(-1, -1), self.hbs_size, self.hbs_len, tile_options["hbs_color"]),
+            "right": Hitbox(Vector(-1, -1), self.hbs_size, self.hbs_len, tile_options["hbs_color"]),
         }
         self.update_side_hbs()
 
@@ -416,14 +418,14 @@ class Tile(Fall):
 
 
 class EdgeTile(Tile):
-    def __init__(self, pt: Vector, tile_options: dict[str, Any]):
-        super().__init__(pt, tile_options, "#88C0D0")
+    def __init__(self, pt: Vector, tile_options: dict[str, Any], color: str):
+        super().__init__(pt, tile_options, color)
         self.move_vec.y = 0
 
 
 class HeavyTile(Tile):
     def __init__(self, pt: Vector, tile_options: dict[str, Any]):
-        super().__init__(pt, tile_options, "#8FBCBB")
+        super().__init__(pt, tile_options, tile_options["heavy"]["color"])
         self.move_vec.y *= tile_options["heavy"]["fall"]
 
     def land(self, state: State) -> None:
@@ -449,7 +451,7 @@ class HeavyTile(Tile):
                     CircleEffect(
                         self.get_center(),
                         state.options["tile"]["heavy"]["r"],
-                        "#BF616A",
+                        state.options["tile"]["heavy"]["explosion_color"],
                         Vector(0, 0),
                         0,
                         state.options["tile"]["heavy"]["draw_time"],
@@ -462,7 +464,11 @@ class HeavyTile(Tile):
 class Coin(Fall):
     def __init__(self, pt: Vector, coin_options: dict[str, Any]):
         super().__init__(
-            pt, coin_options["w"], coin_options["h"], "#EBCB8B", coin_options["fall_speed"]
+            pt,
+            coin_options["w"],
+            coin_options["h"],
+            coin_options["color"],
+            coin_options["fall_speed"],
         )
 
     def update(self, state: State):
@@ -718,6 +724,7 @@ def draw_unpause(state: State) -> None:
                 EdgeTile(
                     Vector(0, state.options["tile"]["top_y"] - state.scrolling),
                     state.options["tile"],
+                    state.options["tile"]["edge_color"]
                 )
             )
             state.tiles.append(
@@ -727,6 +734,7 @@ def draw_unpause(state: State) -> None:
                         state.options["tile"]["top_y"] - state.scrolling,
                     ),
                     state.options["tile"],
+                    state.options["tile"]["edge_color"]
                 )
             )
         state.scrolling += state.options["tile"]["w"] * (count - state.full_rows)
@@ -768,11 +776,12 @@ def draw_unpause(state: State) -> None:
             new_tile = Tile(
                 Vector(random.choice(drop_chance_list), state.options["tile"]["spawn_y"]),
                 state.options["tile"],
+                state.options["tile"]["color"],
             )
         state.tiles.append(new_tile)
         chest_chance = random.random()
         if chest_chance < state.options["chest"]["spawn_chance"]:
-            state.chests.append(Chest(state.options["chest"], "#B48EAD", new_tile))
+            state.chests.append(Chest(state.options["chest"], new_tile))
 
         state.tile_spawn.period = max(
             state.options["tile"]["spawn_interval_base"]
@@ -894,15 +903,16 @@ def setup(options: dict[str, Any]) -> tuple[Player, list[Tile]]:
                 tile_types[j](
                     Vector((i + 1) * options["tile"]["w"], tile_y + j * options["tile"]["w"]),
                     options["tile"],
+                    options["tile"]["edge_color"] if tile_types[j] == EdgeTile else options["tile"]["color"],
                 )
             )
 
     tile_y += (len(tile_types) - 1) * options["tile"]["w"]
     while tile_y > -options["tile"]["w"]:
-        tiles.append(EdgeTile(Vector(0, tile_y), options["tile"]))
+        tiles.append(EdgeTile(Vector(0, tile_y), options["tile"], options["tile"]["edge_color"]))
         tiles.append(
             EdgeTile(
-                Vector(options["window"]["width"] - options["tile"]["w"], tile_y), options["tile"]
+                Vector(options["window"]["width"] - options["tile"]["w"], tile_y), options["tile"], options["tile"]["edge_color"]
             )
         )
         tile_y -= options["tile"]["w"]
@@ -963,7 +973,6 @@ def main():
         ToggleKey(),
         True,
     )
-    print(state.tile_spawn_log_rate)
 
     last_time = time.time()
 
