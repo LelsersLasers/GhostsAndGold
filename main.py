@@ -284,25 +284,27 @@ class Player(Movable):
         )
         self.speed: float = options["player"]["speed"]
         self.jump_vel: float = options["player"]["jump_vel"]
+        self.thrust_vel: float = options["player"]["thrust_vel"]
         self.jumps: int = 1
         self.space_tk: ToggleKey = ToggleKey(True)
+        self.s_tk: ToggleKey = ToggleKey()
         self.alive: bool = True
 
     def key_input(self, keys_down: list[bool]) -> None:
         self.move_vec.x = 0
         if keys_down[pygame.K_d] or keys_down[pygame.K_RIGHT]:
             self.move_vec.x = self.speed
-            self.last_dir = "right"
         elif keys_down[pygame.K_a] or keys_down[pygame.K_LEFT]:
             self.move_vec.x = -self.speed
-            self.last_dir = "left"
 
         if (
-            self.space_tk.down(keys_down[pygame.K_SPACE] or keys_down[pygame.K_UP])
+            self.space_tk.down(keys_down[pygame.K_SPACE] or keys_down[pygame.K_UP] or keys_down[pygame.K_w])
             and self.jumps < 2
         ):
             self.move_vec.y = -self.jump_vel
             self.jumps += 1
+        elif self.s_tk.down(keys_down[pygame.K_s] or keys_down[pygame.K_DOWN]):
+            self.move_vec.y = self.thrust_vel
 
     def check_tile_collision(self, tiles: list[Tile]) -> None:
         current_self: Player = copy.deepcopy(self)  # TODO: not sure if the copy is needed
