@@ -138,6 +138,7 @@ class State:
     full_rows: int
     display_rows: int
     tile_spawn: Interval
+    tile_spawn_log_rate: float
     coin_spawn: RandomInterval
     fps_draw: Interval
     display_fps: int
@@ -775,7 +776,7 @@ def draw_unpause(state: State) -> None:
 
         state.tile_spawn.period = max(
             state.options["tile"]["spawn_interval_base"]
-            + state.options["tile"]["spawn_interval_log_rate"] * math.log(state.ticks + 1, 10),
+            + state.tile_spawn_log_rate * math.log(state.ticks + 1, 10),
             state.options["tile"]["spawn_interval_min"],
         )
 
@@ -950,6 +951,8 @@ def main():
         4,
         4,
         Interval(options["tile"]["spawn_interval_base"], 1 / 500),
+        (options["tile"]["spawn_interval_min"] - options["tile"]["spawn_interval_base"])
+        / math.log(options["tile"]["spawn_interval_time"] + 1, 10),
         RandomInterval(
             options["coin"]["spawn_interval_base"],
             options["coin"]["spawn_interval_variance"],
@@ -960,6 +963,7 @@ def main():
         ToggleKey(),
         True,
     )
+    print(state.tile_spawn_log_rate)
 
     last_time = time.time()
 

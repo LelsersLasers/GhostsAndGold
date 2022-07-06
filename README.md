@@ -16,23 +16,6 @@ python -m mypy main.py
 
 C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
 
-
-## Modes
-
-- Green
-    - Passive:
-        - increased drop chance from chests, increased chests
-    - Active:
-        - Blink
-- Blue
-    - Passive:
-        - Tiles fall slower
-    - Active:
-        - Shield for 1 sec
-        - If tile falls on it, it breaks
-            - Pops chest
-
-
 ## TODO
 
 ### Bugs
@@ -43,7 +26,6 @@ C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
 ### Main
 
 - "Down thrust"
-- Same auto log rate calc for tile spawn vs ticks as circle effect update
 - PERFORMANCE
     - Once X rows of full tiles, remove a row
         - Remove at 1 higher than current to avoid showing edge tile bottom
