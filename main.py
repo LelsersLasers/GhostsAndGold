@@ -119,6 +119,7 @@ class Vector:
 
 @dataclass  # auto writes __init__ and __repr__
 class State:
+    # TODO: defaults for float/ints?
     win: pygame.surface.Surface
     fonts: dict[str, pygame.font.Font]
     options: dict[str, Any]
@@ -135,6 +136,7 @@ class State:
     score: int
     scrolling: float
     full_rows: int
+    display_rows: int
     tile_spawn: Interval
     coin_spawn: RandomInterval
     fps_draw: Interval
@@ -656,7 +658,9 @@ def draw_welcome(state: State) -> None:
     )
 
 
-def count_full_rows(tiles: list[Tile], columns: int) -> tuple[int, list[Tile], list[Tile]]:
+def count_full_rows(
+    tiles: list[Tile], columns: int, row_limit: int
+) -> tuple[int, list[Tile], list[Tile]]:
     tile_ys: dict[float, int] = {}
     for tile in tiles:
         try:
@@ -672,7 +676,7 @@ def count_full_rows(tiles: list[Tile], columns: int) -> tuple[int, list[Tile], l
     third_row_tiles: list[Tile] = []
     below_tiles: list[Tile] = []
 
-    if count >= 5:
+    if count > row_limit:
         sorted_keys = sorted(tile_ys.keys(), reverse=True)
         for key in sorted_keys:
             if tile_ys[key] != columns:
@@ -750,7 +754,9 @@ def draw_unpause(state: State) -> None:
         if e.pt.y < state.win.get_height() and e.pt.y > -e.h:
             e.draw(state.win)
 
-    count, third_row_tiles, below_tiles = count_full_rows(state.tiles, state.options["tile"]["columns"])
+    count, third_row_tiles, below_tiles = count_full_rows(
+        state.tiles, state.options["tile"]["columns"], state.options["tile"]["row_limit"]
+    )
     if count != state.full_rows:
         if count > state.full_rows:
             state.tiles.append(
@@ -768,17 +774,8 @@ def draw_unpause(state: State) -> None:
                     state.options["tile"],
                 )
             )
-
         state.scrolling += state.options["tile"]["w"] * (count - state.full_rows)
         state.full_rows = count
-    if count >= 5:
-        for tile in third_row_tiles:
-            state.tiles.remove(tile)
-        for tile in below_tiles:
-            tile.pt.y -= tile.h
-
-        count, third_row_tiles, below_tiles = count_full_rows(state.tiles, state.options["tile"]["columns"])
-        state.full_rows -= 1
 
     # TODO: better solution than dividing by 10
     if abs(state.scrolling) > state.options["tile"]["w"] / state.options["game"]["scroll_divisor"]:
@@ -788,6 +785,13 @@ def draw_unpause(state: State) -> None:
         for ts in to_scroll:
             ts.scroll(scroll_dist)
         state.player.pt.y += scroll_dist
+    elif count > state.options["tile"]["row_limit"]:
+        for tile in third_row_tiles:
+            state.tiles.remove(tile)
+        for tile in below_tiles:
+            tile.pt.y -= tile.h
+        state.full_rows -= 1
+        state.display_rows -= 1
 
     if state.tile_spawn.update(state.ticks):
         # TODO: clean the types here - why is union[X, None] needed?
@@ -930,7 +934,7 @@ def draw_hud(state: State) -> None:
     )
 
     surf_rows = state.fonts["h5"].render(
-        state.options["game"]["rows"]["text"] % state.full_rows,
+        state.options["game"]["rows"]["text"] % max(0, state.full_rows - state.display_rows),
         True,
         state.options["colors"]["text"],
     )
@@ -997,6 +1001,7 @@ def reset(state: State):
     state.ticks = 1 / 500
     state.scrolling = 0
     state.full_rows = 4
+    state.display_rows = 4
     state.paused = False
     state.tile_spawn.reset(state.ticks)
     state.coin_spawn.reset(state.ticks)
@@ -1025,6 +1030,7 @@ def main():
         1 / 500,
         -1,
         0,
+        4,
         4,
         Interval(options["tile"]["spawn_interval_base"], 1 / 500),
         RandomInterval(
