@@ -42,6 +42,14 @@
             "text": "Score: %i",
             "y": 20
         },
+        "rows": {
+            "text": "Rows: %i",
+            "y": 50
+        },
+        "time": {
+            "text": "%i sec",
+            "y": 70
+        },
         "fps": {
             "text": "fps: %i",
             "x": 63,
@@ -52,11 +60,6 @@
             "text": "tiles: %i",
             "x": 63,
             "y": 22
-        },
-        "rows": {
-            "text": "rows: %i",
-            "x": 63,
-            "y": 42
         }
     },
     "death": {
@@ -116,7 +119,7 @@
             "chance": 0.05,
             "draw_time": 0.3,
             "color": "#8FBCBB",
-            "exposion_color": "#BF616A"
+            "explosion_color": "#BF616A"
         }
     },
     "coin": {

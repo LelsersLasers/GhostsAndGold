@@ -846,6 +846,21 @@ def draw_hud(state: State) -> None:
         state.options["game"]["score"]["y"],
         state.options["colors"]["text"],
     )
+    draw_centered_text(
+        state.win,
+        state.fonts["h5"],
+        state.options["game"]["rows"]["text"] % max(0, state.full_rows - state.display_rows),
+        state.options["game"]["rows"]["y"],
+        state.options["colors"]["text"],
+    )
+    draw_centered_text(
+        state.win,
+        state.fonts["h5"],
+        state.options["game"]["time"]["text"] % int(state.ticks),
+        state.options["game"]["time"]["y"],
+        state.options["colors"]["text"],
+    )
+
 
     if state.fps_draw.update(state.ticks):
         state.display_fps = int(1 / state.delta)
@@ -866,15 +881,6 @@ def draw_hud(state: State) -> None:
     )
     state.win.blit(
         surf_tiles, ((state.options["game"]["tiles"]["x"], state.options["game"]["tiles"]["y"]))
-    )
-
-    surf_rows = state.fonts["h5"].render(
-        state.options["game"]["rows"]["text"] % max(0, state.full_rows - state.display_rows),
-        True,
-        state.options["colors"]["text"],
-    )
-    state.win.blit(
-        surf_rows, ((state.options["game"]["rows"]["x"], state.options["game"]["rows"]["y"]))
     )
 
 

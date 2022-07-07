@@ -12,7 +12,7 @@ Download latest working version (all OSes/python):
 - https://github.com/LelsersLasers/GhostJump/raw/main/dist/GhostJumpPython.zip
 - Note: this version requires python to be installed
 
-## Stuff
+## Self notes
 
 ### Format
 
