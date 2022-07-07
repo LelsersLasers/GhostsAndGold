@@ -1,4 +1,5 @@
 from __future__ import annotations
+from operator import ifloordiv
 from typing import Any, Union
 from dataclasses import dataclass  # struct like classes
 
@@ -21,6 +22,17 @@ class ToggleKey:
             return True
         elif not condition:
             self.was_down = False
+        return False
+
+
+class KeyList:
+    def __init__(self, keys: list[int]):
+        self.keys = keys
+
+    def down(self, keys_down: list[bool]) -> bool:
+        for key in self.keys:
+            if keys_down[key]:
+                return True
         return False
 
 
@@ -133,6 +145,7 @@ class State:
     paused: bool
     screen: str
     keys_down: list[bool]
+    keys: dict[str, KeyList]
     player: Player
     tiles: list[Tile]
     coins: list[Coin]
@@ -306,22 +319,20 @@ class Player(Movable):
         self.s_tk: ToggleKey = ToggleKey()
         self.alive: bool = True
 
-    def key_input(self, keys_down: list[bool]) -> None:
+    def key_input(self, keys_down: list[bool], keys: dict[str, KeyList]) -> None:
         self.move_vec.x = 0
-        if keys_down[pygame.K_d] or keys_down[pygame.K_RIGHT]:
+        if keys["right"].down(keys_down):
             self.move_vec.x = self.speed
-        elif keys_down[pygame.K_a] or keys_down[pygame.K_LEFT]:
+        elif keys["left"].down(keys_down):
             self.move_vec.x = -self.speed
 
         if (
-            self.space_tk.down(
-                keys_down[pygame.K_SPACE] or keys_down[pygame.K_UP] or keys_down[pygame.K_w]
-            )
+            self.space_tk.down(keys["up"].down(keys_down))
             and self.jumps < 2
         ):
             self.move_vec.y = -self.jump_vel
             self.jumps += 1
-        elif self.s_tk.down(keys_down[pygame.K_s] or keys_down[pygame.K_DOWN]):
+        elif self.s_tk.down(keys["down"].down(keys_down)):
             self.move_vec.y += self.thrust_vel
 
     def check_tile_collision(self, tile_map: dict[str, list[Tile]], tile_size: int) -> None:
@@ -352,7 +363,7 @@ class Player(Movable):
 
     def update(self, state: State) -> None:
         if self.alive:
-            self.key_input(state.keys_down)
+            self.key_input(state.keys_down, state.keys)
 
             if self.pt.x < state.options["tile"]["w"]:
                 self.pt.x = state.options["tile"]["w"]
@@ -602,7 +613,7 @@ def handle_events(state: State) -> None:
             state.playing = False
 
     if state.screen == "welcome":
-        if state.keys_down[pygame.K_SPACE]:
+        if state.keys["up"].down(state.keys_down):
             reset(state)
             state.screen = "game"
         elif state.keys_down[pygame.K_i]:
@@ -1019,6 +1030,12 @@ def main():
         False,
         "welcome",
         [],
+        {
+            "up": KeyList([pygame.K_UP, pygame.K_w, pygame.K_SPACE]),
+            "down": KeyList([pygame.K_DOWN, pygame.K_s, pygame.K_LCTRL]),
+            "left": KeyList([pygame.K_LEFT, pygame.K_a]),
+            "right": KeyList([pygame.K_RIGHT, pygame.K_d]),
+        },
         player,
         tiles,
         [],

@@ -35,9 +35,6 @@ C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
 
 ### Main
 
-- KeyList class
-    - KeyList(w, space, up)
-    - keyList.down(keys_down)
 - "Down thrust"
 - If downscrolling, add row to never show bottom edge?
     - (then make bottom edge only 1 tall)
@@ -55,7 +52,7 @@ C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
 - Make sure tup offsets for map_dict cover all cases
 - Returns, breaks, etc
 - Removing during iteration
-- Not need to convert to (r, g, b)
+- Not need to convert pass fake tuple (r, g, b)
 - Better flow/care with:
     - Player.status == alive
 - Types
@@ -66,7 +63,7 @@ C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
 - Try to remove "# type: ignore"
 - Sequence vs list?
 - Where the key_board input is
-    - Where the TKs are
+    - Where the TKs and KeyLists are
 - Where the resets, removals, etc are
 
 
