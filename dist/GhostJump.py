@@ -641,84 +641,26 @@ def draw_centered_text(
     surf_text = font.render(text, True, color)
     win.blit(surf_text, ((win.get_width() - surf_text.get_width()) / 2, y))
 
-
-def draw_welcome(state: State) -> None:
-    draw_centered_text(
-        state.win,
-        state.fonts["h1"],
-        state.options["title"],
-        state.options["welcome"]["title"]["y"],
-        state.options["colors"]["text"],
-    )
-    if state.score != -1:
+def draw_centered_texts(state: State, section: str, text_keys: list[str]) -> None:
+    for key in text_keys:
         draw_centered_text(
             state.win,
-            state.fonts["h4"],
-            state.options["welcome"]["score"]["text"] % state.score,
-            state.options["welcome"]["score"]["y"],
+            state.fonts[state.options[section][key]["font"]],
+            state.options[section][key]["text"],
+            state.options[section][key]["y"],
             state.options["colors"]["text"],
         )
-    draw_centered_text(
-        state.win,
-        state.fonts["h3"],
-        state.options["welcome"]["start"]["text"],
-        state.options["welcome"]["start"]["y"],
-        state.options["colors"]["text"],
-    )
-    draw_centered_text(
-        state.win,
-        state.fonts["h4"],
-        state.options["welcome"]["instructions"]["text"],
-        state.options["welcome"]["instructions"]["y"],
-        state.options["colors"]["text"],
-    )
-    draw_centered_text(
-        state.win,
-        state.fonts["h5"],
-        state.options["welcome"]["exit"]["text"],
-        state.options["welcome"]["exit"]["y"],
-        state.options["colors"]["text"],
-    )
+
+
+def draw_welcome(state: State) -> None:
+    text_keys = list(state.options["welcome"].keys())
+    if state.score == -1:
+        text_keys.remove("score")
+    draw_centered_texts(state, "welcome", text_keys)
 
 
 def draw_instructions(state: State) -> None:
-    draw_centered_text(
-        state.win,
-        state.fonts["h2"],
-        state.options["instructions"]["gameplay"]["text"],
-        state.options["instructions"]["gameplay"]["y"],
-        state.options["colors"]["text"],
-    )
-    for i in range(1, 5):
-        draw_centered_text(
-            state.win,
-            state.fonts["h4"],
-            state.options["instructions"]["gameplay" + str(i)]["text"],
-            state.options["instructions"]["gameplay" + str(i)]["y"],
-            state.options["colors"]["text"],
-        )
-    draw_centered_text(
-        state.win,
-        state.fonts["h2"],
-        state.options["instructions"]["controls"]["text"],
-        state.options["instructions"]["controls"]["y"],
-        state.options["colors"]["text"],
-    )
-    for i in range(1, 5):
-        draw_centered_text(
-            state.win,
-            state.fonts["h4"],
-            state.options["instructions"]["controls" + str(i)]["text"],
-            state.options["instructions"]["controls" + str(i)]["y"],
-            state.options["colors"]["text"],
-        )
-    draw_centered_text(
-        state.win,
-        state.fonts["h5"],
-        state.options["instructions"]["back"]["text"],
-        state.options["instructions"]["back"]["y"],
-        state.options["colors"]["text"],
-    )
+    draw_centered_texts(state, "instructions", state.options["instructions"].keys())
 
 
 def count_full_rows(
@@ -793,20 +735,7 @@ def draw_darken(state: State) -> None:
 
 def draw_death(state: State) -> None:
     draw_darken(state)
-    draw_centered_text(
-        state.win,
-        state.fonts["h2"],
-        state.options["death"]["title"]["text"],
-        state.options["death"]["title"]["y"],
-        state.options["colors"]["text"],
-    )
-    draw_centered_text(
-        state.win,
-        state.fonts["h3"],
-        state.options["death"]["restart"]["text"],
-        state.options["death"]["restart"]["y"],
-        state.options["colors"]["text"],
-    )
+    draw_centered_texts(state, "death", state.options["death"].keys())
 
 
 def create_map(state: State) -> None:
@@ -922,59 +851,26 @@ def draw_unpause(state: State) -> None:
 
 
 def draw_pause(state: State) -> None:
-    draw_darken(state)
-
     entities: list[Hitbox] = state.tiles + state.chests + state.coins + state.effects + [state.player]  # type: ignore
     for e in entities:
         if e.pt.y < state.win.get_height() and e.pt.y > -e.h:
             e.draw(state.win)
 
-    draw_centered_text(
-        state.win,
-        state.fonts["h2"],
-        state.options["pause"]["title"]["text"],
-        state.options["pause"]["title"]["y"],
-        state.options["colors"]["text"],
-    )
-    draw_centered_text(
-        state.win,
-        state.fonts["h3"],
-        state.options["pause"]["resume"]["text"],
-        state.options["pause"]["resume"]["y"],
-        state.options["colors"]["text"],
-    )
-    draw_centered_text(
-        state.win,
-        state.fonts["h4"],
-        state.options["pause"]["quit"]["text"],
-        state.options["pause"]["quit"]["y"],
-        state.options["colors"]["text"],
-    )
+    draw_darken(state)
+    draw_centered_texts(state, "pause", state.options["pause"].keys())
 
 
 def draw_hud(state: State) -> None:
-
-    draw_centered_text(
-        state.win,
-        state.fonts["h4"],
-        state.options["game"]["score"]["text"] % state.score,
-        state.options["game"]["score"]["y"],
-        state.options["colors"]["text"],
-    )
-    draw_centered_text(
-        state.win,
-        state.fonts["h5"],
-        state.options["game"]["rows"]["text"] % max(0, state.full_rows - state.display_rows),
-        state.options["game"]["rows"]["y"],
-        state.options["colors"]["text"],
-    )
-    draw_centered_text(
-        state.win,
-        state.fonts["h5"],
-        state.options["game"]["time"]["text"] % int(state.ticks),
-        state.options["game"]["time"]["y"],
-        state.options["colors"]["text"],
-    )
+    text_keys = ["score", "rows", "time"]
+    text_format = [state.score, max(0, state.full_rows - state.display_rows), int(state.ticks)]
+    for i in range(len(text_keys)):
+        draw_centered_text(
+            state.win,
+            state.fonts[state.options["game"][text_keys[i]]["font"]],
+            state.options["game"][text_keys[i]]["text"] % text_format[i],
+            state.options["game"][text_keys[i]]["y"],
+            state.options["colors"]["text"],
+        )
 
     if state.fps_draw.update(state.ticks):
         state.display_fps = int(1 / state.delta)
