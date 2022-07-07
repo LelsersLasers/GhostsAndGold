@@ -48,7 +48,6 @@ C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
 
 ### Cleaning
 
-- Add font size to options
 - Make sure tup offsets for map_dict cover all cases
 - Returns, breaks, etc
 - Removing during iteration

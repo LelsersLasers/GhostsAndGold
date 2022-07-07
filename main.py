@@ -641,32 +641,26 @@ def draw_centered_text(
     surf_text = font.render(text, True, color)
     win.blit(surf_text, ((win.get_width() - surf_text.get_width()) / 2, y))
 
+def draw_centered_texts(state: State, section: str, text_keys: list[str]) -> None:
+    for key in text_keys:
+        draw_centered_text(
+            state.win,
+            state.fonts[state.options[section][key]["font"]],
+            state.options[section][key]["text"],
+            state.options[section][key]["y"],
+            state.options["colors"]["text"],
+        )
+
 
 def draw_welcome(state: State) -> None:
     text_keys = list(state.options["welcome"].keys())
     if state.score == -1:
         text_keys.remove("score")
-    for key in text_keys:
-        draw_centered_text(
-            state.win,
-            state.fonts[state.options["welcome"][key]["font"]],
-            state.options["welcome"][key]["text"],
-            state.options["welcome"][key]["y"],
-            state.options["colors"]["text"],
-        )
-
+    draw_centered_texts(state, "welcome", text_keys)
 
 
 def draw_instructions(state: State) -> None:
-    text_keys = state.options["instructions"].keys()
-    for key in text_keys:
-        draw_centered_text(
-            state.win,
-            state.fonts[state.options["instructions"][key]["font"]],
-            state.options["instructions"][key]["text"],
-            state.options["instructions"][key]["y"],
-            state.options["colors"]["text"],
-        )
+    draw_centered_texts(state, "instructions", state.options["instructions"].keys())
 
 
 def count_full_rows(
@@ -741,15 +735,7 @@ def draw_darken(state: State) -> None:
 
 def draw_death(state: State) -> None:
     draw_darken(state)
-    text_keys = state.options["death"].keys()
-    for key in text_keys:
-        draw_centered_text(
-            state.win,
-            state.fonts[state.options["death"][key]["font"]],
-            state.options["death"][key]["text"],
-            state.options["death"][key]["y"],
-            state.options["colors"]["text"],
-        )
+    draw_centered_texts(state, "death", state.options["death"].keys())
 
 
 def create_map(state: State) -> None:
@@ -865,22 +851,13 @@ def draw_unpause(state: State) -> None:
 
 
 def draw_pause(state: State) -> None:
-    draw_darken(state)
-
     entities: list[Hitbox] = state.tiles + state.chests + state.coins + state.effects + [state.player]  # type: ignore
     for e in entities:
         if e.pt.y < state.win.get_height() and e.pt.y > -e.h:
             e.draw(state.win)
 
-    text_keys = state.options["pause"].keys()
-    for key in text_keys:
-        draw_centered_text(
-            state.win,
-            state.fonts[state.options["pause"][key]["font"]],
-            state.options["pause"][key]["text"],
-            state.options["pause"][key]["y"],
-            state.options["colors"]["text"],
-        )
+    draw_darken(state)
+    draw_centered_texts(state, "pause", state.options["pause"].keys())
 
 
 def draw_hud(state: State) -> None:
