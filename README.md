@@ -35,21 +35,29 @@ C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
 
 ### Main
 
+- KeyList class
+    - KeyList(w, space, up)
+    - keyList.down(keys_down)
 - "Down thrust"
+- If downscrolling, add row to never show bottom edge?
+    - (then make bottom edge only 1 tall)
 - PERFORMANCE
     - Once X rows of full tiles, remove a row
         - Remove at 1 higher than current to avoid showing edge tile bottom
     - Replace pygame.draw with blit?
     - I loop through the tiles like a billion times
-- Shield has set time?
-    - Or 1 time block?
 - Instructions screen
 - Polish
     - art, animations, particles, lights, etc
 
 ### Cleaning
 
-- Scroll + remove row
+- Make sure tup offsets for map_dict cover all cases
+    - Make sure the trys are in the right spot
+    - Make sure correct types of tiles are checked
+    - Make map_dict -> tile_dict??
+- Returns, breaks, etc
+- Removing during iteration
 - Not need to convert to (r, g, b)
 - Better flow/care with:
     - Player.status == alive
