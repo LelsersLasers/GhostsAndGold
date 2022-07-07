@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Any, Union
-from dataclasses import dataclass  # for struct like classes
+from dataclasses import dataclass  # struct like classes
 
 import pygame
 
@@ -116,13 +116,20 @@ class Vector:
             return Vector(0, 0)
         return self.scalar(length / current_length)
 
+    def get_map_tup(self, tile_size: int) -> tuple[int, int]:
+        return (int(self.x / tile_size), int(self.y / tile_size))
+
+    def get_map_str(self, tile_size: int) -> str:
+        return str(int(self.x / tile_size)) + ";" + str(int(self.y / tile_size))
+
 
 @dataclass  # auto writes __init__ and __repr__
 class State:
-    # TODO: defaults for float/ints?
+    # TODO: float/ints defaults?
     win: pygame.surface.Surface
     fonts: dict[str, pygame.font.Font]
     options: dict[str, Any]
+    map_dict: dict[str, list[Hitbox]]
     paused: bool
     screen: str
     keys_down: list[bool]
@@ -193,11 +200,20 @@ class Chest(Hitbox):
     def update(self, state: State) -> None:
         self.pt.y = self.bot_tile.pt.y - self.h
 
-        for tile in state.tiles:
-            collision = tile.directional_collide(self)
-            if collision == "bottom":
-                state.chests.remove(self)
-                return
+        map_tup = self.pt.get_map_tup(state.options["tile"]["w"])
+        map_ys = [map_tup[1] - 1, map_tup[1]]
+        for y in map_ys:
+            map_str = str(map_tup[0]) + ";" + str(y)
+            try:
+                for e in state.map_dict[map_str]:
+                    if e != self and (type(e) == Tile or type(e) == HeavyTile):
+                        collision = e.directional_collide(self)
+                        if collision == "bottom":
+                            state.chests.remove(self)
+                            return
+            except KeyError:
+                pass
+
         if (state.player.alive and self.collide(state.player)) or not self.bot_tile in state.tiles:
             state.chests.remove(self)
             num_coins = random.choice(state.options["coin"]["pop"]["coin_chances"])
@@ -309,22 +325,34 @@ class Player(Movable):
         elif self.s_tk.down(keys_down[pygame.K_s] or keys_down[pygame.K_DOWN]):
             self.move_vec.y += self.thrust_vel
 
-    def check_tile_collision(self, tiles: list[Tile]) -> None:
+    def check_tile_collision(self, map_dict: dict[str, list[Hitbox]], tile_size: int) -> None:
         current_self: Player = copy.deepcopy(self)  # TODO: not sure if the copy is needed
 
-        for tile in tiles:
-            collision = tile.directional_collide(current_self)
-            if collision == "bottom":
-                self.alive = False
-            elif collision == "top":
-                self.pt.y = tile.pt.y - self.h
-                self.move_vec.y = 0
-                self.jumps = 0
-                self.space_tk.down(False)
-            elif collision == "left":
-                self.pt.x = tile.pt.x - self.w
-            elif collision == "right":
-                self.pt.x = tile.pt.x + tile.w
+        map_tup = self.pt.get_map_tup(tile_size)
+        map_xs = [map_tup[0], map_tup[0] + 1]
+        map_ys = [map_tup[1] - 1, map_tup[1], map_tup[1] + 1]
+        for x in map_xs:
+            for y in map_ys:
+                map_str = str(x) + ";" + str(y)
+                try:
+                    for e in map_dict[map_str]:
+                        if e != self and (
+                            type(e) == Tile or type(e) == EdgeTile or type(e) == HeavyTile
+                        ):
+                            collision = e.directional_collide(current_self)
+                            if collision == "bottom":
+                                self.alive = False
+                            elif collision == "top":
+                                self.pt.y = e.pt.y - self.h
+                                self.move_vec.y = 0
+                                self.jumps = 0
+                                self.space_tk.down(False)
+                            elif collision == "left":
+                                self.pt.x = e.pt.x - self.w
+                            elif collision == "right":
+                                self.pt.x = e.pt.x + e.w
+                except KeyError:
+                    pass
 
     def update(self, state: State) -> None:
         if self.alive:
@@ -336,7 +364,7 @@ class Player(Movable):
                 self.pt.x = state.win.get_width() - self.w - state.options["tile"]["w"]
 
             self.move(state.delta)
-            self.check_tile_collision(state.tiles)
+            self.check_tile_collision(state.map_dict, state.options["tile"]["w"])
         else:
             self.color = state.options["player"]["dead_color"]
 
@@ -384,11 +412,18 @@ class Tile(Fall):
         self.land(state)
 
     def land(self, state: State) -> None:
-        for tile in state.tiles:
-            if tile != self and self.collide(tile):
-                self.pt.y = tile.pt.y - self.h
-                self.update_side_hbs()
-                break
+        map_tup = self.pt.get_map_tup(state.options["tile"]["w"])
+        map_ys = [map_tup[1], map_tup[1] + 1]
+        for y in map_ys:
+            map_str = str(map_tup[0]) + ";" + str(y)
+            try:
+                for e in state.map_dict[map_str]:
+                    if e != self and (type(e) == Tile or type(e) == EdgeTile) and self.collide(e):
+                        self.pt.y = e.pt.y - self.h
+                        self.update_side_hbs()
+                        return
+            except KeyError:
+                pass
 
     def move(self, delta: float) -> None:
         super().move(delta)
@@ -429,10 +464,10 @@ class HeavyTile(Tile):
         self.move_vec.y *= tile_options["heavy"]["fall"]
 
     def land(self, state: State) -> None:
-        for tile in state.tiles:
+        for tile in state.tiles:  # TODO!
             if tile != self and self.collide(tile):
                 state.tiles.remove(self)
-                for tile2 in state.tiles:
+                for tile2 in state.tiles:  # TODO!
                     if type(tile2) != EdgeTile:
                         tile_collide = circle_rect_collide(
                             tile2, self.get_center(), state.options["tile"]["heavy"]["r"]
@@ -473,25 +508,39 @@ class Coin(Fall):
 
     def update(self, state: State):
         self.move(state.delta)
-        for tile in state.tiles:
-            collision = tile.directional_collide(self)
-            if collision == "bottom":
-                state.coins.remove(self)
-                return  # avoid double-removal chance
-            elif collision == "top":
-                self.pt.y = tile.pt.y - self.h  # TODO: does this need a +1?
-                self.move_vec.x -= (
-                    state.options["coin"]["pop"]["friction"]
-                    * state.delta
-                    * get_sign(self.move_vec.x)
-                )
-                self.move_vec.y = 0
-            elif collision == "left":
-                self.pt.x = tile.pt.x - self.w
-                self.move_vec.x = 0
-            elif collision == "right":
-                self.pt.x = tile.pt.x + tile.w
-                self.move_vec.x = 0
+
+        map_tup = self.pt.get_map_tup(state.options["tile"]["w"])
+        map_xs = [map_tup[0], map_tup[0] + 1]
+        map_ys = [map_tup[1] - 1, map_tup[1], map_tup[1] + 1]
+        for x in map_xs:
+            for y in map_ys:
+                map_str = str(x) + ";" + str(y)
+                try:
+                    for e in state.map_dict[map_str]:
+                        if e != self and (
+                            type(e) == Tile or type(e) == EdgeTile or type(e) == HeavyTile
+                        ):
+                            collision = e.directional_collide(self)
+                            if collision == "bottom":
+                                state.coins.remove(self)
+                                return  # avoid double-removal chance
+                            elif collision == "top":
+                                self.pt.y = e.pt.y - self.h + 1  # TODO: does this need a +1?
+                                self.move_vec.x -= (
+                                    state.options["coin"]["pop"]["friction"]
+                                    * state.delta
+                                    * get_sign(self.move_vec.x)
+                                )
+                                self.move_vec.y = 0
+                            elif collision == "left":
+                                self.pt.x = e.pt.x - self.w
+                                self.move_vec.x = 0
+                            elif collision == "right":
+                                self.pt.x = e.pt.x + e.w
+                                self.move_vec.x = 0
+                except KeyError:
+                    pass
+
         if state.player.alive and self.move_vec.y >= 0 and self.collide(state.player):
             state.coins.remove(self)
             state.score += 1
@@ -623,7 +672,7 @@ def count_full_rows(
     tiles: list[Tile], columns: int, row_limit: int
 ) -> tuple[int, list[Tile], list[Tile]]:
     tile_ys: dict[float, int] = {}
-    for tile in tiles:
+    for tile in tiles:  # TODO!
         try:
             tile_ys[tile.pt.y] += 1
         except KeyError:
@@ -639,11 +688,11 @@ def count_full_rows(
 
     if count > row_limit:
         sorted_keys = sorted(tile_ys.keys(), reverse=True)
-        for key in sorted_keys:
+        for key in sorted_keys:  # TODO: removing in iteration
             if tile_ys[key] != columns:
                 sorted_keys.remove(key)
         third_row_y = sorted_keys[2]
-        for tile in tiles:
+        for tile in tiles:  # TODO!
             if tile.pt.y == third_row_y:
                 third_row_tiles.append(tile)
             elif tile.pt.y > third_row_y:
@@ -656,7 +705,7 @@ def calc_drop_chances(state: State) -> list[int]:
     top_tiles: list[float] = []
     for _ in state.options["tile"]["spawn_xs"]:
         top_tiles.append(state.options["tile"]["base_y"] - state.options["tile"]["w"])
-    for tile in state.tiles:
+    for tile in state.tiles:  # TODO!
         if type(tile) != EdgeTile:
             idx = state.options["tile"]["spawn_xs"].index(tile.pt.x)
             if top_tiles[idx] > tile.pt.y:
@@ -707,10 +756,24 @@ def draw_death(state: State) -> None:
     )
 
 
+def create_map(state: State) -> None:
+    entities: list[Hitbox] = state.tiles + state.chests + state.coins + state.effects + [state.player]  # type: ignore
+    state.map_dict = {}
+    for e in entities:
+        map_str = e.pt.get_map_str(state.options["tile"]["w"])
+        try:
+            state.map_dict[map_str].append(e)
+        except KeyError:
+            state.map_dict[map_str] = [e]
+
+
 def draw_unpause(state: State) -> None:
+
+    create_map(state)
+
     # Prob some way to do this without the '# type: ignore'
     entities: list[Hitbox] = state.tiles + state.chests + state.coins + state.effects + [state.player]  # type: ignore
-    for e in entities:
+    for e in entities:  # TODO!
         e.update(state)
         if e.pt.y < state.win.get_height() and e.pt.y > -e.h:
             e.draw(state.win)
@@ -745,13 +808,13 @@ def draw_unpause(state: State) -> None:
         scroll_dist = state.delta * state.options["scroll_speed"] * get_sign(state.scrolling)
         state.scrolling -= scroll_dist
         to_scroll: list[Moveable] = state.tiles + state.coins + state.effects  # type: ignore
-        for ts in to_scroll:
+        for ts in to_scroll:  # TODO!
             ts.scroll(scroll_dist)
         state.player.pt.y += scroll_dist
     elif count > state.options["tile"]["row_limit"]:
         for tile in third_row_tiles:
             state.tiles.remove(tile)
-        for tile in below_tiles:
+        for tile in below_tiles:  # TODO!
             tile.pt.y -= tile.h
         state.full_rows -= 1
         state.display_rows -= 1
@@ -846,6 +909,20 @@ def draw_hud(state: State) -> None:
         state.options["game"]["score"]["y"],
         state.options["colors"]["text"],
     )
+    draw_centered_text(
+        state.win,
+        state.fonts["h5"],
+        state.options["game"]["rows"]["text"] % max(0, state.full_rows - state.display_rows),
+        state.options["game"]["rows"]["y"],
+        state.options["colors"]["text"],
+    )
+    draw_centered_text(
+        state.win,
+        state.fonts["h5"],
+        state.options["game"]["time"]["text"] % int(state.ticks),
+        state.options["game"]["time"]["y"],
+        state.options["colors"]["text"],
+    )
 
     if state.fps_draw.update(state.ticks):
         state.display_fps = int(1 / state.delta)
@@ -866,15 +943,6 @@ def draw_hud(state: State) -> None:
     )
     state.win.blit(
         surf_tiles, ((state.options["game"]["tiles"]["x"], state.options["game"]["tiles"]["y"]))
-    )
-
-    surf_rows = state.fonts["h5"].render(
-        state.options["game"]["rows"]["text"] % max(0, state.full_rows - state.display_rows),
-        True,
-        state.options["colors"]["text"],
-    )
-    state.win.blit(
-        surf_rows, ((state.options["game"]["rows"]["x"], state.options["game"]["rows"]["y"]))
     )
 
 
@@ -950,6 +1018,7 @@ def main():
         create_window(options),
         create_fonts(options["font"]),
         options,
+        {},
         False,
         "welcome",
         [],
