@@ -100,7 +100,7 @@
         "w": 60,
         "hbs_size": 5,
         "fall_speed": 200,
-        "spawn_interval_base": 2,
+        "spawn_interval_base": 1.5,
         "spawn_interval_min": 0.3,
         "spawn_interval_time": 300,
         "spawn_y": -60,

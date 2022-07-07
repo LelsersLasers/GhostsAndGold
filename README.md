@@ -53,9 +53,6 @@ C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
 ### Cleaning
 
 - Make sure tup offsets for map_dict cover all cases
-    - Make sure the trys are in the right spot
-    - Make sure correct types of tiles are checked
-    - Make map_dict -> tile_dict??
 - Returns, breaks, etc
 - Removing during iteration
 - Not need to convert to (r, g, b)
