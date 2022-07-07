@@ -33,6 +33,56 @@
         "instructions": {
             "text": "Press [I] for instructions",
             "y": 500
+        },
+        "exit": {
+            "text": "Press [ESCAPE] to exit",
+            "y": 550
+        }
+    },
+    "instructions": {
+        "gameplay": {
+            "text": "Gameplay",
+            "y": 100
+        },
+        "gameplay1": {
+            "text": "Avoid being crushed by falling rocks, and be careful",
+            "y": 180
+        },
+        "gameplay2": {
+            "text": "of green rocks which explode when they land.",
+            "y": 210
+        },
+        "gameplay3": {
+            "text": "Survive as long as you can and collect gold coins which can",
+            "y": 240
+        },
+        "gameplay4": {
+            "text": "be found in purple chests or falling from the sky.",
+            "y": 270
+        },
+        "controls": {
+            "text": "Controls",
+            "y": 350
+        },
+        "controls1": {
+            "text": "left/right:  A/D or arrow keys",
+            "y": 430
+        },
+        "controls2": {
+            "text": "jump:  Space, W or up arrow",
+            "y": 460
+        },
+        "controls3": {
+            "text": "down:  S or down arrow",
+            "y": 490
+        },
+        "controls4": {
+            "text": "pause:  ESCAPE",
+            "y": 520
+        },
+        "back": {
+            "text": "Press [B] to go back",
+            "y": 700
         }
     },
     "game": {

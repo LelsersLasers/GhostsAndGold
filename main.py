@@ -326,10 +326,7 @@ class Player(Movable):
         elif keys["left"].down(keys_down):
             self.move_vec.x = -self.speed
 
-        if (
-            self.space_tk.down(keys["up"].down(keys_down))
-            and self.jumps < 2
-        ):
+        if self.space_tk.down(keys["up"].down(keys_down)) and self.jumps < 2:
             self.move_vec.y = -self.jump_vel
             self.jumps += 1
         elif self.s_tk.down(keys["down"].down(keys_down)):
@@ -622,7 +619,7 @@ def handle_events(state: State) -> None:
             pygame.quit()
             state.playing = False
     elif state.screen == "instructions":
-        if state.keys_down[pygame.K_ESCAPE]:
+        if state.keys_down[pygame.K_b]:
             state.screen = "welcome"
     elif state.screen == "game":
         if state.esc_tk.down(state.keys_down[pygame.K_ESCAPE]):
@@ -673,6 +670,53 @@ def draw_welcome(state: State) -> None:
         state.fonts["h4"],
         state.options["welcome"]["instructions"]["text"],
         state.options["welcome"]["instructions"]["y"],
+        state.options["colors"]["text"],
+    )
+    draw_centered_text(
+        state.win,
+        state.fonts["h5"],
+        state.options["welcome"]["exit"]["text"],
+        state.options["welcome"]["exit"]["y"],
+        state.options["colors"]["text"],
+    )
+
+
+def draw_instructions(state: State) -> None:
+    draw_centered_text(
+        state.win,
+        state.fonts["h2"],
+        state.options["instructions"]["gameplay"]["text"],
+        state.options["instructions"]["gameplay"]["y"],
+        state.options["colors"]["text"],
+    )
+    for i in range(1, 5):
+        draw_centered_text(
+            state.win,
+            state.fonts["h4"],
+            state.options["instructions"]["gameplay" + str(i)]["text"],
+            state.options["instructions"]["gameplay" + str(i)]["y"],
+            state.options["colors"]["text"],
+        )
+    draw_centered_text(
+        state.win,
+        state.fonts["h2"],
+        state.options["instructions"]["controls"]["text"],
+        state.options["instructions"]["controls"]["y"],
+        state.options["colors"]["text"],
+    )
+    for i in range(1, 5):
+        draw_centered_text(
+            state.win,
+            state.fonts["h4"],
+            state.options["instructions"]["controls" + str(i)]["text"],
+            state.options["instructions"]["controls" + str(i)]["y"],
+            state.options["colors"]["text"],
+        )
+    draw_centered_text(
+        state.win,
+        state.fonts["h5"],
+        state.options["instructions"]["back"]["text"],
+        state.options["instructions"]["back"]["y"],
         state.options["colors"]["text"],
     )
 
@@ -1079,7 +1123,7 @@ def main():
         elif state.screen == "game":
             draw_game(state)
         elif state.screen == "instructions":
-            pass
+            draw_instructions(state)
 
         pygame.display.update()
 

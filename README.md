@@ -43,12 +43,12 @@ C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
         - Remove at 1 higher than current to avoid showing edge tile bottom
     - Replace pygame.draw with blit?
     - I loop through the tiles like a billion times
-- Instructions screen
 - Polish
     - art, animations, particles, lights, etc
 
 ### Cleaning
 
+- Add font size to options
 - Make sure tup offsets for map_dict cover all cases
 - Returns, breaks, etc
 - Removing during iteration
