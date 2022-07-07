@@ -724,7 +724,7 @@ def draw_unpause(state: State) -> None:
                 EdgeTile(
                     Vector(0, state.options["tile"]["top_y"] - state.scrolling),
                     state.options["tile"],
-                    state.options["tile"]["edge_color"]
+                    state.options["tile"]["edge_color"],
                 )
             )
             state.tiles.append(
@@ -734,7 +734,7 @@ def draw_unpause(state: State) -> None:
                         state.options["tile"]["top_y"] - state.scrolling,
                     ),
                     state.options["tile"],
-                    state.options["tile"]["edge_color"]
+                    state.options["tile"]["edge_color"],
                 )
             )
         state.scrolling += state.options["tile"]["w"] * (count - state.full_rows)
@@ -903,7 +903,9 @@ def setup(options: dict[str, Any]) -> tuple[Player, list[Tile]]:
                 tile_types[j](
                     Vector((i + 1) * options["tile"]["w"], tile_y + j * options["tile"]["w"]),
                     options["tile"],
-                    options["tile"]["edge_color"] if tile_types[j] == EdgeTile else options["tile"]["color"],
+                    options["tile"]["edge_color"]
+                    if tile_types[j] == EdgeTile
+                    else options["tile"]["color"],
                 )
             )
 
@@ -912,7 +914,9 @@ def setup(options: dict[str, Any]) -> tuple[Player, list[Tile]]:
         tiles.append(EdgeTile(Vector(0, tile_y), options["tile"], options["tile"]["edge_color"]))
         tiles.append(
             EdgeTile(
-                Vector(options["window"]["width"] - options["tile"]["w"], tile_y), options["tile"], options["tile"]["edge_color"]
+                Vector(options["window"]["width"] - options["tile"]["w"], tile_y),
+                options["tile"],
+                options["tile"]["edge_color"],
             )
         )
         tile_y -= options["tile"]["w"]

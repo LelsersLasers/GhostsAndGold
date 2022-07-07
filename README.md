@@ -1,6 +1,16 @@
 # GhostJump
+
 Some sort of game in pygame
 
+
+## Download
+
+Download latest working version (windows/.exe):
+- https://github.com/LelsersLasers/GhostJump/raw/main/dist/GhostJumpEXE.zip
+- Comes pre-packaged with the correct version of python
+Download latest working version (all OSes/python):
+- https://github.com/LelsersLasers/GhostJump/raw/main/dist/GhostJumpPython.zip
+- Note: this version requires python to be installed
 
 ## Stuff
 
