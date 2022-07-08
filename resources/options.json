@@ -194,7 +194,7 @@
         "heavy": {
             "r": 80,
             "fall": 1.5,
-            "chance": 0.05,
+            "chance": 0.075,
             "draw_time": 0.3,
             "color": "#8FBCBB",
             "explosion_color": "#BF616A"

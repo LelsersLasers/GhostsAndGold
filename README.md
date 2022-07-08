@@ -41,14 +41,16 @@ C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
 
 - "Down thrust"
 - PERFORMANCE
-    - Once X rows of full tiles, remove a row
-        - Remove at 1 higher than current to avoid showing edge tile bottom
+    - Any duplicate tiles?
     - Replace pygame.draw with blit?
     - I loop through the tiles like a billion times
         - Use tile_map when possible
         - Seperate the edge tiles from other tiles?
 - Polish
     - art, animations, particles, lights, etc
+- Settings screen with diffulity sliders
+    - Ability/passive chooser?
+    - Save highscore and settings to a different file
 
 ### Cleaning
 

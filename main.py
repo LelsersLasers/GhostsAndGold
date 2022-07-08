@@ -655,9 +655,18 @@ def draw_centered_texts(state: State, section: str, text_keys: list[str]) -> Non
 
 def draw_welcome(state: State) -> None:
     text_keys = list(state.options["welcome"].keys())
+    text_format = [(), (state.score), (), (), ()]
     if state.score == -1:
         text_keys.remove("score")
-    draw_centered_texts(state, "welcome", text_keys)
+        text_format.remove((state.score))
+    for i in range(len(text_keys)):
+        draw_centered_text(
+            state.win,
+            state.fonts[state.options["welcome"][text_keys[i]]["font"]],
+            state.options["welcome"][text_keys[i]]["text"] % text_format[i],
+            state.options["welcome"][text_keys[i]]["y"],
+            state.options["colors"]["text"],
+        )
 
 
 def draw_instructions(state: State) -> None:
