@@ -221,13 +221,13 @@ class Chest(Hitbox):
                 for tile in state.tile_map[map_str]:
                     collision = tile.directional_collide(self)
                     if collision == "bottom":
-                        state.chests.remove(self)
+                        state.chests.remove(self)  # TODO: remove in iteration?
                         return
             except KeyError:
                 pass
 
         if (state.player.alive and self.collide(state.player)) or not self.bot_tile in state.tiles:
-            state.chests.remove(self)
+            state.chests.remove(self)  # TODO: remove in iteration?
             num_coins = random.choice(state.options["coin"]["pop"]["coin_chances"])
             for _ in range(num_coins):
                 c = Coin(self.get_center(), state.options["coin"])
@@ -278,7 +278,7 @@ class Effect(Movable):
         self.move(state.delta)
         self.duration -= state.delta
         if self.duration <= 0:
-            state.effects.remove(self)
+            state.effects.remove(self)  # TODO: remove in iteration?
 
 
 class CircleEffect(Effect):
@@ -387,7 +387,7 @@ class Tile(Fall):
     ):
         super().__init__(
             pt, tile_options["w"], tile_options["w"], color, tile_options["fall_speed"]
-        )  # TODO: color
+        )
         self.hbs_size: float = tile_options["hbs_size"]
         self.hbs_len: float = self.w - 2 * tile_options["hbs_size"]
         self.side_hbs: dict[str, Hitbox] = {
@@ -467,6 +467,26 @@ class HeavyTile(Tile):
         super().__init__(pt, tile_options, tile_options["heavy"]["color"])
         self.move_vec.y *= tile_options["heavy"]["fall"]
 
+    def check_explosion_tiles(self, state: State) -> None:
+        pass
+        map_tup = self.pt.get_map_tup(state.options["tile"]["w"])
+        map_xs = [map_tup[0] - 1, map_tup[0], map_tup[0] + 1]
+        map_ys = [map_tup[1] - 1, map_tup[1], map_tup[1] + 1]
+        for x in map_xs:
+            for y in map_ys:
+                map_str = str(x) + ";" + str(y)
+                try:
+                    for i in range(len(state.tile_map[map_str]) - 1, -1, -1):
+                        if type(state.tile_map[map_str][i]) != EdgeTile and circle_rect_collide(
+                            state.tile_map[map_str][i],
+                            self.get_center(),
+                            state.options["tile"]["heavy"]["r"],
+                        ):
+                            state.tiles.remove(state.tile_map[map_str][i])
+                        pass
+                except KeyError:
+                    pass
+
     def land(self, state: State) -> None:
         map_tup = self.pt.get_map_tup(state.options["tile"]["w"])
         map_ys = [map_tup[1], map_tup[1] + 1]
@@ -475,19 +495,11 @@ class HeavyTile(Tile):
             try:
                 for tile in state.tile_map[map_str]:
                     if tile != self and self.collide(tile):
-                        for tile2 in state.tiles:  # TODO!
-                            if type(tile2) != EdgeTile:
-                                tile_collide = circle_rect_collide(
-                                    tile2, self.get_center(), state.options["tile"]["heavy"]["r"]
-                                )
-                                if tile_collide:
-                                    state.tiles.remove(tile2)
+                        self.check_explosion_tiles(state)
 
-                        player_collide = circle_rect_collide(
+                        if circle_rect_collide(
                             state.player, self.get_center(), state.options["tile"]["heavy"]["r"]
-                        )
-
-                        if player_collide:
+                        ):
                             state.player.alive = False
 
                         state.effects.append(
@@ -528,10 +540,10 @@ class Coin(Fall):
                     for tile in state.tile_map[map_str]:
                         collision = tile.directional_collide(self)
                         if collision == "bottom":
-                            state.coins.remove(self)
+                            state.coins.remove(self)  # TODO: remove in iteration?
                             return  # avoid double-removal chance
                         elif collision == "top":
-                            self.pt.y = tile.pt.y - self.h + 1  # TODO: does this need a +1?
+                            self.pt.y = tile.pt.y - self.h
                             self.move_vec.x -= (
                                 state.options["coin"]["pop"]["friction"]
                                 * state.delta
@@ -548,7 +560,7 @@ class Coin(Fall):
                     pass
 
         if state.player.alive and self.move_vec.y >= 0 and self.collide(state.player):
-            state.coins.remove(self)
+            state.coins.remove(self)  # TODO: remove in iteration?
             state.score += 1
 
 
@@ -655,9 +667,18 @@ def draw_centered_texts(state: State, section: str, text_keys: list[str]) -> Non
 
 def draw_welcome(state: State) -> None:
     text_keys = list(state.options["welcome"].keys())
+    text_format = [(), (state.score), (), (), ()]
     if state.score == -1:
         text_keys.remove("score")
-    draw_centered_texts(state, "welcome", text_keys)
+        text_format.remove((state.score))
+    for i in range(len(text_keys)):
+        draw_centered_text(
+            state.win,
+            state.fonts[state.options["welcome"][text_keys[i]]["font"]],
+            state.options["welcome"][text_keys[i]]["text"] % text_format[i],
+            state.options["welcome"][text_keys[i]]["y"],
+            state.options["colors"]["text"],
+        )
 
 
 def draw_instructions(state: State) -> None:
