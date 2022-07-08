@@ -227,7 +227,7 @@ class Chest(Hitbox):
                 pass
 
         if (state.player.alive and self.collide(state.player)) or not self.bot_tile in state.tiles:
-            state.chests.remove(self)
+            state.chests.remove(self)  # TODO: remove in iteration?
             num_coins = random.choice(state.options["coin"]["pop"]["coin_chances"])
             for _ in range(num_coins):
                 c = Coin(self.get_center(), state.options["coin"])
@@ -278,7 +278,7 @@ class Effect(Movable):
         self.move(state.delta)
         self.duration -= state.delta
         if self.duration <= 0:
-            state.effects.remove(self)
+            state.effects.remove(self)  # TODO: remove in iteration?
 
 
 class CircleEffect(Effect):
@@ -497,11 +497,9 @@ class HeavyTile(Tile):
                     if tile != self and self.collide(tile):
                         self.check_explosion_tiles(state)
 
-                        player_collide = circle_rect_collide(
+                        if circle_rect_collide(
                             state.player, self.get_center(), state.options["tile"]["heavy"]["r"]
-                        )
-
-                        if player_collide:
+                        ):
                             state.player.alive = False
 
                         state.effects.append(
@@ -562,7 +560,7 @@ class Coin(Fall):
                     pass
 
         if state.player.alive and self.move_vec.y >= 0 and self.collide(state.player):
-            state.coins.remove(self)
+            state.coins.remove(self)  # TODO: remove in iteration?
             state.score += 1
 
 

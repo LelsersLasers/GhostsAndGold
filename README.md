@@ -34,38 +34,37 @@ C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
 
 - Directional check sometimes sends sideways to top?
 - Directional check sometimes misses??
-- Circle collide check misses??
-    - The 1 directly below
 
 ### Main
 
-- "Down thrust"
 - PERFORMANCE
-    - Any duplicate tiles?
     - Replace pygame.draw with blit?
     - I loop through the tiles like a billion times
         - Use tile_map when possible
-        - Seperate the edge tiles from other tiles?
-- Polish
-    - art, animations, particles, lights, etc
+    - Edge tiles:
+        - Update could be slimmer than Tile
+        - Keep in seperate list/tile_map than Tiles?
+            - Not needing to check if it is falling on chest/coin
+            - But need to check side ways for player and coin
+        - Could remove bottom row? And just modify the bottom row tiles to not fall?
 - Settings screen with diffulity sliders
     - Ability/passive chooser?
     - Save highscore and settings to a different file
+- Polish
+    - art, animations, particles, lights, etc
 
 ### Cleaning
 
+- Removing during iteration
 - Downscroll
 - Make sure tup offsets for map_dict cover all cases
 - Returns, breaks, etc
-- Removing during iteration
-- Not need to convert pass fake tuple (r, g, b)
-- Better flow/care with:
-    - Player.status == alive
+- Not need to convert/pass fake tuple (r, g, b)
 - Types
     - All functions have return type
     - All parameters have type
     - All member variables have type
-- When using options in class vs member variables
+- Options vs member variables
 - Try to remove "# type: ignore"
 - Sequence vs list?
 - Where the key_board input is
