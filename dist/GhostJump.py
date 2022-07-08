@@ -641,6 +641,7 @@ def draw_centered_text(
     surf_text = font.render(text, True, color)
     win.blit(surf_text, ((win.get_width() - surf_text.get_width()) / 2, y))
 
+
 def draw_centered_texts(state: State, section: str, text_keys: list[str]) -> None:
     for key in text_keys:
         draw_centered_text(
@@ -664,7 +665,7 @@ def draw_instructions(state: State) -> None:
 
 
 def count_full_rows(
-    tiles: list[Tile], columns: int, row_limit: int
+    tiles: list[Tile], columns: int, row_limit: int, row_min: int
 ) -> tuple[int, list[Tile], list[Tile]]:
     tile_ys: dict[float, int] = {}
     for tile in tiles:  # TODO!
@@ -678,22 +679,26 @@ def count_full_rows(
         if value == columns:
             count += 1
 
-    third_row_tiles: list[Tile] = []
+    tiles_to_remove: list[Tile] = []
     below_tiles: list[Tile] = []
 
+    sorted_keys = sorted(tile_ys.keys(), reverse=True)
+    sorted_keys = [key for key in sorted_keys if tile_ys[key] == columns]
+
     if count > row_limit:
-        sorted_keys = sorted(tile_ys.keys(), reverse=True)
-        for key in sorted_keys:  # TODO: removing in iteration
-            if tile_ys[key] != columns:
-                sorted_keys.remove(key)
         third_row_y = sorted_keys[2]
         for tile in tiles:  # TODO!
             if tile.pt.y == third_row_y:
-                third_row_tiles.append(tile)
+                tiles_to_remove.append(tile)
             elif tile.pt.y > third_row_y:
                 below_tiles.append(tile)
+    elif count < row_min:
+        first_row_y = sorted_keys[0]
+        for tile in tiles:  # TODO!
+            if tile.pt.y == first_row_y:
+                below_tiles.append(tile)
 
-    return count, third_row_tiles, below_tiles
+    return count, tiles_to_remove, below_tiles
 
 
 def calc_drop_chances(state: State) -> list[int]:
@@ -759,8 +764,11 @@ def draw_unpause(state: State) -> None:
         if e.pt.y < state.win.get_height() and e.pt.y > -e.h:
             e.draw(state.win)
 
-    count, third_row_tiles, below_tiles = count_full_rows(
-        state.tiles, state.options["tile"]["columns"], state.options["tile"]["row_limit"]
+    count, tiles_to_remove, below_tiles = count_full_rows(
+        state.tiles,
+        state.options["tile"]["columns"],
+        state.options["tile"]["row_limit"],
+        state.options["tile"]["row_min"],
     )
     if count != state.full_rows:
         if count > state.full_rows:
@@ -793,12 +801,36 @@ def draw_unpause(state: State) -> None:
             ts.scroll(scroll_dist)
         state.player.pt.y += scroll_dist
     elif count > state.options["tile"]["row_limit"]:
-        for tile in third_row_tiles:
+        for tile in tiles_to_remove:
             state.tiles.remove(tile)
         for tile in below_tiles:  # TODO!
             tile.pt.y -= tile.h
         state.full_rows -= 1
         state.display_rows -= 1
+    if count < state.options["tile"]["row_min"]:
+        tile_y = below_tiles[0].pt.y
+        for i in range(1, state.options["tile"]["columns"] - 1):
+            state.tiles.append(
+                Tile(
+                    Vector(i * state.options["tile"]["w"], tile_y),
+                    state.options["tile"],
+                    state.options["tile"]["color"],
+                )
+            )
+        state.tiles.append(
+            EdgeTile(Vector(0, tile_y), state.options["tile"], state.options["tile"]["edge_color"])
+        )
+        state.tiles.append(
+            EdgeTile(
+                Vector(state.options["window"]["width"] - state.options["tile"]["w"], tile_y),
+                state.options["tile"],
+                state.options["tile"]["edge_color"],
+            )
+        )
+        for tile in below_tiles:  # TODO!
+            tile.pt.y += tile.h
+        state.full_rows += 1
+        state.display_rows += 1
 
     if state.tile_spawn.update(state.ticks):
         # TODO: clean the types here - why is union[X, None] needed?
@@ -912,12 +944,12 @@ def setup(options: dict[str, Any]) -> tuple[Player, list[Tile]]:
     tiles: list[Tile] = []
 
     tile_y = options["tile"]["base_y"]
-    tile_types = [Tile, Tile, EdgeTile, EdgeTile]
-    for i in range(options["tile"]["columns"] - 2):
+    tile_types = [Tile, Tile, EdgeTile]
+    for i in range(1, options["tile"]["columns"] - 1):
         for j in range(len(tile_types)):
             tiles.append(
                 tile_types[j](
-                    Vector((i + 1) * options["tile"]["w"], tile_y + j * options["tile"]["w"]),
+                    Vector(i * options["tile"]["w"], tile_y + j * options["tile"]["w"]),
                     options["tile"],
                     options["tile"]["edge_color"]
                     if tile_types[j] == EdgeTile
@@ -948,8 +980,8 @@ def reset(state: State):
     state.effects = []
     state.ticks = 1 / 500
     state.scrolling = 0
-    state.full_rows = 4
-    state.display_rows = 4
+    state.full_rows = 3
+    state.display_rows = 3
     state.paused = False
     state.tile_spawn.reset(state.ticks)
     state.coin_spawn.reset(state.ticks)
@@ -985,8 +1017,8 @@ def main():
         1 / 500,
         -1,
         0,
-        4,
-        4,
+        3,
+        3,
         Interval(options["tile"]["spawn_interval_base"], 1 / 500),
         (options["tile"]["spawn_interval_min"] - options["tile"]["spawn_interval_base"])
         / math.log(options["tile"]["spawn_interval_time"] + 1, 10),
