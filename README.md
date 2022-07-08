@@ -34,22 +34,25 @@ C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
 
 - Directional check sometimes sends sideways to top?
 - Directional check sometimes misses??
+- Circle collide check misses??
+    - The 1 directly below
 
 ### Main
 
 - "Down thrust"
-- If downscrolling, add row to never show bottom edge?
-    - (then make bottom edge only 1 tall)
 - PERFORMANCE
     - Once X rows of full tiles, remove a row
         - Remove at 1 higher than current to avoid showing edge tile bottom
     - Replace pygame.draw with blit?
     - I loop through the tiles like a billion times
+        - Use tile_map when possible
+        - Seperate the edge tiles from other tiles?
 - Polish
     - art, animations, particles, lights, etc
 
 ### Cleaning
 
+- Downscroll
 - Make sure tup offsets for map_dict cover all cases
 - Returns, breaks, etc
 - Removing during iteration
