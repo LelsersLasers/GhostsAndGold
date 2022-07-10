@@ -37,7 +37,11 @@ C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
 
 ### Main
 
+- Setup like GGEZ
+    - State/controller with a update and render method
+    - State.update(), state.draw() instead of update(state), draw(state)
 - PERFORMANCE
+    - Run State.update() in background of State.draw()
     - Replace pygame.draw with blit?
     - I loop through the tiles like a billion times
         - Use tile_map when possible
@@ -76,6 +80,3 @@ C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
 
 - Play with Class.var (static variables)
 - Multi class inheritance
-- Setup like GGEZ
-    - State/controller with a update and render method
-    - State.update(), state.draw() instead of update(state), draw(state)
