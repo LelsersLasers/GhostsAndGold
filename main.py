@@ -1,7 +1,6 @@
 from __future__ import annotations
 from operator import ifloordiv
 from typing import Any, Union
-from dataclasses import dataclass  # struct like classes
 
 import pygame
 
@@ -133,37 +132,6 @@ class Vector:
 
     def get_map_str(self, tile_size: int) -> str:
         return str(int(self.x / tile_size)) + ";" + str(int(self.y / tile_size))
-
-
-@dataclass  # auto writes __init__ and __repr__
-class State:
-    # TODO: float/ints defaults?
-    win: pygame.surface.Surface
-    fonts: dict[str, pygame.font.Font]
-    options: dict[str, Any]
-    tile_map: dict[str, list[Tile]]
-    paused: bool
-    screen: str
-    keys_down: list[bool]
-    keys: dict[str, KeyList]
-    player: Player
-    tiles: list[Tile]
-    coins: list[Coin]
-    chests: list[Chest]
-    effects: list[Effect]
-    delta: float
-    ticks: float
-    score: int
-    scrolling: float
-    full_rows: int
-    display_rows: int
-    tile_spawn: Interval
-    tile_spawn_log_rate: float
-    coin_spawn: RandomInterval
-    fps_draw: Interval
-    display_fps: int
-    esc_tk: ToggleKey
-    playing: bool
 
 
 class Hitbox:
@@ -564,6 +532,105 @@ class Coin(Fall):
             state.score += 1
 
 
+class State:
+    # TODO: float/ints defaults?
+    win: pygame.surface.Surface
+    fonts: dict[str, pygame.font.Font]
+    options: dict[str, Any]
+    tile_map: dict[str, list[Tile]]
+    paused: bool
+    screen: str
+    keys_down: list[bool]
+    keys: dict[str, KeyList]
+    player: Player
+    tiles: list[Tile]
+    coins: list[Coin]
+    chests: list[Chest]
+    effects: list[Effect]
+    delta: float
+    ticks: float
+    score: int
+    scrolling: float
+    full_rows: int
+    display_rows: int
+    tile_spawn: Interval
+    tile_spawn_log_rate: float
+    coin_spawn: RandomInterval
+    fps_draw: Interval
+    display_fps: int
+    esc_tk: ToggleKey
+    playing: bool
+
+    def __init__(self, options_path):
+        self.options: dict[str, Any] = read_options(options_path)
+        self.win: pygame.surface.Surface = create_window(self.options)
+        self.fonts: dict[str, pygame.font.Font] = create_fonts(self.options["font"])
+        self.tile_map: dict[str, list[Tile]] = {}
+        self.paused: bool = False
+        self.screen: str = "welcome"
+        self.keys_down: list[bool] = pygame.key.get_pressed()
+        self.keys: dict[str, KeyList] = {
+            "up": KeyList([pygame.K_UP, pygame.K_w, pygame.K_SPACE]),
+            "down": KeyList([pygame.K_DOWN, pygame.K_s, pygame.K_LCTRL]),
+            "left": KeyList([pygame.K_LEFT, pygame.K_a]),
+            "right": KeyList([pygame.K_RIGHT, pygame.K_d]),
+        }
+        self.player: Player = Player(self.options)
+        self.tiles: list[Tile] = setup_tiles(self.options)
+        self.coins: list[Coin] = []
+        self.chests: list[Chest] = []
+        self.effects: list[Effect] = []
+        self.delta: float = 1 / 500
+        self.ticks: float = 1 / 500
+        self.score: int = -1
+        self.scrolling: float = 0
+        self.full_rows: int = 3
+        self.display_rows: int = 3
+        self.tile_spawn: Interval = Interval(
+            self.options["tile"]["spawn_interval_base"], self.ticks
+        )
+        self.tile_spawn_log_rate: float = (
+            self.options["tile"]["spawn_interval_min"] - self.options["tile"]["spawn_interval_base"]
+        ) / math.log(self.options["tile"]["spawn_interval_time"] + 1, 10)
+        self.coin_spawn: RandomInterval = RandomInterval(
+            self.options["coin"]["spawn_interval_base"],
+            self.options["coin"]["spawn_interval_variance"],
+            self.ticks,
+        )
+        self.fps_draw: Interval = Interval(self.options["game"]["fps"]["refresh"], self.ticks)
+        self.display_fps: int = 500
+        self.esc_tk: ToggleKey = ToggleKey()
+        self.playing: bool = True
+
+    def reset(self):
+        self.player = Player(self.options)
+        self.tiles = setup_tiles(self.options)
+        self.coins = []
+        self.chests = []
+        self.effects = []
+        self.ticks = 1 / 500
+        self.scrolling = 0
+        self.full_rows = 3
+        self.display_rows = 3
+        self.paused = False
+        self.tile_spawn.reset(self.ticks)
+        self.coin_spawn.reset(self.ticks)
+        self.fps_draw.reset(self.ticks)
+        self.score = 0
+
+    def update(self):
+        pass
+
+    def draw(self):
+        pass
+
+    def next_frame(self):
+        pass
+
+    def run(self):
+        pass
+
+
 def get_sign(x: float) -> int:
     if x == 0:
         return 0
@@ -623,7 +690,7 @@ def handle_events(state: State) -> None:
 
     if state.screen == "welcome":
         if state.keys["up"].down(state.keys_down):
-            reset(state)
+            state.reset()
             state.screen = "game"
         elif state.keys_down[pygame.K_i]:
             state.screen = "instructions"
@@ -960,8 +1027,7 @@ def draw_game(state: State) -> None:
         draw_death(state)
 
 
-def setup(options: dict[str, Any]) -> tuple[Player, list[Tile]]:
-    player = Player(options)
+def setup_tiles(options: dict[str, Any]) -> list[Tile]:
     tiles: list[Tile] = []
 
     tile_y = options["tile"]["base_y"]
@@ -991,68 +1057,12 @@ def setup(options: dict[str, Any]) -> tuple[Player, list[Tile]]:
         tile_y -= options["tile"]["w"]
         options["tile"]["top_y"] = tile_y  # TODO: change - modifying options
 
-    return player, tiles
-
-
-def reset(state: State):
-    state.player, state.tiles = setup(state.options)
-    state.coins = []
-    state.chests = []
-    state.effects = []
-    state.ticks = 1 / 500
-    state.scrolling = 0
-    state.full_rows = 3
-    state.display_rows = 3
-    state.paused = False
-    state.tile_spawn.reset(state.ticks)
-    state.coin_spawn.reset(state.ticks)
-    state.fps_draw.reset(state.ticks)
-    state.score = 0
+    return tiles
 
 
 def main():
 
-    options = read_options("resources/options.json")
-    player, tiles = setup(options)
-
-    state = State(
-        create_window(options),
-        create_fonts(options["font"]),
-        options,
-        {},
-        False,
-        "welcome",
-        [],
-        {
-            "up": KeyList([pygame.K_UP, pygame.K_w, pygame.K_SPACE]),
-            "down": KeyList([pygame.K_DOWN, pygame.K_s, pygame.K_LCTRL]),
-            "left": KeyList([pygame.K_LEFT, pygame.K_a]),
-            "right": KeyList([pygame.K_RIGHT, pygame.K_d]),
-        },
-        player,
-        tiles,
-        [],
-        [],
-        [],
-        1 / 500,
-        1 / 500,
-        -1,
-        0,
-        3,
-        3,
-        Interval(options["tile"]["spawn_interval_base"], 1 / 500),
-        (options["tile"]["spawn_interval_min"] - options["tile"]["spawn_interval_base"])
-        / math.log(options["tile"]["spawn_interval_time"] + 1, 10),
-        RandomInterval(
-            options["coin"]["spawn_interval_base"],
-            options["coin"]["spawn_interval_variance"],
-            1 / 500,
-        ),
-        Interval(options["game"]["fps"]["refresh"], 1 / 500),
-        500,
-        ToggleKey(),
-        True,
-    )
+    state = State("resources/options.json")
 
     last_time = time.time()
 
