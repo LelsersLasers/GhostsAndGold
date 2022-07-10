@@ -576,7 +576,8 @@ class State:
             "right": KeyList([pygame.K_RIGHT, pygame.K_d]),
         }
         self.player: Player = Player(self.options)
-        self.tiles: list[Tile] = setup_tiles(self.options)
+        self.tiles: list[Tile] = []
+        self.setup_tiles()
         self.coins: list[Coin] = []
         self.chests: list[Chest] = []
         self.effects: list[Effect] = []
@@ -604,7 +605,7 @@ class State:
 
     def reset(self):
         self.player = Player(self.options)
-        self.tiles = setup_tiles(self.options)
+        self.setup_tiles()
         self.coins = []
         self.chests = []
         self.effects = []
@@ -617,6 +618,42 @@ class State:
         self.coin_spawn.reset(self.ticks)
         self.fps_draw.reset(self.ticks)
         self.score = 0
+
+    def setup_tiles(self) -> None:
+        self.tiles = []
+
+        tile_y = self.options["tile"]["base_y"]
+        tile_types = [Tile, Tile, EdgeTile]
+        for i in range(1, self.options["tile"]["columns"] - 1):
+            for j in range(len(tile_types)):
+                self.tiles.append(
+                    tile_types[j](
+                        Vector(
+                            i * self.options["tile"]["w"], tile_y + j * self.options["tile"]["w"]
+                        ),
+                        self.options["tile"],
+                        self.options["tile"]["edge_color"]
+                        if tile_types[j] == EdgeTile
+                        else self.options["tile"]["color"],
+                    )
+                )
+
+        tile_y += (len(tile_types) - 1) * self.options["tile"]["w"]
+        while tile_y > -self.options["tile"]["w"]:
+            self.tiles.append(
+                EdgeTile(
+                    Vector(0, tile_y), self.options["tile"], self.options["tile"]["edge_color"]
+                )
+            )
+            self.tiles.append(
+                EdgeTile(
+                    Vector(self.options["window"]["width"] - self.options["tile"]["w"], tile_y),
+                    self.options["tile"],
+                    self.options["tile"]["edge_color"],
+                )
+            )
+            tile_y -= self.options["tile"]["w"]
+            self.options["tile"]["top_y"] = tile_y  # TODO: change - modifying self.options
 
     def exit(self) -> None:
         pygame.quit()
@@ -682,7 +719,7 @@ class State:
 
     def draw_game(self) -> None:
         if not self.paused:
-            draw_unpause(self)
+            self.draw_unpause()
             self.ticks += self.delta
 
         self.draw_hud()
@@ -692,11 +729,211 @@ class State:
         elif not self.player.alive:
             self.draw_death()
 
+    def create_tile_map(self) -> None:
+        self.tile_map = {}
+        for tile in self.tiles:
+            map_str = tile.pt.get_map_str(self.options["tile"]["w"])
+            try:
+                self.tile_map[map_str].append(tile)
+            except KeyError:
+                self.tile_map[map_str] = [tile]
+
+    def calc_drop_chances(self) -> list[int]:
+        top_tiles: list[float] = []
+        for _ in self.options["tile"]["spawn_xs"]:
+            top_tiles.append(self.options["tile"]["base_y"] - self.options["tile"]["w"])
+        for tile in self.tiles:  # TODO!
+            if type(tile) != EdgeTile:
+                idx = self.options["tile"]["spawn_xs"].index(tile.pt.x)
+                if top_tiles[idx] > tile.pt.y:
+                    top_tiles[idx] = tile.pt.y
+
+        max_value: float = max(top_tiles)
+        min_value: float = min(top_tiles)
+
+        old_range = max_value - min_value
+        new_range = (
+            self.options["tile"]["spawn_scale_max"] - self.options["tile"]["spawn_scale_min"]
+        )
+
+        drop_chances: list[int] = []
+        for y in top_tiles:
+            if y < 0:
+                chance = 0
+            else:
+                try:
+                    chance = ((y - min_value) * new_range) / old_range
+                except ZeroDivisionError:
+                    chance = 0
+                chance += self.options["tile"]["spawn_scale_min"]
+            drop_chances.append(int(chance))
+
+        return drop_chances
+
+    def count_full_rows(self) -> tuple[int, list[Tile], list[Tile]]:
+        tile_ys: dict[float, int] = {}
+        for tile in self.tiles:  # TODO!
+            try:
+                tile_ys[tile.pt.y] += 1
+            except KeyError:
+                tile_ys[tile.pt.y] = 1
+
+        count = 0
+        for value in tile_ys.values():
+            if value == self.options["tile"]["columns"]:
+                count += 1
+
+        tiles_to_remove: list[Tile] = []
+        below_tiles: list[Tile] = []
+
+        sorted_keys = sorted(tile_ys.keys(), reverse=True)
+        sorted_keys = [
+            key for key in sorted_keys if tile_ys[key] == self.options["tile"]["columns"]
+        ]
+
+        if count > self.options["tile"]["row_limit"]:
+            third_row_y = sorted_keys[2]
+            for tile in self.tiles:  # TODO!
+                if tile.pt.y == third_row_y:
+                    tiles_to_remove.append(tile)
+                elif tile.pt.y > third_row_y:
+                    below_tiles.append(tile)
+        elif count < self.options["tile"]["row_min"]:
+            first_row_y = sorted_keys[0]
+            for tile in self.tiles:  # TODO!
+                if tile.pt.y == first_row_y:
+                    below_tiles.append(tile)
+
+        return count, tiles_to_remove, below_tiles
+
+    def draw_unpause(self) -> None:
+        self.create_tile_map()
+
+        # Prob some way to do this without the '# type: ignore'
+        entities: list[Hitbox] = self.tiles + self.chests + self.coins + self.effects + [self.player]  # type: ignore
+        for e in entities:
+            e.update(self)
+            if e.pt.y < self.win.get_height() and e.pt.y > -e.h:
+                e.draw(self.win)
+
+        count, tiles_to_remove, below_tiles = self.count_full_rows()
+        if count != self.full_rows:
+            if count > self.full_rows:
+                self.tiles.append(
+                    EdgeTile(
+                        Vector(0, self.options["tile"]["top_y"] - self.scrolling),
+                        self.options["tile"],
+                        self.options["tile"]["edge_color"],
+                    )
+                )
+                self.tiles.append(
+                    EdgeTile(
+                        Vector(
+                            self.options["window"]["width"] - self.options["tile"]["w"],
+                            self.options["tile"]["top_y"] - self.scrolling,
+                        ),
+                        self.options["tile"],
+                        self.options["tile"]["edge_color"],
+                    )
+                )
+            self.scrolling += self.options["tile"]["w"] * (count - self.full_rows)
+            self.full_rows = count
+
+        # TODO: better solution than dividing by 10
+        if abs(self.scrolling) > self.options["tile"]["w"] / self.options["game"]["scroll_divisor"]:
+            scroll_dist = self.delta * self.options["scroll_speed"] * get_sign(self.scrolling)
+            self.scrolling -= scroll_dist
+            to_scroll: list[Moveable] = self.tiles + self.coins + self.effects  # type: ignore
+            for ts in to_scroll:
+                ts.scroll(scroll_dist)
+            self.player.pt.y += scroll_dist
+        elif count > self.options["tile"]["row_limit"]:
+            for tile in tiles_to_remove:
+                self.tiles.remove(tile)
+            for tile in below_tiles:  # TODO!
+                tile.pt.y -= tile.h
+            self.full_rows -= 1
+            self.display_rows -= 1
+        if count < self.options["tile"]["row_min"]:
+            tile_y = below_tiles[0].pt.y
+            for i in range(1, self.options["tile"]["columns"] - 1):
+                self.tiles.append(
+                    Tile(
+                        Vector(i * self.options["tile"]["w"], tile_y),
+                        self.options["tile"],
+                        self.options["tile"]["color"],
+                    )
+                )
+            self.tiles.append(
+                EdgeTile(
+                    Vector(0, tile_y), self.options["tile"], self.options["tile"]["edge_color"]
+                )
+            )
+            self.tiles.append(
+                EdgeTile(
+                    Vector(self.options["window"]["width"] - self.options["tile"]["w"], tile_y),
+                    self.options["tile"],
+                    self.options["tile"]["edge_color"],
+                )
+            )
+            for tile in below_tiles:  # TODO!
+                tile.pt.y += tile.h
+            self.full_rows += 1
+            self.display_rows += 1
+
+        if self.tile_spawn.update(self.ticks):
+            # TODO: clean the types here - why is union[X, None] needed?
+            new_tile: Union[Tile, None] = None
+            heavy_chance = random.random()
+            if heavy_chance < self.options["tile"]["heavy"]["chance"]:
+                new_tile = HeavyTile(
+                    Vector(
+                        random.choice(self.options["tile"]["spawn_xs"]),
+                        self.options["tile"]["spawn_y"],
+                    ),
+                    self.options["tile"],
+                )
+            else:
+                drop_chances = self.calc_drop_chances()
+                drop_chance_list: list[float] = []
+                for i in range(len(self.options["tile"]["spawn_xs"])):
+                    drop_chance_list += [self.options["tile"]["spawn_xs"][i]] * drop_chances[i]
+                new_tile = Tile(
+                    Vector(random.choice(drop_chance_list), self.options["tile"]["spawn_y"]),
+                    self.options["tile"],
+                    self.options["tile"]["color"],
+                )
+            self.tiles.append(new_tile)
+            chest_chance = random.random()
+            if chest_chance < self.options["chest"]["spawn_chance"]:
+                self.chests.append(Chest(self.options["chest"], new_tile))
+
+            self.tile_spawn.period = max(
+                self.options["tile"]["spawn_interval_base"]
+                + self.tile_spawn_log_rate * math.log(self.ticks + 1, 10),
+                self.options["tile"]["spawn_interval_min"],
+            )
+
+        if self.coin_spawn.update(self.ticks):
+            self.coins.append(
+                Coin(
+                    Vector(
+                        random.uniform(
+                            self.options["tile"]["w"],
+                            self.options["window"]["width"]
+                            - self.options["tile"]["w"]
+                            - self.options["coin"]["w"],
+                        ),
+                        self.options["coin"]["spawn_y"],
+                    ),
+                    self.options["coin"],
+                )
+            )
+
     def draw_darken(self) -> None:
         darken_rect = pygame.Surface((self.win.get_width(), self.win.get_height()), pygame.SRCALPHA)
         darken_rect.fill((0, 0, 0, self.options["game"]["darken_alpha"]))
         self.win.blit(darken_rect, (0, 0))
-
 
     def draw_death(self) -> None:
         self.draw_darken()
@@ -710,7 +947,6 @@ class State:
 
         self.draw_darken()
         draw_centered_texts(self, "pause", self.options["pause"].keys())
-
 
     def draw_hud(self) -> None:
         text_keys = ["score", "rows", "time"]
@@ -758,11 +994,10 @@ class State:
                 self.options["welcome"][text_keys[i]]["text"] % text_format[i],
                 self.options["welcome"][text_keys[i]]["y"],
                 self.options["colors"]["text"],
-            ) 
+            )
 
     def draw_instructions(self) -> None:
         draw_centered_texts(self, "instructions", self.options["instructions"].keys())
-
 
 
 def get_sign(x: float) -> int:
@@ -837,246 +1072,6 @@ def draw_centered_texts(state: State, section: str, text_keys: list[str]) -> Non
             state.options[section][key]["y"],
             state.options["colors"]["text"],
         )
-
-
-def count_full_rows(
-    tiles: list[Tile], columns: int, row_limit: int, row_min: int
-) -> tuple[int, list[Tile], list[Tile]]:
-    tile_ys: dict[float, int] = {}
-    for tile in tiles:  # TODO!
-        try:
-            tile_ys[tile.pt.y] += 1
-        except KeyError:
-            tile_ys[tile.pt.y] = 1
-
-    count = 0
-    for value in tile_ys.values():
-        if value == columns:
-            count += 1
-
-    tiles_to_remove: list[Tile] = []
-    below_tiles: list[Tile] = []
-
-    sorted_keys = sorted(tile_ys.keys(), reverse=True)
-    sorted_keys = [key for key in sorted_keys if tile_ys[key] == columns]
-
-    if count > row_limit:
-        third_row_y = sorted_keys[2]
-        for tile in tiles:  # TODO!
-            if tile.pt.y == third_row_y:
-                tiles_to_remove.append(tile)
-            elif tile.pt.y > third_row_y:
-                below_tiles.append(tile)
-    elif count < row_min:
-        first_row_y = sorted_keys[0]
-        for tile in tiles:  # TODO!
-            if tile.pt.y == first_row_y:
-                below_tiles.append(tile)
-
-    return count, tiles_to_remove, below_tiles
-
-
-def calc_drop_chances(state: State) -> list[int]:
-    top_tiles: list[float] = []
-    for _ in state.options["tile"]["spawn_xs"]:
-        top_tiles.append(state.options["tile"]["base_y"] - state.options["tile"]["w"])
-    for tile in state.tiles:  # TODO!
-        if type(tile) != EdgeTile:
-            idx = state.options["tile"]["spawn_xs"].index(tile.pt.x)
-            if top_tiles[idx] > tile.pt.y:
-                top_tiles[idx] = tile.pt.y
-
-    max_value: float = max(top_tiles)
-    min_value: float = min(top_tiles)
-
-    old_range = max_value - min_value
-    new_range = state.options["tile"]["spawn_scale_max"] - state.options["tile"]["spawn_scale_min"]
-
-    drop_chances: list[int] = []
-    for y in top_tiles:
-        if y < 0:
-            chance = 0
-        else:
-            try:
-                chance = ((y - min_value) * new_range) / old_range
-            except ZeroDivisionError:
-                chance = 0
-            chance += state.options["tile"]["spawn_scale_min"]
-        drop_chances.append(int(chance))
-
-    return drop_chances
-
-
-def create_map(state: State) -> None:
-    state.tile_map = {}
-    for tile in state.tiles:
-        map_str = tile.pt.get_map_str(state.options["tile"]["w"])
-        try:
-            state.tile_map[map_str].append(tile)
-        except KeyError:
-            state.tile_map[map_str] = [tile]
-
-
-def draw_unpause(state: State) -> None:
-
-    create_map(state)
-
-    # Prob some way to do this without the '# type: ignore'
-    entities: list[Hitbox] = state.tiles + state.chests + state.coins + state.effects + [state.player]  # type: ignore
-    for e in entities:
-        e.update(state)
-        if e.pt.y < state.win.get_height() and e.pt.y > -e.h:
-            e.draw(state.win)
-
-    count, tiles_to_remove, below_tiles = count_full_rows(
-        state.tiles,
-        state.options["tile"]["columns"],
-        state.options["tile"]["row_limit"],
-        state.options["tile"]["row_min"],
-    )
-    if count != state.full_rows:
-        if count > state.full_rows:
-            state.tiles.append(
-                EdgeTile(
-                    Vector(0, state.options["tile"]["top_y"] - state.scrolling),
-                    state.options["tile"],
-                    state.options["tile"]["edge_color"],
-                )
-            )
-            state.tiles.append(
-                EdgeTile(
-                    Vector(
-                        state.options["window"]["width"] - state.options["tile"]["w"],
-                        state.options["tile"]["top_y"] - state.scrolling,
-                    ),
-                    state.options["tile"],
-                    state.options["tile"]["edge_color"],
-                )
-            )
-        state.scrolling += state.options["tile"]["w"] * (count - state.full_rows)
-        state.full_rows = count
-
-    # TODO: better solution than dividing by 10
-    if abs(state.scrolling) > state.options["tile"]["w"] / state.options["game"]["scroll_divisor"]:
-        scroll_dist = state.delta * state.options["scroll_speed"] * get_sign(state.scrolling)
-        state.scrolling -= scroll_dist
-        to_scroll: list[Moveable] = state.tiles + state.coins + state.effects  # type: ignore
-        for ts in to_scroll:
-            ts.scroll(scroll_dist)
-        state.player.pt.y += scroll_dist
-    elif count > state.options["tile"]["row_limit"]:
-        for tile in tiles_to_remove:
-            state.tiles.remove(tile)
-        for tile in below_tiles:  # TODO!
-            tile.pt.y -= tile.h
-        state.full_rows -= 1
-        state.display_rows -= 1
-    if count < state.options["tile"]["row_min"]:
-        tile_y = below_tiles[0].pt.y
-        for i in range(1, state.options["tile"]["columns"] - 1):
-            state.tiles.append(
-                Tile(
-                    Vector(i * state.options["tile"]["w"], tile_y),
-                    state.options["tile"],
-                    state.options["tile"]["color"],
-                )
-            )
-        state.tiles.append(
-            EdgeTile(Vector(0, tile_y), state.options["tile"], state.options["tile"]["edge_color"])
-        )
-        state.tiles.append(
-            EdgeTile(
-                Vector(state.options["window"]["width"] - state.options["tile"]["w"], tile_y),
-                state.options["tile"],
-                state.options["tile"]["edge_color"],
-            )
-        )
-        for tile in below_tiles:  # TODO!
-            tile.pt.y += tile.h
-        state.full_rows += 1
-        state.display_rows += 1
-
-    if state.tile_spawn.update(state.ticks):
-        # TODO: clean the types here - why is union[X, None] needed?
-        new_tile: Union[Tile, None] = None
-        heavy_chance = random.random()
-        if heavy_chance < state.options["tile"]["heavy"]["chance"]:
-            new_tile = HeavyTile(
-                Vector(
-                    random.choice(state.options["tile"]["spawn_xs"]),
-                    state.options["tile"]["spawn_y"],
-                ),
-                state.options["tile"],
-            )
-        else:
-            drop_chances = calc_drop_chances(state)
-            drop_chance_list: list[float] = []
-            for i in range(len(state.options["tile"]["spawn_xs"])):
-                drop_chance_list += [state.options["tile"]["spawn_xs"][i]] * drop_chances[i]
-            new_tile = Tile(
-                Vector(random.choice(drop_chance_list), state.options["tile"]["spawn_y"]),
-                state.options["tile"],
-                state.options["tile"]["color"],
-            )
-        state.tiles.append(new_tile)
-        chest_chance = random.random()
-        if chest_chance < state.options["chest"]["spawn_chance"]:
-            state.chests.append(Chest(state.options["chest"], new_tile))
-
-        state.tile_spawn.period = max(
-            state.options["tile"]["spawn_interval_base"]
-            + state.tile_spawn_log_rate * math.log(state.ticks + 1, 10),
-            state.options["tile"]["spawn_interval_min"],
-        )
-
-    if state.coin_spawn.update(state.ticks):
-        state.coins.append(
-            Coin(
-                Vector(
-                    random.uniform(
-                        state.options["tile"]["w"],
-                        state.options["window"]["width"]
-                        - state.options["tile"]["w"]
-                        - state.options["coin"]["w"],
-                    ),
-                    state.options["coin"]["spawn_y"],
-                ),
-                state.options["coin"],
-            )
-        )
-
-
-def setup_tiles(options: dict[str, Any]) -> list[Tile]:
-    tiles: list[Tile] = []
-
-    tile_y = options["tile"]["base_y"]
-    tile_types = [Tile, Tile, EdgeTile]
-    for i in range(1, options["tile"]["columns"] - 1):
-        for j in range(len(tile_types)):
-            tiles.append(
-                tile_types[j](
-                    Vector(i * options["tile"]["w"], tile_y + j * options["tile"]["w"]),
-                    options["tile"],
-                    options["tile"]["edge_color"]
-                    if tile_types[j] == EdgeTile
-                    else options["tile"]["color"],
-                )
-            )
-
-    tile_y += (len(tile_types) - 1) * options["tile"]["w"]
-    while tile_y > -options["tile"]["w"]:
-        tiles.append(EdgeTile(Vector(0, tile_y), options["tile"], options["tile"]["edge_color"]))
-        tiles.append(
-            EdgeTile(
-                Vector(options["window"]["width"] - options["tile"]["w"], tile_y),
-                options["tile"],
-                options["tile"]["edge_color"],
-            )
-        )
-        tile_y -= options["tile"]["w"]
-        options["tile"]["top_y"] = tile_y  # TODO: change - modifying options
-
-    return tiles
 
 
 def main():
