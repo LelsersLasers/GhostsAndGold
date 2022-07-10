@@ -9,6 +9,7 @@ import time
 import json
 import random
 import copy
+import multiprocessing
 
 
 class ToggleKey:
@@ -683,10 +684,6 @@ class State:
             ):
                 self.screen = "welcome"
 
-    def update_game(self):
-
-        pass
-
     def draw(self):
         self.win.fill(self.options["colors"]["background"])
 
@@ -701,7 +698,9 @@ class State:
 
     def next_frame(self):
         if self.screen == "game":
-            self.update_game()
+            if not self.paused:
+                self.update_game()
+                self.ticks += self.delta
         self.draw()
 
     def run(self):
@@ -718,16 +717,19 @@ class State:
             self.handle_events()
 
     def draw_game(self) -> None:
-        if not self.paused:
-            self.draw_unpause()
-            self.ticks += self.delta
-
+        self.draw_entities()
         self.draw_hud()
 
         if self.paused:
             self.draw_pause()
         elif not self.player.alive:
             self.draw_death()
+
+    def draw_entities(self) -> None:
+        entities: list[Hitbox] = self.tiles + self.chests + self.coins + self.effects + [self.player]  # type: ignore
+        for e in entities:
+            if e.pt.y < self.win.get_height() and e.pt.y > -e.h:
+                e.draw(self.win)
 
     def create_tile_map(self) -> None:
         self.tile_map = {}
@@ -806,15 +808,13 @@ class State:
 
         return count, tiles_to_remove, below_tiles
 
-    def draw_unpause(self) -> None:
+    def update_game(self) -> None:
         self.create_tile_map()
 
         # Prob some way to do this without the '# type: ignore'
         entities: list[Hitbox] = self.tiles + self.chests + self.coins + self.effects + [self.player]  # type: ignore
         for e in entities:
             e.update(self)
-            if e.pt.y < self.win.get_height() and e.pt.y > -e.h:
-                e.draw(self.win)
 
         count, tiles_to_remove, below_tiles = self.count_full_rows()
         if count != self.full_rows:
@@ -940,11 +940,6 @@ class State:
         draw_centered_texts(self, "death", self.options["death"].keys())
 
     def draw_pause(self) -> None:
-        entities: list[Hitbox] = self.tiles + self.chests + self.coins + self.effects + [self.player]  # type: ignore
-        for e in entities:
-            if e.pt.y < self.win.get_height() and e.pt.y > -e.h:
-                e.draw(self.win)
-
         self.draw_darken()
         draw_centered_texts(self, "pause", self.options["pause"].keys())
 
