@@ -618,6 +618,34 @@ class State:
         self.fps_draw.reset(self.ticks)
         self.score = 0
 
+    def exit(self) -> None:
+        pygame.quit()
+        self.playing = False
+
+    def handle_events(self) -> None:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.exit()
+
+        if self.screen == "welcome":
+            if self.keys["up"].down(self.keys_down):
+                self.reset()
+                self.screen = "game"
+            elif self.keys_down[pygame.K_i]:
+                self.screen = "instructions"
+            elif self.keys_down[pygame.K_ESCAPE]:
+                self.exit()
+        elif self.screen == "instructions":
+            if self.keys_down[pygame.K_b]:
+                self.screen = "welcome"
+        elif self.screen == "game":
+            if self.esc_tk.down(self.keys_down[pygame.K_ESCAPE]):
+                self.paused = not self.paused
+            elif (not self.player.alive and self.keys_down[pygame.K_r]) or (
+                self.paused and self.keys_down[pygame.K_q]
+            ):
+                self.screen = "welcome"
+
     def update(self):
         pass
 
@@ -628,7 +656,23 @@ class State:
         pass
 
     def run(self):
-        pass
+        last_time = time.time()
+        while self.playing:
+            self.delta = time.time() - last_time
+            if self.delta <= 0:
+                self.delta = 1 / 500
+            last_time = time.time()
+            self.keys_down = pygame.key.get_pressed()
+            self.win.fill(self.options["colors"]["background"])
+            if self.screen == "welcome":
+                draw_welcome(self)
+            elif self.screen == "game":
+                draw_game(self)
+            elif self.screen == "instructions":
+                draw_instructions(self)
+            pygame.display.update()
+            self.handle_events()
+
 
 
 def get_sign(x: float) -> int:
@@ -680,33 +724,6 @@ def create_fonts(font_options: dict[str, Any]) -> dict[str, pygame.font.Font]:
         "h4": pygame.font.Font(font_options["name"], font_options["size"]["h4"]),
         "h5": pygame.font.Font(font_options["name"], font_options["size"]["h5"]),
     }
-
-
-def handle_events(state: State) -> None:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            pygame.quit()
-            state.playing = False
-
-    if state.screen == "welcome":
-        if state.keys["up"].down(state.keys_down):
-            state.reset()
-            state.screen = "game"
-        elif state.keys_down[pygame.K_i]:
-            state.screen = "instructions"
-        elif state.keys_down[pygame.K_ESCAPE]:
-            pygame.quit()
-            state.playing = False
-    elif state.screen == "instructions":
-        if state.keys_down[pygame.K_b]:
-            state.screen = "welcome"
-    elif state.screen == "game":
-        if state.esc_tk.down(state.keys_down[pygame.K_ESCAPE]):
-            state.paused = not state.paused
-        elif (not state.player.alive and state.keys_down[pygame.K_r]) or (
-            state.paused and state.keys_down[pygame.K_q]
-        ):
-            state.screen = "welcome"
 
 
 def draw_centered_text(
@@ -1063,31 +1080,7 @@ def setup_tiles(options: dict[str, Any]) -> list[Tile]:
 def main():
 
     state = State("resources/options.json")
-
-    last_time = time.time()
-
-    while state.playing:
-
-        state.delta = time.time() - last_time
-        if state.delta <= 0:
-            state.delta = 1 / 500
-        last_time = time.time()
-
-        state.keys_down = pygame.key.get_pressed()
-
-        state.win.fill(state.options["colors"]["background"])
-
-        if state.screen == "welcome":
-            draw_welcome(state)
-        elif state.screen == "game":
-            draw_game(state)
-        elif state.screen == "instructions":
-            draw_instructions(state)
-
-        pygame.display.update()
-
-        # Goes at end b/c program could only end from here
-        handle_events(state)
+    state.run()
 
 
 if __name__ == "__main__":
