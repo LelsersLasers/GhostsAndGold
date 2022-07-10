@@ -646,8 +646,7 @@ class State:
             ):
                 self.screen = "welcome"
 
-    def update(self):
-        self.keys_down = pygame.key.get_pressed()
+    def update_game(self):
 
         pass
 
@@ -659,12 +658,13 @@ class State:
         elif self.screen == "instructions":
             self.draw_instructions()
         elif self.screen == "game":
-            draw_game(self)
+            self.draw_game()
 
         pygame.display.update()
 
     def next_frame(self):
-        self.update()
+        if self.screen == "game":
+            self.update_game()
         self.draw()
 
     def run(self):
@@ -675,8 +675,75 @@ class State:
                 self.delta = 1 / 500
             last_time = time.time()
 
+            self.keys_down = pygame.key.get_pressed()
+
             self.next_frame()
             self.handle_events()
+
+    def draw_game(self) -> None:
+        if not self.paused:
+            draw_unpause(self)
+            self.ticks += self.delta
+
+        self.draw_hud()
+
+        if self.paused:
+            self.draw_pause()
+        elif not self.player.alive:
+            self.draw_death()
+
+    def draw_darken(self) -> None:
+        darken_rect = pygame.Surface((self.win.get_width(), self.win.get_height()), pygame.SRCALPHA)
+        darken_rect.fill((0, 0, 0, self.options["game"]["darken_alpha"]))
+        self.win.blit(darken_rect, (0, 0))
+
+
+    def draw_death(self) -> None:
+        self.draw_darken()
+        draw_centered_texts(self, "death", self.options["death"].keys())
+
+    def draw_pause(self) -> None:
+        entities: list[Hitbox] = self.tiles + self.chests + self.coins + self.effects + [self.player]  # type: ignore
+        for e in entities:
+            if e.pt.y < self.win.get_height() and e.pt.y > -e.h:
+                e.draw(self.win)
+
+        self.draw_darken()
+        draw_centered_texts(self, "pause", self.options["pause"].keys())
+
+
+    def draw_hud(self) -> None:
+        text_keys = ["score", "rows", "time"]
+        text_format = [self.score, max(0, self.full_rows - self.display_rows), int(self.ticks)]
+        for i in range(len(text_keys)):
+            draw_centered_text(
+                self.win,
+                self.fonts[self.options["game"][text_keys[i]]["font"]],
+                self.options["game"][text_keys[i]]["text"] % text_format[i],
+                self.options["game"][text_keys[i]]["y"],
+                self.options["colors"]["text"],
+            )
+
+        if self.fps_draw.update(self.ticks):
+            self.display_fps = int(1 / self.delta)
+
+        surf_fps = self.fonts["h5"].render(
+            self.options["game"]["fps"]["text"] % self.display_fps,
+            True,
+            self.options["colors"]["text"],
+        )
+        self.win.blit(
+            surf_fps, ((self.options["game"]["fps"]["x"], self.options["game"]["fps"]["y"]))
+        )
+
+        surf_tiles = self.fonts["h5"].render(
+            self.options["game"]["tiles"]["text"] % len(self.tiles),
+            True,
+            self.options["colors"]["text"],
+        )
+        self.win.blit(
+            surf_tiles, ((self.options["game"]["tiles"]["x"], self.options["game"]["tiles"]["y"]))
+        )
 
     def draw_welcome(self) -> None:
         text_keys = list(self.options["welcome"].keys())
@@ -840,17 +907,6 @@ def calc_drop_chances(state: State) -> list[int]:
     return drop_chances
 
 
-def draw_darken(state: State) -> None:
-    darken_rect = pygame.Surface((state.win.get_width(), state.win.get_height()), pygame.SRCALPHA)
-    darken_rect.fill((0, 0, 0, state.options["game"]["darken_alpha"]))
-    state.win.blit(darken_rect, (0, 0))
-
-
-def draw_death(state: State) -> None:
-    draw_darken(state)
-    draw_centered_texts(state, "death", state.options["death"].keys())
-
-
 def create_map(state: State) -> None:
     state.tile_map = {}
     for tile in state.tiles:
@@ -990,63 +1046,6 @@ def draw_unpause(state: State) -> None:
         )
 
 
-def draw_pause(state: State) -> None:
-    entities: list[Hitbox] = state.tiles + state.chests + state.coins + state.effects + [state.player]  # type: ignore
-    for e in entities:
-        if e.pt.y < state.win.get_height() and e.pt.y > -e.h:
-            e.draw(state.win)
-
-    draw_darken(state)
-    draw_centered_texts(state, "pause", state.options["pause"].keys())
-
-
-def draw_hud(state: State) -> None:
-    text_keys = ["score", "rows", "time"]
-    text_format = [state.score, max(0, state.full_rows - state.display_rows), int(state.ticks)]
-    for i in range(len(text_keys)):
-        draw_centered_text(
-            state.win,
-            state.fonts[state.options["game"][text_keys[i]]["font"]],
-            state.options["game"][text_keys[i]]["text"] % text_format[i],
-            state.options["game"][text_keys[i]]["y"],
-            state.options["colors"]["text"],
-        )
-
-    if state.fps_draw.update(state.ticks):
-        state.display_fps = int(1 / state.delta)
-
-    surf_fps = state.fonts["h5"].render(
-        state.options["game"]["fps"]["text"] % state.display_fps,
-        True,
-        state.options["colors"]["text"],
-    )
-    state.win.blit(
-        surf_fps, ((state.options["game"]["fps"]["x"], state.options["game"]["fps"]["y"]))
-    )
-
-    surf_tiles = state.fonts["h5"].render(
-        state.options["game"]["tiles"]["text"] % len(state.tiles),
-        True,
-        state.options["colors"]["text"],
-    )
-    state.win.blit(
-        surf_tiles, ((state.options["game"]["tiles"]["x"], state.options["game"]["tiles"]["y"]))
-    )
-
-
-def draw_game(state: State) -> None:
-    if not state.paused:
-        draw_unpause(state)
-        state.ticks += state.delta
-
-    draw_hud(state)
-
-    if state.paused:
-        draw_pause(state)
-    elif not state.player.alive:
-        draw_death(state)
-
-
 def setup_tiles(options: dict[str, Any]) -> list[Tile]:
     tiles: list[Tile] = []
 
@@ -1081,7 +1080,6 @@ def setup_tiles(options: dict[str, Any]) -> list[Tile]:
 
 
 def main():
-
     state = State("resources/options.json")
     state.run()
 
