@@ -185,7 +185,7 @@
         "columns": 12,
         "row_limit": 4,
         "row_min": 3,
-        "base_y": 710,
+        "base_y": 660,
         "spawn_scale_min": 1,
         "spawn_scale_max": 99,
         "color": "#81A1C1",

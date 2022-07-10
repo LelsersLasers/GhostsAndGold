@@ -333,8 +333,8 @@ class Player(Movable):
 
             if self.pt.x < state.options["tile"]["w"]:
                 self.pt.x = state.options["tile"]["w"]
-            elif self.pt.x + self.w + state.options["tile"]["w"] > state.win.get_width():
-                self.pt.x = state.win.get_width() - self.w - state.options["tile"]["w"]
+            elif self.pt.x + self.w + state.options["tile"]["w"] > state.options["window"]["width"]:
+                self.pt.x = state.options["window"]["width"] - self.w - state.options["tile"]["w"]
 
             self.move(state.delta)
             self.check_tile_collision(state.tile_map, state.options["tile"]["w"])
@@ -534,39 +534,9 @@ class Coin(Fall):
 
 
 class State:
-    # TODO: float/ints defaults?
-    win: pygame.surface.Surface
-    fonts: dict[str, pygame.font.Font]
-    options: dict[str, Any]
-    tile_map: dict[str, list[Tile]]
-    paused: bool
-    screen: str
-    keys_down: list[bool]
-    keys: dict[str, KeyList]
-    player: Player
-    tiles: list[Tile]
-    coins: list[Coin]
-    chests: list[Chest]
-    effects: list[Effect]
-    delta: float
-    ticks: float
-    score: int
-    scrolling: float
-    full_rows: int
-    display_rows: int
-    tile_spawn: Interval
-    tile_spawn_log_rate: float
-    coin_spawn: RandomInterval
-    fps_draw: Interval
-    display_fps: int
-    esc_tk: ToggleKey
-    playing: bool
-
-    def __init__(self, options_path):
-        self.options: dict[str, Any] = read_options(options_path)
-        self.win: pygame.surface.Surface = create_window(self.options)
+    def __init__(self, options: dict[str, Any]):
+        self.options: dict[str, Any] = options
         self.fonts: dict[str, pygame.font.Font] = create_fonts(self.options["font"])
-        self.tile_map: dict[str, list[Tile]] = {}
         self.paused: bool = False
         self.screen: str = "welcome"
         self.keys_down: list[bool] = pygame.key.get_pressed()
@@ -579,6 +549,7 @@ class State:
         self.player: Player = Player(self.options)
         self.tiles: list[Tile] = []
         self.setup_tiles()
+        self.tile_map: dict[str, list[Tile]] = {}
         self.coins: list[Coin] = []
         self.chests: list[Chest] = []
         self.effects: list[Effect] = []
@@ -684,26 +655,25 @@ class State:
             ):
                 self.screen = "welcome"
 
-    def draw(self):
-        self.win.fill(self.options["colors"]["background"])
+    def draw(self, win: pygame.surface.Surface):
+        win.fill(self.options["colors"]["background"])
 
         if self.screen == "welcome":
-            self.draw_welcome()
+            self.draw_welcome(win)
         elif self.screen == "instructions":
-            self.draw_instructions()
+            self.draw_instructions(win)
         elif self.screen == "game":
-            self.draw_game()
+            self.draw_game(win)
 
         pygame.display.update()
 
-    def next_frame(self):
+    def next_frame(self, win: pygame.surface.Surface):
         if self.screen == "game":
             if not self.paused:
                 self.update_game()
-                self.ticks += self.delta
-        self.draw()
+        self.draw(win)
 
-    def run(self):
+    def run(self, win: pygame.surface.Surface):
         last_time = time.time()
         while self.playing:
             self.delta = time.time() - last_time
@@ -711,25 +681,25 @@ class State:
                 self.delta = 1 / 500
             last_time = time.time()
 
-            self.keys_down = pygame.key.get_pressed()
+            self.keys_down = pygame.key.get_pressed()  # TODO: ?? why this errors???
 
-            self.next_frame()
+            self.next_frame(win)
             self.handle_events()
 
-    def draw_game(self) -> None:
-        self.draw_entities()
-        self.draw_hud()
+    def draw_game(self, win: pygame.surface.Surface) -> None:
+        self.draw_entities(win)
+        self.draw_hud(win)
 
         if self.paused:
-            self.draw_pause()
+            self.draw_pause(win)
         elif not self.player.alive:
-            self.draw_death()
+            self.draw_death(win)
 
-    def draw_entities(self) -> None:
+    def draw_entities(self, win: pygame.surface.Surface) -> None:
         entities: list[Hitbox] = self.tiles + self.chests + self.coins + self.effects + [self.player]  # type: ignore
         for e in entities:
-            if e.pt.y < self.win.get_height() and e.pt.y > -e.h:
-                e.draw(self.win)
+            if e.pt.y < win.get_height() and e.pt.y > -e.h:
+                e.draw(win)
 
     def create_tile_map(self) -> None:
         self.tile_map = {}
@@ -810,7 +780,6 @@ class State:
 
     def update_game(self) -> None:
         self.create_tile_map()
-
         # Prob some way to do this without the '# type: ignore'
         entities: list[Hitbox] = self.tiles + self.chests + self.coins + self.effects + [self.player]  # type: ignore
         for e in entities:
@@ -929,26 +898,27 @@ class State:
                     self.options["coin"],
                 )
             )
+        self.ticks += self.delta
 
-    def draw_darken(self) -> None:
-        darken_rect = pygame.Surface((self.win.get_width(), self.win.get_height()), pygame.SRCALPHA)
+    def draw_darken(self, win: pygame.surface.Surface) -> None:
+        darken_rect = pygame.Surface((win.get_width(), win.get_height()), pygame.SRCALPHA)
         darken_rect.fill((0, 0, 0, self.options["game"]["darken_alpha"]))
-        self.win.blit(darken_rect, (0, 0))
+        win.blit(darken_rect, (0, 0))
 
-    def draw_death(self) -> None:
-        self.draw_darken()
-        draw_centered_texts(self, "death", self.options["death"].keys())
+    def draw_death(self, win: pygame.surface.Surface) -> None:
+        self.draw_darken(win)
+        draw_centered_texts(self, win, "death", self.options["death"].keys())
 
-    def draw_pause(self) -> None:
-        self.draw_darken()
-        draw_centered_texts(self, "pause", self.options["pause"].keys())
+    def draw_pause(self, win: pygame.surface.Surface) -> None:
+        self.draw_darken(win)
+        draw_centered_texts(self, win, "pause", self.options["pause"].keys())
 
-    def draw_hud(self) -> None:
+    def draw_hud(self, win: pygame.surface.Surface) -> None:
         text_keys = ["score", "rows", "time"]
         text_format = [self.score, max(0, self.full_rows - self.display_rows), int(self.ticks)]
         for i in range(len(text_keys)):
             draw_centered_text(
-                self.win,
+                win,
                 self.fonts[self.options["game"][text_keys[i]]["font"]],
                 self.options["game"][text_keys[i]]["text"] % text_format[i],
                 self.options["game"][text_keys[i]]["y"],
@@ -963,20 +933,18 @@ class State:
             True,
             self.options["colors"]["text"],
         )
-        self.win.blit(
-            surf_fps, ((self.options["game"]["fps"]["x"], self.options["game"]["fps"]["y"]))
-        )
+        win.blit(surf_fps, ((self.options["game"]["fps"]["x"], self.options["game"]["fps"]["y"])))
 
         surf_tiles = self.fonts["h5"].render(
             self.options["game"]["tiles"]["text"] % len(self.tiles),
             True,
             self.options["colors"]["text"],
         )
-        self.win.blit(
+        win.blit(
             surf_tiles, ((self.options["game"]["tiles"]["x"], self.options["game"]["tiles"]["y"]))
         )
 
-    def draw_welcome(self) -> None:
+    def draw_welcome(self, win: pygame.surface.Surface) -> None:
         text_keys = list(self.options["welcome"].keys())
         text_format = [(), (self.score), (), (), ()]
         if self.score == -1:
@@ -984,15 +952,15 @@ class State:
             text_format.remove((self.score))
         for i in range(len(text_keys)):
             draw_centered_text(
-                self.win,
+                win,
                 self.fonts[self.options["welcome"][text_keys[i]]["font"]],
                 self.options["welcome"][text_keys[i]]["text"] % text_format[i],
                 self.options["welcome"][text_keys[i]]["y"],
                 self.options["colors"]["text"],
             )
 
-    def draw_instructions(self) -> None:
-        draw_centered_texts(self, "instructions", self.options["instructions"].keys())
+    def draw_instructions(self, win: pygame.surface.Surface) -> None:
+        draw_centered_texts(self, win, "instructions", self.options["instructions"].keys())
 
 
 def get_sign(x: float) -> int:
@@ -1058,10 +1026,12 @@ def draw_centered_text(
     win.blit(surf_text, ((win.get_width() - surf_text.get_width()) / 2, y))
 
 
-def draw_centered_texts(state: State, section: str, text_keys: list[str]) -> None:
+def draw_centered_texts(
+    state: State, win: pygame.surface.Surface, section: str, text_keys: list[str]
+) -> None:
     for key in text_keys:
         draw_centered_text(
-            state.win,
+            win,
             state.fonts[state.options[section][key]["font"]],
             state.options[section][key]["text"],
             state.options[section][key]["y"],
@@ -1070,8 +1040,10 @@ def draw_centered_texts(state: State, section: str, text_keys: list[str]) -> Non
 
 
 def main():
-    state = State("resources/options.json")
-    state.run()
+    options = read_options("resources/options.json")
+    win = create_window(options)
+    state = State(options)
+    state.run(win)
 
 
 if __name__ == "__main__":
