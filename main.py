@@ -647,13 +647,25 @@ class State:
                 self.screen = "welcome"
 
     def update(self):
+        self.keys_down = pygame.key.get_pressed()
+
         pass
 
     def draw(self):
-        pass
+        self.win.fill(self.options["colors"]["background"])
+
+        if self.screen == "welcome":
+            self.draw_welcome()
+        elif self.screen == "instructions":
+            self.draw_instructions()
+        elif self.screen == "game":
+            draw_game(self)
+
+        pygame.display.update()
 
     def next_frame(self):
-        pass
+        self.update()
+        self.draw()
 
     def run(self):
         last_time = time.time()
@@ -662,16 +674,27 @@ class State:
             if self.delta <= 0:
                 self.delta = 1 / 500
             last_time = time.time()
-            self.keys_down = pygame.key.get_pressed()
-            self.win.fill(self.options["colors"]["background"])
-            if self.screen == "welcome":
-                draw_welcome(self)
-            elif self.screen == "game":
-                draw_game(self)
-            elif self.screen == "instructions":
-                draw_instructions(self)
-            pygame.display.update()
+
+            self.next_frame()
             self.handle_events()
+
+    def draw_welcome(self) -> None:
+        text_keys = list(self.options["welcome"].keys())
+        text_format = [(), (self.score), (), (), ()]
+        if self.score == -1:
+            text_keys.remove("score")
+            text_format.remove((self.score))
+        for i in range(len(text_keys)):
+            draw_centered_text(
+                self.win,
+                self.fonts[self.options["welcome"][text_keys[i]]["font"]],
+                self.options["welcome"][text_keys[i]]["text"] % text_format[i],
+                self.options["welcome"][text_keys[i]]["y"],
+                self.options["colors"]["text"],
+            ) 
+
+    def draw_instructions(self) -> None:
+        draw_centered_texts(self, "instructions", self.options["instructions"].keys())
 
 
 
@@ -747,26 +770,6 @@ def draw_centered_texts(state: State, section: str, text_keys: list[str]) -> Non
             state.options[section][key]["y"],
             state.options["colors"]["text"],
         )
-
-
-def draw_welcome(state: State) -> None:
-    text_keys = list(state.options["welcome"].keys())
-    text_format = [(), (state.score), (), (), ()]
-    if state.score == -1:
-        text_keys.remove("score")
-        text_format.remove((state.score))
-    for i in range(len(text_keys)):
-        draw_centered_text(
-            state.win,
-            state.fonts[state.options["welcome"][text_keys[i]]["font"]],
-            state.options["welcome"][text_keys[i]]["text"] % text_format[i],
-            state.options["welcome"][text_keys[i]]["y"],
-            state.options["colors"]["text"],
-        )
-
-
-def draw_instructions(state: State) -> None:
-    draw_centered_texts(state, "instructions", state.options["instructions"].keys())
 
 
 def count_full_rows(
