@@ -536,7 +536,6 @@ class Coin(Fall):
 class State:
     def __init__(self, options: dict[str, Any]):
         self.options: dict[str, Any] = options
-        self.fonts: dict[str, pygame.font.Font] = create_fonts(self.options["font"])
         self.paused: bool = False
         self.screen: str = "welcome"
         self.keys_down: list[bool] = pygame.key.get_pressed()
@@ -655,25 +654,27 @@ class State:
             ):
                 self.screen = "welcome"
 
-    def draw(self, win: pygame.surface.Surface):
+    def draw(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]):
         win.fill(self.options["colors"]["background"])
 
         if self.screen == "welcome":
-            self.draw_welcome(win)
+            self.draw_welcome(win, fonts)
         elif self.screen == "instructions":
-            self.draw_instructions(win)
+            self.draw_instructions(win, fonts)
         elif self.screen == "game":
-            self.draw_game(win)
+            self.draw_game(win, fonts)
 
         pygame.display.update()
 
-    def next_frame(self, win: pygame.surface.Surface):
+    def next_frame(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]):
         if self.screen == "game":
             if not self.paused:
+                # TODO: get this too work
+                state_copy = copy.deepcopy(self)
                 self.update_game()
-        self.draw(win)
+        self.draw(win, fonts)
 
-    def run(self, win: pygame.surface.Surface):
+    def run(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]):
         last_time = time.time()
         while self.playing:
             self.delta = time.time() - last_time
@@ -683,17 +684,17 @@ class State:
 
             self.keys_down = pygame.key.get_pressed()  # TODO: ?? why this errors???
 
-            self.next_frame(win)
+            self.next_frame(win, fonts)
             self.handle_events()
 
-    def draw_game(self, win: pygame.surface.Surface) -> None:
+    def draw_game(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]) -> None:
         self.draw_entities(win)
-        self.draw_hud(win)
+        self.draw_hud(win, fonts)
 
         if self.paused:
-            self.draw_pause(win)
+            self.draw_pause(win, fonts)
         elif not self.player.alive:
-            self.draw_death(win)
+            self.draw_death(win, fonts)
 
     def draw_entities(self, win: pygame.surface.Surface) -> None:
         entities: list[Hitbox] = self.tiles + self.chests + self.coins + self.effects + [self.player]  # type: ignore
@@ -905,21 +906,21 @@ class State:
         darken_rect.fill((0, 0, 0, self.options["game"]["darken_alpha"]))
         win.blit(darken_rect, (0, 0))
 
-    def draw_death(self, win: pygame.surface.Surface) -> None:
+    def draw_death(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]) -> None:
         self.draw_darken(win)
-        draw_centered_texts(self, win, "death", self.options["death"].keys())
+        draw_centered_texts(self, win, fonts, "death", self.options["death"].keys())
 
-    def draw_pause(self, win: pygame.surface.Surface) -> None:
+    def draw_pause(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]) -> None:
         self.draw_darken(win)
-        draw_centered_texts(self, win, "pause", self.options["pause"].keys())
+        draw_centered_texts(self, win, fonts, "pause", self.options["pause"].keys())
 
-    def draw_hud(self, win: pygame.surface.Surface) -> None:
+    def draw_hud(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]) -> None:
         text_keys = ["score", "rows", "time"]
         text_format = [self.score, max(0, self.full_rows - self.display_rows), int(self.ticks)]
         for i in range(len(text_keys)):
             draw_centered_text(
                 win,
-                self.fonts[self.options["game"][text_keys[i]]["font"]],
+                fonts[self.options["game"][text_keys[i]]["font"]],
                 self.options["game"][text_keys[i]]["text"] % text_format[i],
                 self.options["game"][text_keys[i]]["y"],
                 self.options["colors"]["text"],
@@ -928,14 +929,14 @@ class State:
         if self.fps_draw.update(self.ticks):
             self.display_fps = int(1 / self.delta)
 
-        surf_fps = self.fonts["h5"].render(
+        surf_fps = fonts["h5"].render(
             self.options["game"]["fps"]["text"] % self.display_fps,
             True,
             self.options["colors"]["text"],
         )
         win.blit(surf_fps, ((self.options["game"]["fps"]["x"], self.options["game"]["fps"]["y"])))
 
-        surf_tiles = self.fonts["h5"].render(
+        surf_tiles = fonts["h5"].render(
             self.options["game"]["tiles"]["text"] % len(self.tiles),
             True,
             self.options["colors"]["text"],
@@ -944,7 +945,7 @@ class State:
             surf_tiles, ((self.options["game"]["tiles"]["x"], self.options["game"]["tiles"]["y"]))
         )
 
-    def draw_welcome(self, win: pygame.surface.Surface) -> None:
+    def draw_welcome(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]) -> None:
         text_keys = list(self.options["welcome"].keys())
         text_format = [(), (self.score), (), (), ()]
         if self.score == -1:
@@ -953,14 +954,14 @@ class State:
         for i in range(len(text_keys)):
             draw_centered_text(
                 win,
-                self.fonts[self.options["welcome"][text_keys[i]]["font"]],
+                fonts[self.options["welcome"][text_keys[i]]["font"]],
                 self.options["welcome"][text_keys[i]]["text"] % text_format[i],
                 self.options["welcome"][text_keys[i]]["y"],
                 self.options["colors"]["text"],
             )
 
-    def draw_instructions(self, win: pygame.surface.Surface) -> None:
-        draw_centered_texts(self, win, "instructions", self.options["instructions"].keys())
+    def draw_instructions(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]) -> None:
+        draw_centered_texts(self, win, fonts, "instructions", self.options["instructions"].keys())
 
 
 def get_sign(x: float) -> int:
@@ -1005,13 +1006,17 @@ def create_window(options: dict[str, Any]) -> pygame.surface.Surface:
 
 
 def create_fonts(font_options: dict[str, Any]) -> dict[str, pygame.font.Font]:
-    return {
-        "h1": pygame.font.Font(font_options["name"], font_options["size"]["h1"]),
-        "h2": pygame.font.Font(font_options["name"], font_options["size"]["h2"]),
-        "h3": pygame.font.Font(font_options["name"], font_options["size"]["h3"]),
-        "h4": pygame.font.Font(font_options["name"], font_options["size"]["h4"]),
-        "h5": pygame.font.Font(font_options["name"], font_options["size"]["h5"]),
-    }
+    fonts: dict[str, pygame.font.Font] = {}
+    for size in font_options["size"]:
+        fonts[size] = pygame.font.Font(font_options["name"], font_options["size"][size])
+    # return {
+    #     "h1": pygame.font.Font(font_options["name"], font_options["size"]["h1"]),
+    #     "h2": pygame.font.Font(font_options["name"], font_options["size"]["h2"]),
+    #     "h3": pygame.font.Font(font_options["name"], font_options["size"]["h3"]),
+    #     "h4": pygame.font.Font(font_options["name"], font_options["size"]["h4"]),
+    #     "h5": pygame.font.Font(font_options["name"], font_options["size"]["h5"]),
+    # }
+    return fonts
 
 
 def draw_centered_text(
@@ -1027,12 +1032,12 @@ def draw_centered_text(
 
 
 def draw_centered_texts(
-    state: State, win: pygame.surface.Surface, section: str, text_keys: list[str]
+    state: State, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font], section: str, text_keys: list[str]
 ) -> None:
     for key in text_keys:
         draw_centered_text(
             win,
-            state.fonts[state.options[section][key]["font"]],
+            fonts[state.options[section][key]["font"]],
             state.options[section][key]["text"],
             state.options[section][key]["y"],
             state.options["colors"]["text"],
@@ -1042,8 +1047,9 @@ def draw_centered_texts(
 def main():
     options = read_options("resources/options.json")
     win = create_window(options)
+    fonts = create_fonts(options["font"])
     state = State(options)
-    state.run(win)
+    state.run(win, fonts)
 
 
 if __name__ == "__main__":
