@@ -1,6 +1,5 @@
 from __future__ import annotations
-from operator import ifloordiv
-from typing import Any, Union
+from typing import Any, Sequence, Union
 
 import pygame
 
@@ -29,7 +28,7 @@ class KeyList:
     def __init__(self, keys: list[int]):
         self.keys = keys
 
-    def down(self, keys_down: list[bool]) -> bool:
+    def down(self, keys_down: Sequence[bool]) -> bool:
         for key in self.keys:
             if keys_down[key]:
                 return True
@@ -288,7 +287,7 @@ class Player(Movable):
         self.s_tk: ToggleKey = ToggleKey()
         self.alive: bool = True
 
-    def key_input(self, keys_down: list[bool], keys: dict[str, KeyList]) -> None:
+    def key_input(self, keys_down: Sequence[bool], keys: dict[str, KeyList]) -> None:
         self.move_vec.x = 0
         if keys["right"].down(keys_down):
             self.move_vec.x = self.speed
@@ -538,7 +537,7 @@ class State:
         self.options: dict[str, Any] = options
         self.paused: bool = False
         self.screen: str = "welcome"
-        self.keys_down: list[bool] = pygame.key.get_pressed()
+        self.keys_down: Sequence[bool] = pygame.key.get_pressed()
         self.keys: dict[str, KeyList] = {
             "up": KeyList([pygame.K_UP, pygame.K_w, pygame.K_SPACE]),
             "down": KeyList([pygame.K_DOWN, pygame.K_s, pygame.K_LCTRL]),
@@ -669,8 +668,6 @@ class State:
     def next_frame(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]):
         if self.screen == "game":
             if not self.paused:
-                # TODO: get this too work
-                state_copy = copy.deepcopy(self)
                 self.update_game()
         self.draw(win, fonts)
 
@@ -960,7 +957,9 @@ class State:
                 self.options["colors"]["text"],
             )
 
-    def draw_instructions(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]) -> None:
+    def draw_instructions(
+        self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]
+    ) -> None:
         draw_centered_texts(self, win, fonts, "instructions", self.options["instructions"].keys())
 
 
@@ -1009,13 +1008,6 @@ def create_fonts(font_options: dict[str, Any]) -> dict[str, pygame.font.Font]:
     fonts: dict[str, pygame.font.Font] = {}
     for size in font_options["size"]:
         fonts[size] = pygame.font.Font(font_options["name"], font_options["size"][size])
-    # return {
-    #     "h1": pygame.font.Font(font_options["name"], font_options["size"]["h1"]),
-    #     "h2": pygame.font.Font(font_options["name"], font_options["size"]["h2"]),
-    #     "h3": pygame.font.Font(font_options["name"], font_options["size"]["h3"]),
-    #     "h4": pygame.font.Font(font_options["name"], font_options["size"]["h4"]),
-    #     "h5": pygame.font.Font(font_options["name"], font_options["size"]["h5"]),
-    # }
     return fonts
 
 
@@ -1032,7 +1024,11 @@ def draw_centered_text(
 
 
 def draw_centered_texts(
-    state: State, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font], section: str, text_keys: list[str]
+    state: State,
+    win: pygame.surface.Surface,
+    fonts: dict[str, pygame.font.Font],
+    section: str,
+    text_keys: list[str],
 ) -> None:
     for key in text_keys:
         draw_centered_text(
