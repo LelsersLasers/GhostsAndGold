@@ -219,7 +219,7 @@
     "chest": {
         "w": 50,
         "h": 40,
-        "spawn_chance": 0.1,
+        "spawn_chance": 0.15,
         "color": "#B48EAD"
     },
 

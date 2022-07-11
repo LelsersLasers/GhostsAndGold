@@ -1,5 +1,4 @@
 from __future__ import annotations
-from operator import ifloordiv
 from typing import Any, Union
 
 import pygame
@@ -666,27 +665,6 @@ class State:
 
         pygame.display.update()
 
-    def next_frame(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]):
-        if self.screen == "game":
-            if not self.paused:
-                # TODO: get this too work
-                state_copy = copy.deepcopy(self)
-                self.update_game()
-        self.draw(win, fonts)
-
-    def run(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]):
-        last_time = time.time()
-        while self.playing:
-            self.delta = time.time() - last_time
-            if self.delta <= 0:
-                self.delta = 1 / 500
-            last_time = time.time()
-
-            self.keys_down = pygame.key.get_pressed()  # TODO: ?? why this errors???
-
-            self.next_frame(win, fonts)
-            self.handle_events()
-
     def draw_game(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]) -> None:
         self.draw_entities(win)
         self.draw_hud(win, fonts)
@@ -779,7 +757,7 @@ class State:
 
         return count, tiles_to_remove, below_tiles
 
-    def update_game(self) -> None:
+    def update_game(self, q: multiprocessing.Queue) -> None:
         self.create_tile_map()
         # Prob some way to do this without the '# type: ignore'
         entities: list[Hitbox] = self.tiles + self.chests + self.coins + self.effects + [self.player]  # type: ignore
@@ -900,6 +878,7 @@ class State:
                 )
             )
         self.ticks += self.delta
+        q.put(self)
 
     def draw_darken(self, win: pygame.surface.Surface) -> None:
         darken_rect = pygame.Surface((win.get_width(), win.get_height()), pygame.SRCALPHA)
@@ -1045,11 +1024,35 @@ def draw_centered_texts(
 
 
 def main():
-    options = read_options("resources/options.json")
-    win = create_window(options)
-    fonts = create_fonts(options["font"])
-    state = State(options)
-    state.run(win, fonts)
+    options: dict[str, Any]= read_options("resources/options.json")
+    win: pygame.surface.Surface = create_window(options)
+    fonts: dict[str, pygame.font.Font]= create_fonts(options["font"])
+    state: State = State(options)
+
+    q = multiprocessing.Queue(1)
+
+    
+    last_time = time.time()
+    while state.playing:
+        state.delta = time.time() - last_time
+        if state.delta <= 0:
+            state.delta = 1 / 500
+        last_time = time.time()
+
+        state.keys_down = pygame.key.get_pressed()  # TODO: ?? why this errors???
+
+        if state.screen == "game":
+            if not state.paused:
+                print(state.ticks)
+                # TODO: possible multithreading!
+                p = multiprocessing.Process(target=state.update_game, args=(q,))
+                p.start()
+                got_q = q.get()
+                p.join()
+                state = got_q
+
+        state.draw(win, fonts)
+        state.handle_events()
 
 
 if __name__ == "__main__":
