@@ -204,8 +204,8 @@
         "w": 15,
         "h": 20,
         "fall_speed": 150,
-        "spawn_interval_base": 20,
-        "spawn_interval_variance": 10,
+        "spawn_interval_base": 10,
+        "spawn_interval_variance": 5,
         "spawn_y": -20,
         "color": "#EBCB8B",
         "pop": {

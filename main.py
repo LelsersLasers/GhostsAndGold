@@ -198,16 +198,18 @@ class Chest(Hitbox):
             state.chests.remove(self)  # TODO: remove in iteration?
             num_coins = random.choice(state.options["coin"]["pop"]["coin_chances"])
             for _ in range(num_coins):
-                c = Coin(self.get_center(), state.options["coin"])
-                c.move_vec = Vector(
-                    random.uniform(
-                        -state.options["coin"]["pop"]["speed"],
-                        state.options["coin"]["pop"]["speed"],
-                    ),
-                    -state.options["coin"]["pop"]["vel"],
+                c = Coin(
+                    self.get_center(),
+                    state.options["coin"],
+                    Vector(
+                        random.uniform(
+                            -state.options["coin"]["pop"]["speed"],
+                            state.options["coin"]["pop"]["speed"],
+                        ),
+                        -state.options["coin"]["pop"]["vel"],
+                    ).scale(state.options["coin"]["pop"]["vel"]),
+                    state.options["coin"]["pop"]["gravity"],
                 )
-                c.move_vec.scale(state.options["coin"]["pop"]["vel"])
-                c.gravity = state.options["coin"]["pop"]["gravity"]
                 state.coins.append(c)
 
 
@@ -341,12 +343,7 @@ class Player(Movable):
             self.color = state.options["player"]["dead_color"]
 
 
-class Fall(Movable):
-    def __init__(self, pt: Vector, w: float, h: float, color: str, fall_speed: float):
-        super().__init__(pt, w, h, color, Vector(0, fall_speed), 0)
-
-
-class Tile(Fall):
+class Tile(Movable):
     def __init__(
         self,
         pt: Vector,
@@ -354,7 +351,12 @@ class Tile(Fall):
         color: str,
     ):
         super().__init__(
-            pt, tile_options["w"], tile_options["w"], color, tile_options["fall_speed"]
+            pt,
+            tile_options["w"],
+            tile_options["w"],
+            color,
+            Vector(0, tile_options["fall_speed"]),
+            0,
         )
         self.hbs_size: float = tile_options["hbs_size"]
         self.hbs_len: float = self.w - 2 * tile_options["hbs_size"]
@@ -485,15 +487,32 @@ class HeavyTile(Tile):
                 pass
 
 
-class Coin(Fall):
-    def __init__(self, pt: Vector, coin_options: dict[str, Any]):
-        super().__init__(
-            pt,
-            coin_options["w"],
-            coin_options["h"],
-            coin_options["color"],
-            coin_options["fall_speed"],
-        )
+class Coin(Movable):
+    def __init__(
+        self,
+        pt: Vector,
+        coin_options: dict[str, Any],
+        move_vec: Vector = None,
+        gravity: float = None,
+    ):
+        if move_vec is None or gravity is None:
+            super().__init__(
+                pt,
+                coin_options["w"],
+                coin_options["h"],
+                coin_options["color"],
+                Vector(0, coin_options["fall_speed"]),
+                0,
+            )
+        else:
+            super().__init__(
+                pt,
+                coin_options["w"],
+                coin_options["h"],
+                coin_options["color"],
+                move_vec,
+                gravity,
+            )
 
     def update(self, state: State):
         self.move(state.delta)
