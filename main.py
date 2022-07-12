@@ -672,6 +672,8 @@ class State:
         elif self.screen == "settings":
             if self.keys_down[pygame.K_b]:
                 self.screen = "welcome"
+            elif self.keys_down[pygame.K_RETURN]:
+                self.screen = ["tile", "coin", "chest"][self.selected_setting]
         elif self.screen == "game":
             if self.esc_tk.down(self.keys_down[pygame.K_ESCAPE]):
                 self.paused = not self.paused
