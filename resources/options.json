@@ -108,6 +108,12 @@
         }
     },
     "settings": {
+        "y_spacing": 100,
+        "y_top": 168,
+        "w": 320,
+        "h": 80,
+        "selected_box_color": "#4C566A",
+        "setting_menu_count": 3,
         "title": {
             "text": "Settings",
             "y": 50,

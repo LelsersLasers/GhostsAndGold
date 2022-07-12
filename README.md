@@ -38,6 +38,7 @@ C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
 
 ### Main
 
+- Passive, active choice
 - Setup like GGEZ
     - State/controller with a update and render method
     - State.update(), state.draw() instead of update(state), draw(state)

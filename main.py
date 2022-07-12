@@ -585,7 +585,10 @@ class State:
         self.fps_draw: Interval = Interval(self.options["game"]["fps"]["refresh"], self.ticks)
         self.display_fps: int = 500
         self.esc_tk: ToggleKey = ToggleKey()
+        self.down_tk: ToggleKey = ToggleKey()
+        self.up_tk: ToggleKey = ToggleKey()
         self.playing: bool = True
+        self.selected_setting: int = 0
 
     def reset(self):
         self.player = Player(self.options)
@@ -677,7 +680,7 @@ class State:
             ):
                 self.screen = "welcome"
 
-    def draw(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]):
+    def next_frame(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]):
         win.fill(self.options["colors"]["background"])
 
         if self.screen == "welcome":
@@ -685,17 +688,14 @@ class State:
         elif self.screen == "instructions":
             self.draw_instructions(win, fonts)
         elif self.screen == "settings":
+            self.update_settings()
             self.draw_settings(win, fonts)
         elif self.screen == "game":
+            if not self.paused:
+                self.update_game()
             self.draw_game(win, fonts)
 
         pygame.display.update()
-
-    def next_frame(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]):
-        if self.screen == "game":
-            if not self.paused:
-                self.update_game()
-        self.draw(win, fonts)
 
     def run(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]):
         last_time = time.time()
@@ -995,10 +995,31 @@ class State:
                 self.options["colors"]["text"],
             )
 
+    def update_settings(self) -> None:
+        if self.up_tk.down(self.keys_down[pygame.K_UP]) and self.selected_setting > 0:
+            self.selected_setting -= 1
+        elif (
+            self.down_tk.down(self.keys_down[pygame.K_DOWN])
+            and self.selected_setting < self.options["settings"]["setting_menu_count"] - 1
+        ):
+            self.selected_setting += 1
+
     def draw_settings(
         self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]
     ) -> None:
-        draw_centered_texts(self, win, fonts, "settings", self.options["settings"].keys())
+
+        selected_rect = pygame.Rect(
+            (
+                (win.get_width() - self.options["settings"]["w"]) / 2,
+                self.options["settings"]["y_top"]
+                + self.selected_setting * self.options["settings"]["y_spacing"],
+            ),
+            (self.options["settings"]["w"], self.options["settings"]["h"]),
+        )
+        pygame.draw.rect(win, self.options["settings"]["selected_box_color"], selected_rect)
+
+        text_keys = ["title", "tile", "coin", "coin", "chest", "back"]
+        draw_centered_texts(self, win, fonts, "settings", text_keys)
 
     def draw_instructions(
         self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]
