@@ -1,0 +1,27 @@
+    "settings": {
+        "title": {
+            "text": "Settings",
+            "y": 100,
+            "font": "h2"
+        },
+        "intial_tile_spawn": {
+            "text": "Intial tile spawn (sec/tile)",
+            "y": 180,
+            "font": "h4"
+        },
+        "min_tile_spawn": {
+            "text": "Minimum tile spawn (sec/tile)",
+            "y": 280,
+            "font": "h4"
+        },
+        "time_tile_spawn": {
+            "text": "How long from intial to minimum (sec)",
+            "y": 380,
+            "font": "h4"
+        },
+        "back": {
+            "text": "Press [B] to go back",
+            "y": 700,
+            "font": "h5"
+        }
+    },

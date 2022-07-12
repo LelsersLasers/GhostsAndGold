@@ -2,7 +2,7 @@
     "title": "Ghost Jump",
     "window": {
         "width": 720,
-        "height": 750
+        "height": 800
     },
     "colors": {
         "background": "#2E3440",
@@ -39,9 +39,14 @@
             "y": 500,
             "font": "h4"
         },
+        "settings": {
+            "text": "Press [S] for settings",
+            "y": 530,
+            "font": "h4"
+        },
         "exit": {
             "text": "Press [ESCAPE] to exit",
-            "y": 550,
+            "y": 580,
             "font": "h5"
         }
     },
@@ -102,9 +107,37 @@
             "font": "h5"
         }
     },
+    "settings": {
+        "title": {
+            "text": "Settings",
+            "y": 50,
+            "font": "h2"
+        },
+        "tile": {
+            "text": "Tile settings",
+            "y": 180,
+            "font": "h3"
+        },
+        "coin": {
+            "text": "Coin settings",
+            "y": 280,
+            "font": "h3"
+        },
+        "chest": {
+            "text": "Chest settings",
+            "y": 380,
+            "font": "h3"
+        },
+        "back": {
+            "text": "Press [B] to go back",
+            "y": 700,
+            "font": "h5"
+        }
+    },
     "game": {
         "darken_alpha": 45,
         "scroll_divisor": 10,
+        "scroll_speed": 30,
         "score": {
             "text": "Score: %i",
             "y": 20,
@@ -185,7 +218,7 @@
         "columns": 12,
         "row_limit": 4,
         "row_min": 3,
-        "base_y": 660,
+        "base_y": 710,
         "spawn_scale_min": 1,
         "spawn_scale_max": 99,
         "color": "#81A1C1",
@@ -209,7 +242,7 @@
         "spawn_y": -20,
         "color": "#EBCB8B",
         "pop": {
-            "coin_chances": [1, 1, 2, 2, 2, 3],
+            "coin_chances": [1, 1, 2, 2, 2, 3, 3],
             "speed": 90,
             "vel": 900,
             "gravity": 2400,
@@ -221,7 +254,5 @@
         "h": 40,
         "spawn_chance": 0.1,
         "color": "#B48EAD"
-    },
-
-    "scroll_speed": 30
+    }
 }

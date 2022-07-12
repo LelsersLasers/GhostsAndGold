@@ -558,10 +558,10 @@ class State:
         self.screen: str = "welcome"
         self.keys_down: Sequence[bool] = pygame.key.get_pressed()
         self.keys: dict[str, KeyList] = {
-            "up": KeyList([pygame.K_UP, pygame.K_w, pygame.K_SPACE]),
-            "down": KeyList([pygame.K_DOWN, pygame.K_s, pygame.K_LCTRL]),
-            "left": KeyList([pygame.K_LEFT, pygame.K_a]),
-            "right": KeyList([pygame.K_RIGHT, pygame.K_d]),
+            "up": KeyList([pygame.K_SPACE, pygame.K_UP, pygame.K_w]),
+            "down": KeyList([pygame.K_s, pygame.K_DOWN, pygame.K_LCTRL]),
+            "left": KeyList([pygame.K_a, pygame.K_LEFT]),
+            "right": KeyList([pygame.K_d, pygame.K_RIGHT]),
         }
         self.player: Player = Player(self.options)
         self.tiles: list[Tile] = []
@@ -659,9 +659,14 @@ class State:
                 self.screen = "game"
             elif self.keys_down[pygame.K_i]:
                 self.screen = "instructions"
+            elif self.keys_down[pygame.K_s]:
+                self.screen = "settings"
             elif self.keys_down[pygame.K_ESCAPE]:
                 self.exit()
         elif self.screen == "instructions":
+            if self.keys_down[pygame.K_b]:
+                self.screen = "welcome"
+        elif self.screen == "settings":
             if self.keys_down[pygame.K_b]:
                 self.screen = "welcome"
         elif self.screen == "game":
@@ -679,6 +684,8 @@ class State:
             self.draw_welcome(win, fonts)
         elif self.screen == "instructions":
             self.draw_instructions(win, fonts)
+        elif self.screen == "settings":
+            self.draw_settings(win, fonts)
         elif self.screen == "game":
             self.draw_game(win, fonts)
 
@@ -827,7 +834,7 @@ class State:
 
         # TODO: better solution than dividing by 10
         if abs(self.scrolling) > self.options["tile"]["w"] / self.options["game"]["scroll_divisor"]:
-            scroll_dist = self.delta * self.options["scroll_speed"] * get_sign(self.scrolling)
+            scroll_dist = self.delta * self.options["game"]["scroll_speed"] * get_sign(self.scrolling)
             self.scrolling -= scroll_dist
             to_scroll: list[Moveable] = self.tiles + self.coins + self.effects  # type: ignore
             for ts in to_scroll:
@@ -963,7 +970,7 @@ class State:
 
     def draw_welcome(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]) -> None:
         text_keys = list(self.options["welcome"].keys())
-        text_format = [(), (self.score), (), (), ()]
+        text_format = [(), (self.score), (), (), (), ()]
         if self.score == -1:
             text_keys.remove("score")
             text_format.remove((self.score))
@@ -975,6 +982,9 @@ class State:
                 self.options["welcome"][text_keys[i]]["y"],
                 self.options["colors"]["text"],
             )
+
+    def draw_settings(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]) -> None:
+        draw_centered_texts(self, win, fonts, "settings", self.options["settings"].keys())
 
     def draw_instructions(
         self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]
