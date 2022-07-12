@@ -209,10 +209,6 @@
     "tile": {
         "w": 60,
         "hbs_size": 5,
-        "fall_speed": 200,
-        "spawn_interval_base": 1.5,
-        "spawn_interval_min": 0.3,
-        "spawn_interval_time": 300,
         "spawn_y": -60,
         "spawn_xs": [60, 120, 180, 240, 300, 360, 420, 480, 540, 600],
         "columns": 12,
@@ -225,9 +221,6 @@
         "edge_color": "#88C0D0",
         "hbs_color": "#BF616A",
         "heavy": {
-            "r": 80,
-            "fall": 1.5,
-            "chance": 0.075,
             "draw_time": 0.3,
             "color": "#8FBCBB",
             "explosion_color": "#BF616A"
@@ -236,12 +229,10 @@
     "coin": {
         "w": 15,
         "h": 20,
-        "fall_speed": 150,
-        "spawn_interval_base": 10,
-        "spawn_interval_variance": 5,
         "spawn_y": -20,
         "color": "#EBCB8B",
         "pop": {
+            "TODO": "below",
             "coin_chances": [1, 1, 2, 2, 2, 3, 3],
             "speed": 90,
             "vel": 900,
@@ -252,7 +243,6 @@
     "chest": {
         "w": 50,
         "h": 40,
-        "spawn_chance": 0.1,
         "color": "#B48EAD"
     }
 }

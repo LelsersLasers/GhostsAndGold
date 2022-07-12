@@ -1,20 +1,24 @@
 {
+    "top_score": -1,
+    "power": "downthrust",
     "tile": {
-        "intial": 1.5,
-        "max": 0.3,
-        "time": 300,
         "fall_speed": 200,
-        "heavy_chance": 0.075,
-        "heavy_r": 80,
-        "heavy_fall": 1.5
+        "spawn_interval_base": 1.5,
+        "spawn_interval_min": 0.3,
+        "spawn_interval_time": 300,
+        "heavy": {
+            "r": 80,
+            "fall": 1.5,
+            "chance": 0.1
+        }
     },
     "coin": {
         "fall_speed": 150,
         "spawn_interval_base": 10,
-        "spawn_interval_increase": 5
+        "spawn_interval_variance": 5
     },
     "chest": {
-        "spance_chance": 0.1,
+        "spawn_chance": 0.15,
         "average_coin_chance": 2
     }
 }

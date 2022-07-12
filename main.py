@@ -348,6 +348,7 @@ class Tile(Movable):
         self,
         pt: Vector,
         tile_options: dict[str, Any],
+        tile_settings: dict[str, Any],
         color: str,
     ):
         super().__init__(
@@ -355,7 +356,7 @@ class Tile(Movable):
             tile_options["w"],
             tile_options["w"],
             color,
-            Vector(0, tile_options["fall_speed"]),
+            Vector(0, tile_settings["fall_speed"]),
             0,
         )
         self.hbs_size: float = tile_options["hbs_size"]
@@ -427,15 +428,17 @@ class Tile(Movable):
 
 
 class EdgeTile(Tile):
-    def __init__(self, pt: Vector, tile_options: dict[str, Any], color: str):
-        super().__init__(pt, tile_options, color)
+    def __init__(
+        self, pt: Vector, tile_options: dict[str, Any], tile_settings: dict[str, Any], color: str
+    ):
+        super().__init__(pt, tile_options, tile_settings, color)
         self.move_vec.y = 0
 
 
 class HeavyTile(Tile):
-    def __init__(self, pt: Vector, tile_options: dict[str, Any]):
-        super().__init__(pt, tile_options, tile_options["heavy"]["color"])
-        self.move_vec.y *= tile_options["heavy"]["fall"]
+    def __init__(self, pt: Vector, tile_options: dict[str, Any], tile_settings: dict[str, Any]):
+        super().__init__(pt, tile_options, tile_settings, tile_options["heavy"]["color"])
+        self.move_vec.y *= tile_settings["heavy"]["fall"]
 
     def check_explosion_tiles(self, state: State) -> None:
         pass
@@ -450,7 +453,7 @@ class HeavyTile(Tile):
                         if type(state.tile_map[map_str][i]) != EdgeTile and circle_rect_collide(
                             state.tile_map[map_str][i],
                             self.get_center(),
-                            state.options["tile"]["heavy"]["r"],
+                            state.settings["tile"]["heavy"]["r"],
                         ):
                             state.tiles.remove(state.tile_map[map_str][i])
                         pass
@@ -468,14 +471,14 @@ class HeavyTile(Tile):
                         self.check_explosion_tiles(state)
 
                         if circle_rect_collide(
-                            state.player, self.get_center(), state.options["tile"]["heavy"]["r"]
+                            state.player, self.get_center(), state.settings["tile"]["heavy"]["r"]
                         ):
                             state.player.alive = False
 
                         state.effects.append(
                             CircleEffect(
                                 self.get_center(),
-                                state.options["tile"]["heavy"]["r"],
+                                state.settings["tile"]["heavy"]["r"],
                                 state.options["tile"]["heavy"]["explosion_color"],
                                 Vector(0, 0),
                                 0,
@@ -492,27 +495,17 @@ class Coin(Movable):
         self,
         pt: Vector,
         coin_options: dict[str, Any],
-        move_vec: Vector = None,
-        gravity: float = None,
+        move_vec: Vector,
+        gravity: float = 0,
     ):
-        if move_vec is None or gravity is None:
-            super().__init__(
-                pt,
-                coin_options["w"],
-                coin_options["h"],
-                coin_options["color"],
-                Vector(0, coin_options["fall_speed"]),
-                0,
-            )
-        else:
-            super().__init__(
-                pt,
-                coin_options["w"],
-                coin_options["h"],
-                coin_options["color"],
-                move_vec,
-                gravity,
-            )
+        super().__init__(
+            pt,
+            coin_options["w"],
+            coin_options["h"],
+            coin_options["color"],
+            move_vec,
+            gravity,
+        )
 
     def update(self, state: State):
         self.move(state.delta)
@@ -552,8 +545,9 @@ class Coin(Movable):
 
 
 class State:
-    def __init__(self, options: dict[str, Any]):
+    def __init__(self, options: dict[str, Any], settings: dict[str, Any]):
         self.options: dict[str, Any] = options
+        self.settings: dict[str, Any] = settings
         self.paused: bool = False
         self.screen: str = "welcome"
         self.keys_down: Sequence[bool] = pygame.key.get_pressed()
@@ -577,14 +571,15 @@ class State:
         self.full_rows: int = 3
         self.display_rows: int = 3
         self.tile_spawn: Interval = Interval(
-            self.options["tile"]["spawn_interval_base"], self.ticks
+            self.settings["tile"]["spawn_interval_base"], self.ticks
         )
         self.tile_spawn_log_rate: float = (
-            self.options["tile"]["spawn_interval_min"] - self.options["tile"]["spawn_interval_base"]
-        ) / math.log(self.options["tile"]["spawn_interval_time"] + 1, 10)
+            self.settings["tile"]["spawn_interval_min"]
+            - self.settings["tile"]["spawn_interval_base"]
+        ) / math.log(self.settings["tile"]["spawn_interval_time"] + 1, 10)
         self.coin_spawn: RandomInterval = RandomInterval(
-            self.options["coin"]["spawn_interval_base"],
-            self.options["coin"]["spawn_interval_variance"],
+            self.settings["coin"]["spawn_interval_base"],
+            self.settings["coin"]["spawn_interval_variance"],
             self.ticks,
         )
         self.fps_draw: Interval = Interval(self.options["game"]["fps"]["refresh"], self.ticks)
@@ -621,6 +616,7 @@ class State:
                             i * self.options["tile"]["w"], tile_y + j * self.options["tile"]["w"]
                         ),
                         self.options["tile"],
+                        self.settings["tile"],
                         self.options["tile"]["edge_color"]
                         if tile_types[j] == EdgeTile
                         else self.options["tile"]["color"],
@@ -631,13 +627,17 @@ class State:
         while tile_y > -self.options["tile"]["w"]:
             self.tiles.append(
                 EdgeTile(
-                    Vector(0, tile_y), self.options["tile"], self.options["tile"]["edge_color"]
+                    Vector(0, tile_y),
+                    self.options["tile"],
+                    self.settings["tile"],
+                    self.options["tile"]["edge_color"],
                 )
             )
             self.tiles.append(
                 EdgeTile(
                     Vector(self.options["window"]["width"] - self.options["tile"]["w"], tile_y),
                     self.options["tile"],
+                    self.settings["tile"],
                     self.options["tile"]["edge_color"],
                 )
             )
@@ -816,6 +816,7 @@ class State:
                     EdgeTile(
                         Vector(0, self.options["tile"]["top_y"] - self.scrolling),
                         self.options["tile"],
+                        self.settings["tile"],
                         self.options["tile"]["edge_color"],
                     )
                 )
@@ -826,6 +827,7 @@ class State:
                             self.options["tile"]["top_y"] - self.scrolling,
                         ),
                         self.options["tile"],
+                        self.settings["tile"],
                         self.options["tile"]["edge_color"],
                     )
                 )
@@ -834,7 +836,9 @@ class State:
 
         # TODO: better solution than dividing by 10
         if abs(self.scrolling) > self.options["tile"]["w"] / self.options["game"]["scroll_divisor"]:
-            scroll_dist = self.delta * self.options["game"]["scroll_speed"] * get_sign(self.scrolling)
+            scroll_dist = (
+                self.delta * self.options["game"]["scroll_speed"] * get_sign(self.scrolling)
+            )
             self.scrolling -= scroll_dist
             to_scroll: list[Moveable] = self.tiles + self.coins + self.effects  # type: ignore
             for ts in to_scroll:
@@ -854,18 +858,23 @@ class State:
                     Tile(
                         Vector(i * self.options["tile"]["w"], tile_y),
                         self.options["tile"],
+                        self.settings["tile"],
                         self.options["tile"]["color"],
                     )
                 )
             self.tiles.append(
                 EdgeTile(
-                    Vector(0, tile_y), self.options["tile"], self.options["tile"]["edge_color"]
+                    Vector(0, tile_y),
+                    self.options["tile"],
+                    self.settings["tile"],
+                    self.options["tile"]["edge_color"],
                 )
             )
             self.tiles.append(
                 EdgeTile(
                     Vector(self.options["window"]["width"] - self.options["tile"]["w"], tile_y),
                     self.options["tile"],
+                    self.settings["tile"],
                     self.options["tile"]["edge_color"],
                 )
             )
@@ -878,13 +887,14 @@ class State:
             # TODO: clean the types here - why is union[X, None] needed?
             new_tile: Union[Tile, None] = None
             heavy_chance = random.random()
-            if heavy_chance < self.options["tile"]["heavy"]["chance"]:
+            if heavy_chance < self.settings["tile"]["heavy"]["chance"]:
                 new_tile = HeavyTile(
                     Vector(
                         random.choice(self.options["tile"]["spawn_xs"]),
                         self.options["tile"]["spawn_y"],
                     ),
                     self.options["tile"],
+                    self.settings["tile"],
                 )
             else:
                 drop_chances = self.calc_drop_chances()
@@ -894,17 +904,18 @@ class State:
                 new_tile = Tile(
                     Vector(random.choice(drop_chance_list), self.options["tile"]["spawn_y"]),
                     self.options["tile"],
+                    self.settings["tile"],
                     self.options["tile"]["color"],
                 )
             self.tiles.append(new_tile)
             chest_chance = random.random()
-            if chest_chance < self.options["chest"]["spawn_chance"]:
+            if chest_chance < self.settings["chest"]["spawn_chance"]:
                 self.chests.append(Chest(self.options["chest"], new_tile))
 
             self.tile_spawn.period = max(
-                self.options["tile"]["spawn_interval_base"]
+                self.settings["tile"]["spawn_interval_base"]
                 + self.tile_spawn_log_rate * math.log(self.ticks + 1, 10),
-                self.options["tile"]["spawn_interval_min"],
+                self.settings["tile"]["spawn_interval_min"],
             )
 
         if self.coin_spawn.update(self.ticks):
@@ -920,6 +931,7 @@ class State:
                         self.options["coin"]["spawn_y"],
                     ),
                     self.options["coin"],
+                    Vector(0, self.settings["coin"]["fall_speed"]),
                 )
             )
         self.ticks += self.delta
@@ -983,7 +995,9 @@ class State:
                 self.options["colors"]["text"],
             )
 
-    def draw_settings(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]) -> None:
+    def draw_settings(
+        self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]
+    ) -> None:
         draw_centered_texts(self, win, fonts, "settings", self.options["settings"].keys())
 
     def draw_instructions(
@@ -1019,7 +1033,7 @@ def circle_rect_collide(rect: Hitbox, center: Vector, r: float) -> bool:
     return touch != None
 
 
-def read_options(path: str) -> dict:
+def read_json(path: str) -> dict:
     with open(path, "r") as f:
         return json.load(f)
 
@@ -1070,10 +1084,11 @@ def draw_centered_texts(
 
 
 def main():
-    options = read_options("resources/options.json")
+    options = read_json("resources/options.json")
+    settings = read_json("resources/settings.json")
     win = create_window(options)
     fonts = create_fonts(options["font"])
-    state = State(options)
+    state = State(options, settings)
     state.run(win, fonts)
 
 
