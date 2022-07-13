@@ -38,9 +38,14 @@ C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
 
 ### Main
 
-- Setup like GGEZ
-    - State/controller with a update and render method
-    - State.update(), state.draw() instead of update(state), draw(state)
+- Choose power:
+    - Downthrust (active)
+    - Superjump (active)
+    - Increased chest spawn (passive)
+    - Tiles fall slower (passive)
+    - Shield (active)
+- Reward for going for coins
+    - Every X coins, Y happens
 - PERFORMANCE
     - Run State.update() in background of State.draw()
     - Replace pygame.draw with blit?
@@ -52,9 +57,6 @@ C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
             - Not needing to check if it is falling on chest/coin
             - But need to check side ways for player and coin
         - Could remove bottom row? And just modify the bottom row tiles to not fall?
-- Settings screen with diffulity sliders
-    - Ability/passive chooser?
-    - Save highscore and settings to a different file
 - Polish
     - art, animations, particles, lights, etc
 

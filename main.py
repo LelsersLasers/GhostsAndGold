@@ -283,39 +283,52 @@ class Player(Movable):
         )
         self.speed: float = options["player"]["speed"]
         self.jump_vel: float = options["player"]["jump_vel"]
-        self.thrust_vel: float = options["player"]["thrust_vel"]
         self.jumps: int = 1
+
+        self.powers: dict[str, Any] = options["player"]["powers"]
+        self.power_cd: float = 0
+        self.shield: float = 0
+
         self.space_tk: ToggleKey = ToggleKey(True)
         self.s_tk: ToggleKey = ToggleKey()
         self.alive: bool = True
 
-    def key_input(self, keys_down: Sequence[bool], keys: dict[str, KeyList]) -> None:
+    def key_input(self, keys_down: Sequence[bool], keys: dict[str, KeyList], power: str) -> None:
         self.move_vec.x = 0
         if keys["right"].down(keys_down):
             self.move_vec.x = self.speed
         elif keys["left"].down(keys_down):
             self.move_vec.x = -self.speed
-
-        if self.space_tk.down(keys["up"].down(keys_down)) and self.jumps < 2:
+        jump_limit = self.powers["triple_jump"] if power == "triple_jump" else 2
+        if self.jumps < jump_limit and self.space_tk.down(keys["up"].down(keys_down)):
             self.move_vec.y = -self.jump_vel
             self.jumps += 1
         elif self.s_tk.down(keys["down"].down(keys_down)):
-            self.move_vec.y += self.thrust_vel
+            if power == "downthrust" and self.power_cd >= self.powers["downthrust"]["cd"]:
+                self.move_vec.y += self.powers["downthrust"]["vel"]
+                self.power_cd = 0
+            elif power == "shield" and self.power_cd >= self.powers["shield"]["cd"]:
+                self.shield = self.powers["shield"]["time"]
+                self.power_cd = 0
 
-    def check_tile_collision(self, tile_map: dict[str, list[Tile]], tile_size: int) -> None:
+    def check_tile_collision(self, state: State) -> None:
         current_self: Player = copy.deepcopy(self)  # TODO: not sure if the copy is needed
 
-        map_tup = self.pt.get_map_tup(tile_size)
+        map_tup = self.pt.get_map_tup(state.options["tile"]["w"])
         map_xs = [map_tup[0], map_tup[0] + 1]
         map_ys = [map_tup[1] - 1, map_tup[1], map_tup[1] + 1]
         for x in map_xs:
             for y in map_ys:
                 map_str = str(x) + ";" + str(y)
                 try:
-                    for tile in tile_map[map_str]:
+                    for tile in state.tile_map[map_str]:
                         collision = tile.directional_collide(current_self)
                         if collision == "bottom":
-                            self.alive = False
+                            if self.shield > 0:
+                                self.shield = 0
+                                state.tiles.remove(tile)
+                            else:
+                                self.alive = False
                         elif collision == "top":
                             self.pt.y = tile.pt.y - self.h
                             self.move_vec.y = 0
@@ -330,7 +343,10 @@ class Player(Movable):
 
     def update(self, state: State) -> None:
         if self.alive:
-            self.key_input(state.keys_down, state.keys)
+            self.key_input(state.keys_down, state.keys, state.save["power"])
+            self.shield -= state.delta
+            self.power_cd += state.delta
+            print(self.power_cd)
 
             if self.pt.x < state.options["tile"]["w"]:
                 self.pt.x = state.options["tile"]["w"]
@@ -338,9 +354,14 @@ class Player(Movable):
                 self.pt.x = state.options["window"]["width"] - self.w - state.options["tile"]["w"]
 
             self.move(state.delta)
-            self.check_tile_collision(state.tile_map, state.options["tile"]["w"])
+            self.check_tile_collision(state)
         else:
             self.color = state.options["player"]["dead_color"]
+
+    def draw(self, win: pygame.surface.Surface) -> None:
+        super().draw(win)
+        if self.shield > 0:
+            pygame.draw.rect(win, self.powers["shield"]["color"], self.get_rect(), 5)
 
 
 class Tile(Movable):
@@ -470,7 +491,10 @@ class HeavyTile(Tile):
                         if circle_rect_collide(
                             state.player, self.get_center(), state.options["tile"]["heavy"]["r"]
                         ):
-                            state.player.alive = False
+                            if state.player.shield > 0:
+                                state.player.shield = 0
+                            else:
+                                state.player.alive = False
 
                         state.effects.append(
                             CircleEffect(

@@ -175,10 +175,23 @@
         "h": 50,
         "speed": 300,
         "jump_vel": 800,
-        "thrust_vel": 400,
         "gravity": 2400,
         "alive_color": "#A3BE8C",
-        "dead_color": "#BF616A"
+        "dead_color": "#BF616A",
+        "powers": {
+            "shield": {
+                "time": 2,
+                "color": "#D08770",
+                "cd": 10
+            },
+            "downthrust": {
+                "vel": 600,
+                "cd": 1
+            },
+            "triple_jump": 3,
+            "chest_spawn": 1.25,
+            "tile_fall": 0.75
+        }
     },
     "tile": {
         "w": 60,
