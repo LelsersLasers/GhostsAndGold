@@ -552,8 +552,9 @@ class Coin(Movable):
 
 
 class State:
-    def __init__(self, options: dict[str, Any]):
+    def __init__(self, options: dict[str, Any], save: dict[str, Any]):
         self.options: dict[str, Any] = options
+        self.save = save
         self.paused: bool = False
         self.screen: str = "welcome"
         self.keys_down: Sequence[bool] = pygame.key.get_pressed()
@@ -591,6 +592,7 @@ class State:
         self.display_fps: int = 500
         self.esc_tk: ToggleKey = ToggleKey()
         self.playing: bool = True
+        self.updated_highscore: bool = False
 
     def reset(self):
         self.player = Player(self.options)
@@ -607,6 +609,7 @@ class State:
         self.coin_spawn.reset(self.ticks)
         self.fps_draw.reset(self.ticks)
         self.score = 0
+        self.updated_highscore = False
 
     def setup_tiles(self) -> None:
         self.tiles = []
@@ -688,6 +691,11 @@ class State:
         if self.screen == "game":
             if not self.paused:
                 self.update_game()
+            if not self.player.alive and not self.updated_highscore:
+                if self.score > self.save["high_score"]:
+                    self.save["high_score"] = self.score
+                    write_json(self.options["save_file"], self.save)
+                self.updated_highscore = True
         self.draw(win, fonts)
 
     def run(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]):
@@ -963,10 +971,13 @@ class State:
 
     def draw_welcome(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]) -> None:
         text_keys = list(self.options["welcome"].keys())
-        text_format = [(), (self.score), (), (), ()]
+        text_format = [(), (self.save["high_score"]), (self.score), (), (), ()]
         if self.score == -1:
-            text_keys.remove("score")
+            text_keys.remove("last_score")
             text_format.remove((self.score))
+        if self.save["high_score"] == -1:
+            text_keys.remove("high_score")
+            text_format.remove((self.save["high_score"]))
         for i in range(len(text_keys)):
             draw_centered_text(
                 win,
@@ -1012,6 +1023,10 @@ def circle_rect_collide(rect: Hitbox, center: Vector, r: float) -> bool:
 def read_json(path: str) -> dict:
     with open(path, "r") as f:
         return json.load(f)
+
+def write_json(path: str, data: dict) -> None:
+    with open(path, "w") as f:
+        json.dump(data, f, indent=4)
 
 
 def create_window(options: dict[str, Any]) -> pygame.surface.Surface:
@@ -1061,10 +1076,10 @@ def draw_centered_texts(
 
 def main():
     options = read_json("resources/options.json")
-    save = read_json("resources/save.json")
+    save = read_json(options["save_file"])
     win = create_window(options)
     fonts = create_fonts(options["font"])
-    state = State(options)
+    state = State(options, save)
     state.run(win, fonts)
 
 

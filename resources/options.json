@@ -1,5 +1,6 @@
 {
     "title": "Ghost Jump",
+    "save_file": "resources/save.json",
     "window": {
         "width": 720,
         "height": 750
@@ -24,24 +25,29 @@
             "y": 175,
             "font": "h1"
         },
-        "score": {
+        "high_score": {
+            "text": "High score: %i",
+            "y": 320,
+            "font": "h3"
+        },
+        "last_score": {
             "text": "Last score: %i",
-            "y": 300,
+            "y": 365,
             "font": "h4"
         },
         "start": {
             "text": "Press [SPACE] to start",
-            "y": 400,
+            "y": 450,
             "font": "h3"
         },
         "instructions": {
             "text": "Press [I] for instructions",
-            "y": 500,
+            "y": 550,
             "font": "h4"
         },
         "exit": {
             "text": "Press [ESCAPE] to exit",
-            "y": 550,
+            "y": 600,
             "font": "h5"
         }
     },
