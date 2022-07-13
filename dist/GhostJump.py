@@ -283,39 +283,51 @@ class Player(Movable):
         )
         self.speed: float = options["player"]["speed"]
         self.jump_vel: float = options["player"]["jump_vel"]
-        self.thrust_vel: float = options["player"]["thrust_vel"]
         self.jumps: int = 1
+
+        self.powers: dict[str, Any] = options["player"]["powers"]
+        self.power_cd: float = 0
+        self.shield: float = 0
+
         self.space_tk: ToggleKey = ToggleKey(True)
-        self.s_tk: ToggleKey = ToggleKey()
         self.alive: bool = True
 
-    def key_input(self, keys_down: Sequence[bool], keys: dict[str, KeyList]) -> None:
+    def key_input(self, keys_down: Sequence[bool], keys: dict[str, KeyList], power: str) -> None:
         self.move_vec.x = 0
         if keys["right"].down(keys_down):
             self.move_vec.x = self.speed
         elif keys["left"].down(keys_down):
             self.move_vec.x = -self.speed
-
-        if self.space_tk.down(keys["up"].down(keys_down)) and self.jumps < 2:
+        jump_limit = self.powers["triple_jump"] if power == "triple_jump" else 2
+        if self.jumps < jump_limit and self.space_tk.down(keys["up"].down(keys_down)):
             self.move_vec.y = -self.jump_vel
             self.jumps += 1
-        elif self.s_tk.down(keys["down"].down(keys_down)):
-            self.move_vec.y += self.thrust_vel
+        elif keys["down"].down(keys_down):
+            if power == "downthrust" and self.power_cd >= self.powers["downthrust"]["cd"]:
+                self.move_vec.y += self.powers["downthrust"]["vel"]
+                self.power_cd = 0
+            elif power == "shield" and self.power_cd >= self.powers["shield"]["cd"]:
+                self.shield = self.powers["shield"]["time"]
+                self.power_cd = 0
 
-    def check_tile_collision(self, tile_map: dict[str, list[Tile]], tile_size: int) -> None:
+    def check_tile_collision(self, state: State) -> None:
         current_self: Player = copy.deepcopy(self)  # TODO: not sure if the copy is needed
 
-        map_tup = self.pt.get_map_tup(tile_size)
+        map_tup = self.pt.get_map_tup(state.options["tile"]["w"])
         map_xs = [map_tup[0], map_tup[0] + 1]
         map_ys = [map_tup[1] - 1, map_tup[1], map_tup[1] + 1]
         for x in map_xs:
             for y in map_ys:
                 map_str = str(x) + ";" + str(y)
                 try:
-                    for tile in tile_map[map_str]:
+                    for tile in state.tile_map[map_str]:
                         collision = tile.directional_collide(current_self)
                         if collision == "bottom":
-                            self.alive = False
+                            if self.shield > 0:
+                                self.shield = 0
+                                state.tiles.remove(tile)
+                            else:
+                                self.alive = False
                         elif collision == "top":
                             self.pt.y = tile.pt.y - self.h
                             self.move_vec.y = 0
@@ -330,7 +342,11 @@ class Player(Movable):
 
     def update(self, state: State) -> None:
         if self.alive:
-            self.key_input(state.keys_down, state.keys)
+            self.key_input(state.keys_down, state.keys, state.save["power"])
+            self.shield -= state.delta
+            if state.active_power_type():
+                self.power_cd += state.delta
+                self.power_cd = min(self.power_cd, self.powers[state.save["power"]]["cd"])
 
             if self.pt.x < state.options["tile"]["w"]:
                 self.pt.x = state.options["tile"]["w"]
@@ -338,9 +354,14 @@ class Player(Movable):
                 self.pt.x = state.options["window"]["width"] - self.w - state.options["tile"]["w"]
 
             self.move(state.delta)
-            self.check_tile_collision(state.tile_map, state.options["tile"]["w"])
+            self.check_tile_collision(state)
         else:
             self.color = state.options["player"]["dead_color"]
+
+    def draw(self, win: pygame.surface.Surface) -> None:
+        super().draw(win)
+        if self.shield > 0:
+            pygame.draw.rect(win, self.powers["shield"]["color"], self.get_rect(), 5)
 
 
 class Tile(Movable):
@@ -382,7 +403,10 @@ class Tile(Movable):
         )
 
     def update(self, state: State) -> None:
-        self.move(state.delta)
+        self.move(
+            state.delta
+            * (state.player.powers["tile_fall"] if state.save["power"] == "tile_fall" else 1)
+        )
         self.land(state)
 
     def land(self, state: State) -> None:
@@ -470,7 +494,10 @@ class HeavyTile(Tile):
                         if circle_rect_collide(
                             state.player, self.get_center(), state.options["tile"]["heavy"]["r"]
                         ):
-                            state.player.alive = False
+                            if state.player.shield > 0:
+                                state.player.shield = 0
+                            else:
+                                state.player.alive = False
 
                         state.effects.append(
                             CircleEffect(
@@ -536,7 +563,8 @@ class Coin(Movable):
                                 * state.delta
                                 * get_sign(self.move_vec.x)
                             )
-                            self.move_vec.y = 0
+                            if self.gravity != 0:
+                                self.move_vec.y = 0
                         elif collision == "left":
                             self.pt.x = tile.pt.x - self.w
                             self.move_vec.x = 0
@@ -593,6 +621,7 @@ class State:
         self.esc_tk: ToggleKey = ToggleKey()
         self.playing: bool = True
         self.updated_highscore: bool = False
+        self.passive_highlight: float = 0
 
     def reset(self):
         self.player = Player(self.options)
@@ -691,6 +720,7 @@ class State:
         if self.screen == "game":
             if not self.paused:
                 self.update_game()
+                self.update_passive_highlight()
             if not self.player.alive and not self.updated_highscore:
                 if self.score > self.save["high_score"]:
                     self.save["high_score"] = self.score
@@ -901,7 +931,9 @@ class State:
                 )
             self.tiles.append(new_tile)
             chest_chance = random.random()
-            if chest_chance < self.options["chest"]["spawn_chance"]:
+            if chest_chance < self.options["chest"]["spawn_chance"] * (
+                self.player.powers["chest_spawn"] if self.save["power"] == "chest_spawn" else 1
+            ):
                 self.chests.append(Chest(self.options["chest"], new_tile))
 
             self.tile_spawn.period = max(
@@ -940,7 +972,56 @@ class State:
         self.draw_darken(win)
         draw_centered_texts(self, win, fonts, "pause", self.options["pause"].keys())
 
+    def active_power_type(self) -> bool:
+        return self.save["power"] in ["shield", "downthrust"]
+
+    def update_passive_highlight(self) -> None:
+        self.passive_highlight += self.delta * 120
+        self.passive_highlight = self.passive_highlight % 360
+
     def draw_hud(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]) -> None:
+        percent: float = 1
+        cd_color: str = self.options["game"]["cd_box"]["color"]
+        if self.active_power_type():
+            percent = self.player.power_cd / self.player.powers[self.save["power"]]["cd"]
+            if percent == 1:
+                cd_color = self.options["game"]["cd_box"]["ready_color"]
+
+        pt = Vector(self.options["game"]["cd_box"]["x"], self.options["game"]["cd_box"]["y"])
+        box_rect = pygame.Rect(
+            pt.get_tuple(),
+            (self.options["game"]["cd_box"]["w"], self.options["game"]["cd_box"]["h"]),
+        )
+        cd_rect = pygame.Rect(
+            (pt.x, pt.y + self.options["game"]["cd_box"]["h"] * (1 - percent)),
+            (self.options["game"]["cd_box"]["w"], self.options["game"]["cd_box"]["h"] * percent),
+        )
+        pygame.draw.rect(win, self.options["colors"]["text"], box_rect)
+        pygame.draw.rect(win, cd_color, cd_rect)
+        pygame.draw.rect(win, self.options["colors"]["text"], box_rect, 3)
+
+        if self.active_power_type():
+            surf_cd = fonts["h4"].render(
+                self.options["game"]["cd_box"]["text"] % self.player.power_cd,
+                True,
+                self.options["colors"]["background"],
+            )
+            text_pt = pt.add(
+                Vector(
+                    (self.options["game"]["cd_box"]["w"] - surf_cd.get_width()) / 2,
+                    (self.options["game"]["cd_box"]["h"] - surf_cd.get_height()) / 2,
+                )
+            )
+            win.blit(surf_cd, text_pt.get_tuple())
+        else:
+            hb = Hitbox(Vector(box_rect[0], box_rect[1]), box_rect[2], box_rect[3], "#ffffff")
+            pt_1 = hb.get_center()
+            pt_2 = Vector(hb.w * 2, hb.w * 2)
+            pt_2.set_angle(self.passive_highlight)
+            pt_2 = pt_1.add(pt_2)
+            touch = line_hollow_rect_collide(hb, pt_1, pt_2).add(hb.pt)
+            pygame.draw.circle(win, self.options["colors"]["text"], touch.get_int_tuple(), 5)
+
         text_keys = ["score", "rows", "time"]
         text_format = [self.score, max(0, self.full_rows - self.display_rows), int(self.ticks)]
         for i in range(len(text_keys)):
@@ -1020,6 +1101,25 @@ def circle_rect_collide(rect: Hitbox, center: Vector, r: float) -> bool:
         rect_mask, rect.pt.subtract(center.subtract(Vector(r, r))).get_int_tuple()
     )
     return touch != None
+
+
+def line_hollow_rect_collide(rect: Hitbox, pt_1: Vector, pt_2: Vector) -> Vector:
+    rect_surf = pygame.Surface((rect.w, rect.h))
+    rect_surf.fill((0, 0, 255))
+    rect_surf.set_colorkey((0, 0, 255))
+    pygame.draw.rect(rect_surf, (255, 0, 0), (0, 0, int(rect.w), int(rect.h)), 2)
+    rect_mask = pygame.mask.from_surface(rect_surf)
+
+    line_surf = pygame.Surface((rect.w, rect.h))
+    line_surf.fill((0, 0, 255))
+    line_surf.set_colorkey((0, 0, 255))
+    pt_1 = pt_1.subtract(rect.pt)
+    pt_2 = pt_2.subtract(rect.pt)
+    pygame.draw.line(line_surf, (255, 0, 0), pt_1.get_int_tuple(), pt_2.get_int_tuple())
+    line_mask = pygame.mask.from_surface(line_surf)
+
+    touch = rect_mask.overlap_mask(line_mask, (0, 0)).centroid()
+    return Vector(touch[0], touch[1])
 
 
 def read_json(path: str) -> dict:

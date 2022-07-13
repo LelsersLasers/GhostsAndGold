@@ -112,19 +112,28 @@
         "darken_alpha": 45,
         "scroll_divisor": 10,
         "scroll_speed": 30,
+        "cd_box": {
+            "text": "%.1f",
+            "x": 335,
+            "y": 20,
+            "w": 50,
+            "h": 50,
+            "color": "#5E81AC",
+            "ready_color": "#A3BE8C"
+        },
         "score": {
             "text": "Score: %i",
-            "y": 20,
+            "y": 80,
             "font": "h4"
         },
         "rows": {
             "text": "Rows: %i",
-            "y": 50,
+            "y": 110,
             "font": "h5"
         },
         "time": {
             "text": "%i sec",
-            "y": 70,
+            "y": 130,
             "font": "h5"
         },
         "fps": {
@@ -175,10 +184,23 @@
         "h": 50,
         "speed": 300,
         "jump_vel": 800,
-        "thrust_vel": 400,
         "gravity": 2400,
         "alive_color": "#A3BE8C",
-        "dead_color": "#BF616A"
+        "dead_color": "#BF616A",
+        "powers": {
+            "shield": {
+                "time": 2,
+                "color": "#D08770",
+                "cd": 10
+            },
+            "downthrust": {
+                "vel": 600,
+                "cd": 2
+            },
+            "triple_jump": 3,
+            "chest_spawn": 1.33,
+            "tile_fall": 0.75
+        }
     },
     "tile": {
         "w": 60,
