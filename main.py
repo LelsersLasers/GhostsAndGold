@@ -403,7 +403,10 @@ class Tile(Movable):
         )
 
     def update(self, state: State) -> None:
-        self.move(state.delta)
+        self.move(
+            state.delta
+            * (state.player.powers["tile_fall"] if state.save["power"] == "tile_fall" else 1)
+        )
         self.land(state)
 
     def land(self, state: State) -> None:
@@ -925,7 +928,9 @@ class State:
                 )
             self.tiles.append(new_tile)
             chest_chance = random.random()
-            if chest_chance < self.options["chest"]["spawn_chance"]:
+            if chest_chance < self.options["chest"]["spawn_chance"] * (
+                self.player.powers["chest_chance"] if self.save["power"] == "chest_chance" else 1
+            ):
                 self.chests.append(Chest(self.options["chest"], new_tile))
 
             self.tile_spawn.period = max(
