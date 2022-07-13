@@ -835,7 +835,9 @@ class State:
 
         # TODO: better solution than dividing by 10
         if abs(self.scrolling) > self.options["tile"]["w"] / self.options["game"]["scroll_divisor"]:
-            scroll_dist = self.delta * self.options["game"]["scroll_speed"] * get_sign(self.scrolling)
+            scroll_dist = (
+                self.delta * self.options["game"]["scroll_speed"] * get_sign(self.scrolling)
+            )
             self.scrolling -= scroll_dist
             to_scroll: list[Moveable] = self.tiles + self.coins + self.effects  # type: ignore
             for ts in to_scroll:
@@ -1023,6 +1025,7 @@ def circle_rect_collide(rect: Hitbox, center: Vector, r: float) -> bool:
 def read_json(path: str) -> dict:
     with open(path, "r") as f:
         return json.load(f)
+
 
 def write_json(path: str, data: dict) -> None:
     with open(path, "w") as f:

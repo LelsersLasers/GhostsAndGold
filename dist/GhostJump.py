@@ -198,16 +198,18 @@ class Chest(Hitbox):
             state.chests.remove(self)  # TODO: remove in iteration?
             num_coins = random.choice(state.options["coin"]["pop"]["coin_chances"])
             for _ in range(num_coins):
-                c = Coin(self.get_center(), state.options["coin"])
-                c.move_vec = Vector(
-                    random.uniform(
-                        -state.options["coin"]["pop"]["speed"],
-                        state.options["coin"]["pop"]["speed"],
-                    ),
-                    -state.options["coin"]["pop"]["vel"],
+                c = Coin(
+                    self.get_center(),
+                    state.options["coin"],
+                    Vector(
+                        random.uniform(
+                            -state.options["coin"]["pop"]["speed"],
+                            state.options["coin"]["pop"]["speed"],
+                        ),
+                        -state.options["coin"]["pop"]["vel"],
+                    ).scale(state.options["coin"]["pop"]["vel"]),
+                    state.options["coin"]["pop"]["gravity"],
                 )
-                c.move_vec.scale(state.options["coin"]["pop"]["vel"])
-                c.gravity = state.options["coin"]["pop"]["gravity"]
                 state.coins.append(c)
 
 
@@ -341,12 +343,7 @@ class Player(Movable):
             self.color = state.options["player"]["dead_color"]
 
 
-class Fall(Movable):
-    def __init__(self, pt: Vector, w: float, h: float, color: str, fall_speed: float):
-        super().__init__(pt, w, h, color, Vector(0, fall_speed), 0)
-
-
-class Tile(Fall):
+class Tile(Movable):
     def __init__(
         self,
         pt: Vector,
@@ -354,7 +351,12 @@ class Tile(Fall):
         color: str,
     ):
         super().__init__(
-            pt, tile_options["w"], tile_options["w"], color, tile_options["fall_speed"]
+            pt,
+            tile_options["w"],
+            tile_options["w"],
+            color,
+            Vector(0, tile_options["fall_speed"]),
+            0,
         )
         self.hbs_size: float = tile_options["hbs_size"]
         self.hbs_len: float = self.w - 2 * tile_options["hbs_size"]
@@ -485,15 +487,32 @@ class HeavyTile(Tile):
                 pass
 
 
-class Coin(Fall):
-    def __init__(self, pt: Vector, coin_options: dict[str, Any]):
-        super().__init__(
-            pt,
-            coin_options["w"],
-            coin_options["h"],
-            coin_options["color"],
-            coin_options["fall_speed"],
-        )
+class Coin(Movable):
+    def __init__(
+        self,
+        pt: Vector,
+        coin_options: dict[str, Any],
+        move_vec: Vector = None,
+        gravity: float = None,
+    ):
+        if move_vec is None or gravity is None:
+            super().__init__(
+                pt,
+                coin_options["w"],
+                coin_options["h"],
+                coin_options["color"],
+                Vector(0, coin_options["fall_speed"]),
+                0,
+            )
+        else:
+            super().__init__(
+                pt,
+                coin_options["w"],
+                coin_options["h"],
+                coin_options["color"],
+                move_vec,
+                gravity,
+            )
 
     def update(self, state: State):
         self.move(state.delta)
@@ -533,16 +552,17 @@ class Coin(Fall):
 
 
 class State:
-    def __init__(self, options: dict[str, Any]):
+    def __init__(self, options: dict[str, Any], save: dict[str, Any]):
         self.options: dict[str, Any] = options
+        self.save = save
         self.paused: bool = False
         self.screen: str = "welcome"
         self.keys_down: Sequence[bool] = pygame.key.get_pressed()
         self.keys: dict[str, KeyList] = {
-            "up": KeyList([pygame.K_UP, pygame.K_w, pygame.K_SPACE]),
-            "down": KeyList([pygame.K_DOWN, pygame.K_s, pygame.K_LCTRL]),
-            "left": KeyList([pygame.K_LEFT, pygame.K_a]),
-            "right": KeyList([pygame.K_RIGHT, pygame.K_d]),
+            "up": KeyList([pygame.K_SPACE, pygame.K_UP, pygame.K_w]),
+            "down": KeyList([pygame.K_s, pygame.K_DOWN, pygame.K_LCTRL]),
+            "left": KeyList([pygame.K_a, pygame.K_LEFT]),
+            "right": KeyList([pygame.K_d, pygame.K_RIGHT]),
         }
         self.player: Player = Player(self.options)
         self.tiles: list[Tile] = []
@@ -572,6 +592,7 @@ class State:
         self.display_fps: int = 500
         self.esc_tk: ToggleKey = ToggleKey()
         self.playing: bool = True
+        self.updated_highscore: bool = False
 
     def reset(self):
         self.player = Player(self.options)
@@ -588,6 +609,7 @@ class State:
         self.coin_spawn.reset(self.ticks)
         self.fps_draw.reset(self.ticks)
         self.score = 0
+        self.updated_highscore = False
 
     def setup_tiles(self) -> None:
         self.tiles = []
@@ -669,6 +691,11 @@ class State:
         if self.screen == "game":
             if not self.paused:
                 self.update_game()
+            if not self.player.alive and not self.updated_highscore:
+                if self.score > self.save["high_score"]:
+                    self.save["high_score"] = self.score
+                    write_json(self.options["save_file"], self.save)
+                self.updated_highscore = True
         self.draw(win, fonts)
 
     def run(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]):
@@ -808,7 +835,9 @@ class State:
 
         # TODO: better solution than dividing by 10
         if abs(self.scrolling) > self.options["tile"]["w"] / self.options["game"]["scroll_divisor"]:
-            scroll_dist = self.delta * self.options["scroll_speed"] * get_sign(self.scrolling)
+            scroll_dist = (
+                self.delta * self.options["game"]["scroll_speed"] * get_sign(self.scrolling)
+            )
             self.scrolling -= scroll_dist
             to_scroll: list[Moveable] = self.tiles + self.coins + self.effects  # type: ignore
             for ts in to_scroll:
@@ -944,10 +973,13 @@ class State:
 
     def draw_welcome(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]) -> None:
         text_keys = list(self.options["welcome"].keys())
-        text_format = [(), (self.score), (), (), ()]
+        text_format = [(), (self.save["high_score"]), (self.score), (), (), ()]
         if self.score == -1:
-            text_keys.remove("score")
+            text_keys.remove("last_score")
             text_format.remove((self.score))
+        if self.save["high_score"] == -1:
+            text_keys.remove("high_score")
+            text_format.remove((self.save["high_score"]))
         for i in range(len(text_keys)):
             draw_centered_text(
                 win,
@@ -990,9 +1022,14 @@ def circle_rect_collide(rect: Hitbox, center: Vector, r: float) -> bool:
     return touch != None
 
 
-def read_options(path: str) -> dict:
+def read_json(path: str) -> dict:
     with open(path, "r") as f:
         return json.load(f)
+
+
+def write_json(path: str, data: dict) -> None:
+    with open(path, "w") as f:
+        json.dump(data, f, indent=4)
 
 
 def create_window(options: dict[str, Any]) -> pygame.surface.Surface:
@@ -1041,10 +1078,11 @@ def draw_centered_texts(
 
 
 def main():
-    options = read_options("resources/options.json")
+    options = read_json("resources/options.json")
+    save = read_json(options["save_file"])
     win = create_window(options)
     fonts = create_fonts(options["font"])
-    state = State(options)
+    state = State(options, save)
     state.run(win, fonts)
 
 
