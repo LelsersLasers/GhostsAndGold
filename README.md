@@ -32,9 +32,8 @@ C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
 
 ### Bugs
 
-- Sequnce list on keys_down
-- Directional check sometimes sends sideways to top?
 - Directional check sometimes misses??
+- Falling coins sometimes stop falling
 
 ### Main
 
