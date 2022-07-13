@@ -720,6 +720,7 @@ class State:
         if self.screen == "game":
             if not self.paused:
                 self.update_game()
+                self.update_passive_highlight()
             if not self.player.alive and not self.updated_highscore:
                 if self.score > self.save["high_score"]:
                     self.save["high_score"] = self.score
@@ -931,7 +932,7 @@ class State:
             self.tiles.append(new_tile)
             chest_chance = random.random()
             if chest_chance < self.options["chest"]["spawn_chance"] * (
-                self.player.powers["chest_chance"] if self.save["power"] == "chest_chance" else 1
+                self.player.powers["chest_spawn"] if self.save["power"] == "chest_spawn" else 1
             ):
                 self.chests.append(Chest(self.options["chest"], new_tile))
 
@@ -972,7 +973,11 @@ class State:
         draw_centered_texts(self, win, fonts, "pause", self.options["pause"].keys())
 
     def active_power_type(self) -> bool:
-        return self.save["power"] in ["shield", "downthrust"] 
+        return self.save["power"] in ["shield", "downthrust"]
+
+    def update_passive_highlight(self) -> None:
+        self.passive_highlight += self.delta * 120
+        self.passive_highlight = self.passive_highlight % 360
 
     def draw_hud(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]) -> None:
         percent: float = 1
@@ -1009,9 +1014,6 @@ class State:
             )
             win.blit(surf_cd, text_pt.get_tuple())
         else:
-            self.passive_highlight += self.delta * 120
-            self.passive_highlight = self.passive_highlight % 360
-            print(self.passive_highlight)
             hb = Hitbox(Vector(box_rect[0], box_rect[1]), box_rect[2], box_rect[3], "#ffffff")
             pt_1 = hb.get_center()
             pt_2 = Vector(hb.w * 2, hb.w * 2)
@@ -1019,9 +1021,6 @@ class State:
             pt_2 = pt_1.add(pt_2)
             touch = line_hollow_rect_collide(hb, pt_1, pt_2).add(hb.pt)
             pygame.draw.circle(win, self.options["colors"]["text"], touch.get_int_tuple(), 5)
-
-
-
 
         text_keys = ["score", "rows", "time"]
         text_format = [self.score, max(0, self.full_rows - self.display_rows), int(self.ticks)]
@@ -1102,6 +1101,7 @@ def circle_rect_collide(rect: Hitbox, center: Vector, r: float) -> bool:
         rect_mask, rect.pt.subtract(center.subtract(Vector(r, r))).get_int_tuple()
     )
     return touch != None
+
 
 def line_hollow_rect_collide(rect: Hitbox, pt_1: Vector, pt_2: Vector) -> Vector:
     rect_surf = pygame.Surface((rect.w, rect.h))

@@ -198,7 +198,7 @@
                 "cd": 2
             },
             "triple_jump": 3,
-            "chest_spawn": 1.25,
+            "chest_spawn": 1.33,
             "tile_fall": 0.75
         }
     },
