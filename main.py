@@ -558,10 +558,10 @@ class State:
         self.screen: str = "welcome"
         self.keys_down: Sequence[bool] = pygame.key.get_pressed()
         self.keys: dict[str, KeyList] = {
-            "up": KeyList([pygame.K_UP, pygame.K_w, pygame.K_SPACE]),
-            "down": KeyList([pygame.K_DOWN, pygame.K_s, pygame.K_LCTRL]),
-            "left": KeyList([pygame.K_LEFT, pygame.K_a]),
-            "right": KeyList([pygame.K_RIGHT, pygame.K_d]),
+            "up": KeyList([pygame.K_SPACE, pygame.K_UP, pygame.K_w]),
+            "down": KeyList([pygame.K_s, pygame.K_DOWN, pygame.K_LCTRL]),
+            "left": KeyList([pygame.K_a, pygame.K_LEFT]),
+            "right": KeyList([pygame.K_d, pygame.K_RIGHT]),
         }
         self.player: Player = Player(self.options)
         self.tiles: list[Tile] = []
@@ -827,7 +827,7 @@ class State:
 
         # TODO: better solution than dividing by 10
         if abs(self.scrolling) > self.options["tile"]["w"] / self.options["game"]["scroll_divisor"]:
-            scroll_dist = self.delta * self.options["scroll_speed"] * get_sign(self.scrolling)
+            scroll_dist = self.delta * self.options["game"]["scroll_speed"] * get_sign(self.scrolling)
             self.scrolling -= scroll_dist
             to_scroll: list[Moveable] = self.tiles + self.coins + self.effects  # type: ignore
             for ts in to_scroll:
@@ -1009,7 +1009,7 @@ def circle_rect_collide(rect: Hitbox, center: Vector, r: float) -> bool:
     return touch != None
 
 
-def read_options(path: str) -> dict:
+def read_json(path: str) -> dict:
     with open(path, "r") as f:
         return json.load(f)
 
@@ -1060,7 +1060,8 @@ def draw_centered_texts(
 
 
 def main():
-    options = read_options("resources/options.json")
+    options = read_json("resources/options.json")
+    save = read_json("resources/save.json")
     win = create_window(options)
     fonts = create_fonts(options["font"])
     state = State(options)

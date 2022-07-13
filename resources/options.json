@@ -105,6 +105,7 @@
     "game": {
         "darken_alpha": 45,
         "scroll_divisor": 10,
+        "scroll_speed": 30,
         "score": {
             "text": "Score: %i",
             "y": 20,
@@ -192,7 +193,7 @@
         "edge_color": "#88C0D0",
         "hbs_color": "#BF616A",
         "heavy": {
-            "r": 80,
+            "r": 100,
             "fall": 1.5,
             "chance": 0.075,
             "draw_time": 0.3,
@@ -206,7 +207,7 @@
         "fall_speed": 150,
         "spawn_interval_base": 10,
         "spawn_interval_variance": 5,
-        "spawn_y": -20,
+        "spawn_y": -60,
         "color": "#EBCB8B",
         "pop": {
             "coin_chances": [1, 1, 2, 2, 2, 3],
@@ -219,9 +220,7 @@
     "chest": {
         "w": 50,
         "h": 40,
-        "spawn_chance": 0.1,
+        "spawn_chance": 0.15,
         "color": "#B48EAD"
-    },
-
-    "scroll_speed": 30
+    }
 }
