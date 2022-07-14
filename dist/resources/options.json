@@ -1,5 +1,5 @@
 {
-    "title": "Ghost Jump",
+    "title": "Ghosts and Gold",
     "save_file": "resources/save.json",
     "window": {
         "width": 720,
@@ -21,7 +21,7 @@
     },
     "welcome": {
         "title": {
-            "text": "Ghost Jump",
+            "text": "Ghosts and Gold",
             "y": 175,
             "font": "h1"
         },
@@ -230,7 +230,8 @@
                 "details": {
                     "0": "Active: shield yourself for 2 seconds,",
                     "1": "destorying any tiles that would kill you",
-                    "2": "and blocking any explosions."
+                    "2": "and blocking any explosions.",
+                    "3": "Cooldown: 10 seconds"
                 },
                 "time": 2,
                 "color": "#D08770",
@@ -240,7 +241,8 @@
                 "text": "Downthrust",
                 "details": {
                     "0": "Active: push off the air,",
-                    "1": "accelerating downward."
+                    "1": "accelerating downward.",
+                    "2": "Cooldown: 2 seconds"
                 },
                 "vel": 600,
                 "cd": 2
