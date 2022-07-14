@@ -721,6 +721,8 @@ class State:
             elif (not self.player.alive and self.keys_down[pygame.K_r]) or (
                 self.paused and self.keys_down[pygame.K_q]
             ):
+                if not self.updated_highscore:
+                    self.update_highscore()
                 self.screen = "welcome"
 
     def draw(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]):
@@ -737,16 +739,19 @@ class State:
 
         pygame.display.update()
 
+    def update_highscore(self):
+        if self.score > self.save["high_score"]:
+            self.save["high_score"] = self.score
+            write_json(self.options["save_file"], self.save)
+        self.updated_highscore = True
+
     def next_frame(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]):
         if self.screen == "game":
             if not self.paused:
                 self.update_game()
                 self.update_passive_highlight()
             if not self.player.alive and not self.updated_highscore:
-                if self.score > self.save["high_score"]:
-                    self.save["high_score"] = self.score
-                    write_json(self.options["save_file"], self.save)
-                self.updated_highscore = True
+                self.update_highscore()
         self.draw(win, fonts)
 
     def run(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]):
