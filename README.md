@@ -37,12 +37,6 @@ C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
 
 ### Main
 
-- Choose power:
-    - Downthrust (active)
-    - Superjump (active)
-    - Increased chest spawn (passive)
-    - Tiles fall slower (passive)
-    - Shield (active)
 - Reward for going for coins
     - Every X coins, Y happens
 - PERFORMANCE

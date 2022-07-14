@@ -40,14 +40,51 @@
             "y": 450,
             "font": "h3"
         },
+        "powers": {
+            "text": "Press [P] to choose your power",
+            "y": 550,
+            "font": "h4"
+        },
         "instructions": {
             "text": "Press [I] for instructions",
-            "y": 550,
+            "y": 580,
             "font": "h4"
         },
         "exit": {
             "text": "Press [ESCAPE] to exit",
-            "y": 600,
+            "y": 630,
+            "font": "h5"
+        }
+    },
+    "powers": {
+        "title": {
+            "text": "Choose Your Power",
+            "y": 50,
+            "font": "h2"
+        },
+        "current": {
+            "text": "Current power: %s",
+            "y": 200,
+            "font": "h3"
+        },
+        "details": {
+            "text": "Details:",
+            "y": 250,
+            "font": "h4"
+        },
+        "ability_details": {
+            "y": 280,
+            "font": "h4",
+            "spacing": 30
+        },
+        "controls": {
+            "text": "Use the left and right arrow keys to change the power",
+            "y": 500,
+            "font": "h4"
+        },
+        "back": {
+            "text": "Press [B] to go back",
+            "y": 700,
             "font": "h5"
         }
     },
@@ -93,7 +130,7 @@
             "font": "h4"
         },
         "controls3": {
-            "text": "down:  S or down arrow",
+            "text": "use 'active' power:  S or down arrow",
             "y": 490,
             "font": "h4"
         },
@@ -189,17 +226,49 @@
         "dead_color": "#BF616A",
         "powers": {
             "shield": {
+                "text": "Shield",
+                "details": {
+                    "0": "Active: shield yourself for 2 seconds,",
+                    "1": "destorying any tiles that would kill you",
+                    "2": "and blocking any explosions."
+                },
                 "time": 2,
                 "color": "#D08770",
                 "cd": 10
             },
             "downthrust": {
+                "text": "Downthrust",
+                "details": {
+                    "0": "Active: push off the air,",
+                    "1": "accelerating downward."
+                },
                 "vel": 600,
                 "cd": 2
             },
-            "triple_jump": 3,
-            "chest_spawn": 1.33,
-            "tile_fall": 0.75
+            "triple_jump": {
+                "text": "Triple jump",
+                "details": {
+                    "0": "Passive: you can now jump 3 times",
+                    "1": "(normally you can only double jump)."
+                },
+                "jumps": 3
+            },
+            "chest_spawn": {
+                "text": "Increased chest spawns",
+                "details": {
+                    "0": "Passive: chests that drop coins spawn more often",
+                    "1": " (33% more often)."
+                },
+                "increase": 1.33
+            },
+            "tile_fall": {
+                "text": "Decreased tile fall speed",
+                "details": {
+                    "0": "Passive: tiles fall 25% slower",
+                    "1": " (they still spawn at the same rate)."
+                },
+                "decrease": 0.75
+            }
         }
     },
     "tile": {

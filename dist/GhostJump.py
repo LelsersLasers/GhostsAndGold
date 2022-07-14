@@ -298,7 +298,7 @@ class Player(Movable):
             self.move_vec.x = self.speed
         elif keys["left"].down(keys_down):
             self.move_vec.x = -self.speed
-        jump_limit = self.powers["triple_jump"] if power == "triple_jump" else 2
+        jump_limit = self.powers["triple_jump"]["jumps"] if power == "triple_jump" else 2
         if self.jumps < jump_limit and self.space_tk.down(keys["up"].down(keys_down)):
             self.move_vec.y = -self.jump_vel
             self.jumps += 1
@@ -405,7 +405,11 @@ class Tile(Movable):
     def update(self, state: State) -> None:
         self.move(
             state.delta
-            * (state.player.powers["tile_fall"] if state.save["power"] == "tile_fall" else 1)
+            * (
+                state.player.powers["tile_fall"]["decrease"]
+                if state.save["power"] == "tile_fall"
+                else 1
+            )
         )
         self.land(state)
 
@@ -619,9 +623,18 @@ class State:
         self.fps_draw: Interval = Interval(self.options["game"]["fps"]["refresh"], self.ticks)
         self.display_fps: int = 500
         self.esc_tk: ToggleKey = ToggleKey()
+        self.left_tk: ToggleKey = ToggleKey()
+        self.right_tk: ToggleKey = ToggleKey()
         self.playing: bool = True
         self.updated_highscore: bool = False
         self.passive_highlight: float = 0
+        self.power_choice: int = [
+            "shield",
+            "downthrust",
+            "triple_jump",
+            "chest_spawn",
+            "tile_fall",
+        ].index(self.save["power"])
 
     def reset(self):
         self.player = Player(self.options)
@@ -691,11 +704,17 @@ class State:
                 self.screen = "game"
             elif self.keys_down[pygame.K_i]:
                 self.screen = "instructions"
+            elif self.keys_down[pygame.K_p]:
+                self.screen = "powers"
             elif self.keys_down[pygame.K_ESCAPE]:
                 self.exit()
         elif self.screen == "instructions":
             if self.keys_down[pygame.K_b]:
                 self.screen = "welcome"
+        elif self.screen == "powers":
+            if self.keys_down[pygame.K_b] or self.keys_down[pygame.K_RETURN]:
+                self.screen = "welcome"
+                write_json(self.options["save_file"], self.save)
         elif self.screen == "game":
             if self.esc_tk.down(self.keys_down[pygame.K_ESCAPE]):
                 self.paused = not self.paused
@@ -711,6 +730,8 @@ class State:
             self.draw_welcome(win, fonts)
         elif self.screen == "instructions":
             self.draw_instructions(win, fonts)
+        elif self.screen == "powers":
+            self.draw_powers(win, fonts)
         elif self.screen == "game":
             self.draw_game(win, fonts)
 
@@ -932,7 +953,9 @@ class State:
             self.tiles.append(new_tile)
             chest_chance = random.random()
             if chest_chance < self.options["chest"]["spawn_chance"] * (
-                self.player.powers["chest_spawn"] if self.save["power"] == "chest_spawn" else 1
+                self.player.powers["chest_spawn"]["increase"]
+                if self.save["power"] == "chest_spawn"
+                else 1
             ):
                 self.chests.append(Chest(self.options["chest"], new_tile))
 
@@ -1002,7 +1025,8 @@ class State:
 
         if self.active_power_type():
             surf_cd = fonts["h4"].render(
-                self.options["game"]["cd_box"]["text"] % self.player.power_cd,
+                self.options["game"]["cd_box"]["text"]
+                % (self.player.powers[self.save["power"]]["cd"] - self.player.power_cd),
                 True,
                 self.options["colors"]["background"],
             )
@@ -1052,9 +1076,39 @@ class State:
             surf_tiles, ((self.options["game"]["tiles"]["x"], self.options["game"]["tiles"]["y"]))
         )
 
+    def draw_powers(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]) -> None:
+        if self.left_tk.down(self.keys["left"].down(self.keys_down)):
+            self.power_choice -= 1
+        elif self.right_tk.down(self.keys["right"].down(self.keys_down)):
+            self.power_choice += 1
+        self.power_choice %= 5
+        self.save["power"] = ["shield", "downthrust", "triple_jump", "chest_spawn", "tile_fall"][
+            self.power_choice
+        ]
+
+        text_keys = ["title", "current", "details", "controls", "back"]
+        text_format = [(), (self.player.powers[self.save["power"]]["text"]), (), (), ()]
+        for i in range(len(text_keys)):
+            draw_centered_text(
+                win,
+                fonts[self.options["powers"][text_keys[i]]["font"]],
+                self.options["powers"][text_keys[i]]["text"] % text_format[i],
+                self.options["powers"][text_keys[i]]["y"],
+                self.options["colors"]["text"],
+            )
+        for i in range(len(self.player.powers[self.save["power"]]["details"])):
+            draw_centered_text(
+                win,
+                fonts[self.options["powers"]["ability_details"]["font"]],
+                self.player.powers[self.save["power"]]["details"][str(i)],
+                self.options["powers"]["ability_details"]["y"]
+                + i * self.options["powers"]["ability_details"]["spacing"],
+                self.options["colors"]["text"],
+            )
+
     def draw_welcome(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]) -> None:
         text_keys = list(self.options["welcome"].keys())
-        text_format = [(), (self.save["high_score"]), (self.score), (), (), ()]
+        text_format = [(), (self.save["high_score"]), (self.score), (), (), (), ()]
         if self.score == -1:
             text_keys.remove("last_score")
             text_format.remove((self.score))
@@ -1123,11 +1177,13 @@ def line_hollow_rect_collide(rect: Hitbox, pt_1: Vector, pt_2: Vector) -> Vector
 
 
 def read_json(path: str) -> dict:
+    print("Reading from", path)
     with open(path, "r") as f:
         return json.load(f)
 
 
 def write_json(path: str, data: dict) -> None:
+    print("Writing to", path)
     with open(path, "w") as f:
         json.dump(data, f, indent=4)
 
