@@ -77,6 +77,11 @@
             "font": "h4",
             "spacing": 30
         },
+        "controls": {
+            "text": "Use the left and right arrow keys to change the power",
+            "y": 500,
+            "font": "h4"
+        },
         "back": {
             "text": "Press [B] to go back",
             "y": 700,
@@ -223,7 +228,7 @@
             "shield": {
                 "text": "Shield",
                 "details": {
-                    "0": "Shield yourself for 2 seconds,",
+                    "0": "Active: shield yourself for 2 seconds,",
                     "1": "destorying any tiles that would kill you",
                     "2": "and blocking any explosions."
                 },
@@ -234,8 +239,8 @@
             "downthrust": {
                 "text": "Downthrust",
                 "details": {
-                    "0": "Push off the air,",
-                    "1": "accelerating downway."
+                    "0": "Active: push off the air,",
+                    "1": "accelerating downward."
                 },
                 "vel": 600,
                 "cd": 2
@@ -243,7 +248,7 @@
             "triple_jump": {
                 "text": "Triple jump",
                 "details": {
-                    "0": "You can now jump 3 times",
+                    "0": "Passive: you can now jump 3 times",
                     "1": "(normally you can only double jump)."
                 },
                 "jumps": 3
@@ -251,7 +256,7 @@
             "chest_spawn": {
                 "text": "Increased chest spawns",
                 "details": {
-                    "0": "Chests that drop coins spawn more often",
+                    "0": "Passive: chests that drop coins spawn more often",
                     "1": " (33% more often)."
                 },
                 "increase": 1.33
@@ -259,7 +264,7 @@
             "tile_fall": {
                 "text": "Decreased tile fall speed",
                 "details": {
-                    "0": "Tiles fall 25% slower",
+                    "0": "Passive: tiles fall 25% slower",
                     "1": " (they still spawn at the same rate)."
                 },
                 "decrease": 0.75

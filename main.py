@@ -619,9 +619,12 @@ class State:
         self.fps_draw: Interval = Interval(self.options["game"]["fps"]["refresh"], self.ticks)
         self.display_fps: int = 500
         self.esc_tk: ToggleKey = ToggleKey()
+        self.left_tk: ToggleKey = ToggleKey()
+        self.right_tk: ToggleKey = ToggleKey()
         self.playing: bool = True
         self.updated_highscore: bool = False
         self.passive_highlight: float = 0
+        self.power_choice: int = ["shield", "downthrust", "triple_jump", "chest_spawn", "tile_fall"].index(self.save["power"])
 
     def reset(self):
         self.player = Player(self.options)
@@ -699,8 +702,9 @@ class State:
             if self.keys_down[pygame.K_b]:
                 self.screen = "welcome"
         elif self.screen == "powers":
-            if self.keys_down[pygame.K_b]:
+            if self.keys_down[pygame.K_b] or self.keys_down[pygame.K_RETURN]:
                 self.screen = "welcome"
+                write_json(self.options["save_file"], self.save)
         elif self.screen == "game":
             if self.esc_tk.down(self.keys_down[pygame.K_ESCAPE]):
                 self.paused = not self.paused
@@ -1060,8 +1064,15 @@ class State:
         )
 
     def draw_powers(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]) -> None:
-        text_keys = ["title", "current", "details", "back"]
-        text_format = [(), (self.player.powers[self.save["power"]]["text"]), (), ()]
+        if self.left_tk.down(self.keys["left"].down(self.keys_down)):
+            self.power_choice -= 1
+        elif self.right_tk.down(self.keys["right"].down(self.keys_down)):
+            self.power_choice += 1
+        self.power_choice %= 5
+        self.save["power"] = ["shield", "downthrust", "triple_jump", "chest_spawn", "tile_fall"][self.power_choice]
+
+        text_keys = ["title", "current", "details", "controls", "back"]
+        text_format = [(), (self.player.powers[self.save["power"]]["text"]), (), (), ()]
         for i in range(len(text_keys)):
             draw_centered_text(
                 win,
@@ -1150,11 +1161,13 @@ def line_hollow_rect_collide(rect: Hitbox, pt_1: Vector, pt_2: Vector) -> Vector
 
 
 def read_json(path: str) -> dict:
+    print("Reading from", path)
     with open(path, "r") as f:
         return json.load(f)
 
 
 def write_json(path: str, data: dict) -> None:
+    print("Writing to", path)
     with open(path, "w") as f:
         json.dump(data, f, indent=4)
 
