@@ -405,7 +405,11 @@ class Tile(Movable):
     def update(self, state: State) -> None:
         self.move(
             state.delta
-            * (state.player.powers["tile_fall"]["decrease"] if state.save["power"] == "tile_fall" else 1)
+            * (
+                state.player.powers["tile_fall"]["decrease"]
+                if state.save["power"] == "tile_fall"
+                else 1
+            )
         )
         self.land(state)
 
@@ -624,7 +628,13 @@ class State:
         self.playing: bool = True
         self.updated_highscore: bool = False
         self.passive_highlight: float = 0
-        self.power_choice: int = ["shield", "downthrust", "triple_jump", "chest_spawn", "tile_fall"].index(self.save["power"])
+        self.power_choice: int = [
+            "shield",
+            "downthrust",
+            "triple_jump",
+            "chest_spawn",
+            "tile_fall",
+        ].index(self.save["power"])
 
     def reset(self):
         self.player = Player(self.options)
@@ -943,7 +953,9 @@ class State:
             self.tiles.append(new_tile)
             chest_chance = random.random()
             if chest_chance < self.options["chest"]["spawn_chance"] * (
-                self.player.powers["chest_spawn"]["increase"] if self.save["power"] == "chest_spawn" else 1
+                self.player.powers["chest_spawn"]["increase"]
+                if self.save["power"] == "chest_spawn"
+                else 1
             ):
                 self.chests.append(Chest(self.options["chest"], new_tile))
 
@@ -1013,7 +1025,8 @@ class State:
 
         if self.active_power_type():
             surf_cd = fonts["h4"].render(
-                self.options["game"]["cd_box"]["text"] % self.player.power_cd,
+                self.options["game"]["cd_box"]["text"]
+                % (self.player.powers[self.save["power"]]["cd"] - self.player.power_cd),
                 True,
                 self.options["colors"]["background"],
             )
@@ -1069,7 +1082,9 @@ class State:
         elif self.right_tk.down(self.keys["right"].down(self.keys_down)):
             self.power_choice += 1
         self.power_choice %= 5
-        self.save["power"] = ["shield", "downthrust", "triple_jump", "chest_spawn", "tile_fall"][self.power_choice]
+        self.save["power"] = ["shield", "downthrust", "triple_jump", "chest_spawn", "tile_fall"][
+            self.power_choice
+        ]
 
         text_keys = ["title", "current", "details", "controls", "back"]
         text_format = [(), (self.player.powers[self.save["power"]]["text"]), (), (), ()]
@@ -1086,7 +1101,8 @@ class State:
                 win,
                 fonts[self.options["powers"]["ability_details"]["font"]],
                 self.player.powers[self.save["power"]]["details"][str(i)],
-                self.options["powers"]["ability_details"]["y"] + i * self.options["powers"]["ability_details"]["spacing"],
+                self.options["powers"]["ability_details"]["y"]
+                + i * self.options["powers"]["ability_details"]["spacing"],
                 self.options["colors"]["text"],
             )
 
