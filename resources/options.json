@@ -1,5 +1,5 @@
 {
-    "title": "Ghost Jump",
+    "title": "Ghosts and Gold",
     "save_file": "resources/save.json",
     "window": {
         "width": 720,
@@ -21,7 +21,7 @@
     },
     "welcome": {
         "title": {
-            "text": "Ghost Jump",
+            "text": "Ghosts and Gold",
             "y": 175,
             "font": "h1"
         },

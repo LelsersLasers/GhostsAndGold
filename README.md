@@ -1,4 +1,4 @@
-# GhostJump
+# Ghosts and Gold
 
 Some sort of game in pygame
 
@@ -37,7 +37,8 @@ C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
 
 ### Main
 
-- Reward for going for coins
+- Intro
+- Reward for going for coins?
     - Every X coins, Y happens
 - PERFORMANCE
     - Run State.update() in background of State.draw()
@@ -55,6 +56,7 @@ C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
 
 ### Cleaning
 
+- Choose scaling
 - Removing during iteration
 - Downscroll
 - Make sure tup offsets for map_dict cover all cases
