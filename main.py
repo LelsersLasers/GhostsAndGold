@@ -298,7 +298,7 @@ class Player(Movable):
             self.move_vec.x = self.speed
         elif keys["left"].down(keys_down):
             self.move_vec.x = -self.speed
-        jump_limit = self.powers["triple_jump"] if power == "triple_jump" else 2
+        jump_limit = self.powers["triple_jump"]["jumps"] if power == "triple_jump" else 2
         if self.jumps < jump_limit and self.space_tk.down(keys["up"].down(keys_down)):
             self.move_vec.y = -self.jump_vel
             self.jumps += 1
@@ -405,7 +405,7 @@ class Tile(Movable):
     def update(self, state: State) -> None:
         self.move(
             state.delta
-            * (state.player.powers["tile_fall"] if state.save["power"] == "tile_fall" else 1)
+            * (state.player.powers["tile_fall"]["decrease"] if state.save["power"] == "tile_fall" else 1)
         )
         self.land(state)
 
@@ -691,9 +691,14 @@ class State:
                 self.screen = "game"
             elif self.keys_down[pygame.K_i]:
                 self.screen = "instructions"
+            elif self.keys_down[pygame.K_p]:
+                self.screen = "powers"
             elif self.keys_down[pygame.K_ESCAPE]:
                 self.exit()
         elif self.screen == "instructions":
+            if self.keys_down[pygame.K_b]:
+                self.screen = "welcome"
+        elif self.screen == "powers":
             if self.keys_down[pygame.K_b]:
                 self.screen = "welcome"
         elif self.screen == "game":
@@ -711,6 +716,8 @@ class State:
             self.draw_welcome(win, fonts)
         elif self.screen == "instructions":
             self.draw_instructions(win, fonts)
+        elif self.screen == "powers":
+            self.draw_powers(win, fonts)
         elif self.screen == "game":
             self.draw_game(win, fonts)
 
@@ -932,7 +939,7 @@ class State:
             self.tiles.append(new_tile)
             chest_chance = random.random()
             if chest_chance < self.options["chest"]["spawn_chance"] * (
-                self.player.powers["chest_spawn"] if self.save["power"] == "chest_spawn" else 1
+                self.player.powers["chest_spawn"]["increase"] if self.save["power"] == "chest_spawn" else 1
             ):
                 self.chests.append(Chest(self.options["chest"], new_tile))
 
@@ -1052,9 +1059,29 @@ class State:
             surf_tiles, ((self.options["game"]["tiles"]["x"], self.options["game"]["tiles"]["y"]))
         )
 
+    def draw_powers(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]) -> None:
+        text_keys = ["title", "current", "details", "back"]
+        text_format = [(), (self.player.powers[self.save["power"]]["text"]), (), ()]
+        for i in range(len(text_keys)):
+            draw_centered_text(
+                win,
+                fonts[self.options["powers"][text_keys[i]]["font"]],
+                self.options["powers"][text_keys[i]]["text"] % text_format[i],
+                self.options["powers"][text_keys[i]]["y"],
+                self.options["colors"]["text"],
+            )
+        for i in range(len(self.player.powers[self.save["power"]]["details"])):
+            draw_centered_text(
+                win,
+                fonts[self.options["powers"]["ability_details"]["font"]],
+                self.player.powers[self.save["power"]]["details"][str(i)],
+                self.options["powers"]["ability_details"]["y"] + i * self.options["powers"]["ability_details"]["spacing"],
+                self.options["colors"]["text"],
+            )
+
     def draw_welcome(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]) -> None:
         text_keys = list(self.options["welcome"].keys())
-        text_format = [(), (self.save["high_score"]), (self.score), (), (), ()]
+        text_format = [(), (self.save["high_score"]), (self.score), (), (), (), ()]
         if self.score == -1:
             text_keys.remove("last_score")
             text_format.remove((self.score))
