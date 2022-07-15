@@ -6,12 +6,12 @@ Some sort of game in pygame
 ## Download
 
 Download latest working version (windows/.exe):
-- https://github.com/LelsersLasers/GhostJump/raw/main/dist/GhostJumpEXE.zip
+- https://github.com/LelsersLasers/GhostsAndGold/raw/main/dist/Ghosts&Gold.zip
 - Comes pre-packaged with the correct version of python
 - Might trigger a virus scan
     - If you can not get around the scan or are not on windows use the next link
 Download latest working version (all OSes/python):
-- https://github.com/LelsersLasers/GhostJump/raw/main/dist/GhostJumpPython.zip
+- https://github.com/LelsersLasers/GhostsAndGold/raw/main/dist/Ghosts&Gold-python.zip
 - Note: this version requires python to be installed
 
 ## Self notes
