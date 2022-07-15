@@ -1,6 +1,8 @@
 {
     "high_score": -1,
-    "power": "downthrust",
+    "power": "none",
     "gold": 0,
-    "unlocked": []
+    "unlocked": [
+        "none"
+    ]
 }

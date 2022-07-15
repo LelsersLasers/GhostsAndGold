@@ -695,13 +695,7 @@ class State:
         self.playing: bool = True
         self.updated_highscore: bool = False
         self.passive_highlight: float = 0
-        self.powers: list[str] = [
-            "shield",
-            "downthrust",
-            "triple_jump",
-            "chest_spawn",
-            "tile_fall",
-        ]
+        self.powers: list[str] = list(self.options["player"]["powers"].keys())
         self.power_choice: int = self.powers.index(self.save["power"])
 
     def reset(self):
@@ -787,7 +781,10 @@ class State:
         elif self.screen == "powers":
             if self.keys_down[pygame.K_b]:
                 self.screen = "welcome"
-            elif self.keys_down[pygame.K_RETURN] and self.powers[self.power_choice] in self.save["unlocked"]:
+            elif (
+                self.keys_down[pygame.K_RETURN]
+                and self.powers[self.power_choice] in self.save["unlocked"]
+            ):
                 self.screen = "welcome"
                 self.save["power"] = self.powers[self.power_choice]
                 write_json(self.options["save_file"], self.save)
