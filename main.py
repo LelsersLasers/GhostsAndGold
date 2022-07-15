@@ -8,7 +8,6 @@ import time
 import json
 import random
 import copy
-import multiprocessing
 
 
 class ToggleKey:
@@ -1118,7 +1117,7 @@ class State:
                 )
             )
             win.blit(surf_cd, text_pt.get_tuple())
-        else:
+        elif self.save["power"] != "none":
             hb = Hitbox(Vector(box_rect[0], box_rect[1]), box_rect[2], box_rect[3], "#ffffff")
             pt_1 = hb.get_center()
             pt_2 = Vector(hb.w * 2, hb.w * 2)
