@@ -1119,7 +1119,10 @@ class State:
             )
 
     def draw_intro(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]) -> None:
-        y_move = -self.ticks * self.options["intro"]["scroll_speed"] - self.options["intro"]["scroll_offset"] 
+        y_move = (
+            -self.ticks * self.options["intro"]["scroll_speed"]
+            - self.options["intro"]["scroll_offset"]
+        )
         for i in range(len(self.options["intro"]["scrolling_text"])):
             draw_centered_text(
                 win,
@@ -1128,6 +1131,23 @@ class State:
                 self.options["intro"]["scrolling_text"][str(i)]["y"] + y_move,
                 self.options["colors"]["text"],
             )
+
+        pygame.draw.rect(
+            win,
+            self.options["colors"]["background"],
+            (
+                (0, self.options["intro"]["still_text"]["background"]["y"]),
+                (win.get_width(), self.options["intro"]["still_text"]["background"]["h"]),
+            ),
+        )
+        draw_centered_text(
+            win,
+            fonts[self.options["intro"]["still_text"]["skip"]["font"]],
+            self.options["intro"]["still_text"]["skip"]["text"],
+            self.options["intro"]["still_text"]["skip"]["y"],
+            self.options["colors"]["text"],
+        )
+
         if y_move <= -self.options["intro"]["stop"]:
             self.screen = "welcome"
         self.ticks += self.delta

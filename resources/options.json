@@ -90,7 +90,7 @@
     },
     "intro": {
         "scroll_speed": 40,
-        "scroll_offset": 175,
+        "scroll_offset": 180,
         "stop": 2325,
         "scrolling_text": {
             "0": {
@@ -275,7 +275,15 @@
             }
         },
         "still_text": {
-
+            "skip": {
+                "text": "Press [Enter] to skip",
+                "y": 750,
+                "font": "h5"
+            },
+            "background": {
+                "y": 740,
+                "h": 60
+            }
         }
     },
     "instructions": {
