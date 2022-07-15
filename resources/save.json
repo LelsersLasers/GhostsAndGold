@@ -1,4 +1,10 @@
 {
     "high_score": -1,
-    "power": "shield"
+    "power": "chest_spawn",
+    "gold": 300,
+    "unlocked": [
+        "shield",
+        "triple_jump",
+        "chest_spawn"
+    ]
 }

@@ -34,13 +34,18 @@ C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
 
 - Directional check sometimes misses??
 - Falling coins sometimes stop falling
+- Player explosion doesn't always break tiles?
 
 ### Main
 
-- Lives:
-    - Make sure it works
-- Tetris blocks?
 - Coin "shop"
+    - Only update save.json when owned power is selected
+    - Actual buying of powers
+- Rewrite intro
+    - Fit powers into it
+    - Update instructions
+        - Maybe make instructions show on first boot?
+- Tetris blocks?
 - PERFORMANCE
     - Run State.update() in background of State.draw()
     - Replace pygame.draw with blit?

@@ -695,13 +695,14 @@ class State:
         self.playing: bool = True
         self.updated_highscore: bool = False
         self.passive_highlight: float = 0
-        self.power_choice: int = [
+        self.powers: list[str] = [
             "shield",
             "downthrust",
             "triple_jump",
             "chest_spawn",
             "tile_fall",
-        ].index(self.save["power"])
+        ]
+        self.power_choice: int = self.powers.index(self.save["power"])
 
     def reset(self):
         self.player = Player(self.options)
@@ -816,7 +817,8 @@ class State:
     def update_highscore(self):
         if self.score > self.save["high_score"]:
             self.save["high_score"] = self.score
-            write_json(self.options["save_file"], self.save)
+        self.save["gold"] += self.score
+        write_json(self.options["save_file"], self.save)
         self.updated_highscore = True
 
     def next_frame(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]):
@@ -1188,13 +1190,28 @@ class State:
             self.power_choice -= 1
         elif self.right_tk.down(self.keys["right"].down(self.keys_down)):
             self.power_choice += 1
-        self.power_choice %= 5
-        self.save["power"] = ["shield", "downthrust", "triple_jump", "chest_spawn", "tile_fall"][
-            self.power_choice
-        ]
 
-        text_keys = ["title", "current", "details", "controls", "back"]
-        text_format = [(), (self.player.powers[self.save["power"]]["text"]), (), (), ()]
+        self.power_choice %= 5
+        self.save["power"] = self.powers[self.power_choice]
+
+        text_keys = ["title", "gold", "current", "cost", "details", "controls", "buy", "back"]
+        text_format = [
+            (),
+            (self.save["gold"]),
+            (self.player.powers[self.save["power"]]["text"]),
+            (self.player.powers[self.save["power"]]["cost"]),
+            (),
+            (),
+            (),
+            (),
+        ]
+        if self.save["power"] in self.save["unlocked"]:
+            text_keys[3] = "unlocked"
+            text_format[3] = ()
+            del text_keys[6]
+            del text_format[6]
+        elif self.save["gold"] < self.player.powers[self.save["power"]]["cost"]:
+            text_keys[6] = "expensive"
         for i in range(len(text_keys)):
             draw_centered_text(
                 win,
