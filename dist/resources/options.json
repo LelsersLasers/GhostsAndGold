@@ -30,8 +30,8 @@
             "y": 320,
             "font": "h3"
         },
-        "last_score": {
-            "text": "Last score: %i",
+        "gold": {
+            "text": "Gold in your stash: %i",
             "y": 365,
             "font": "h4"
         },
@@ -62,24 +62,54 @@
             "y": 50,
             "font": "h2"
         },
+        "gold": {
+            "text": "Gold in your stash: %i",
+            "y": 150,
+            "font": "h4"
+        },
         "current": {
             "text": "Current power: %s",
-            "y": 200,
+            "y": 225,
             "font": "h3"
+        },
+        "cost": {
+            "text": "Cost: %i",
+            "y": 275,
+            "font": "h4"
+        },
+        "unlocked": {
+            "text": "You have learned this power",
+            "y": 275,
+            "font": "h4"
         },
         "details": {
             "text": "Details:",
-            "y": 250,
+            "y": 350,
             "font": "h4"
         },
         "ability_details": {
-            "y": 280,
+            "y": 380,
             "font": "h4",
             "spacing": 30
         },
         "controls": {
             "text": "Use the left and right arrow keys to change the power",
-            "y": 500,
+            "y": 620,
+            "font": "h4"
+        },
+        "buy": {
+            "text": "Press [U] to learn this power",
+            "y": 650,
+            "font": "h4"
+        },
+        "expensive": {
+            "text": "You do not have enough gold to learn this power",
+            "y": 650,
+            "font": "h4"
+        },
+        "choose": {
+            "text": "Press [Enter] to select this power",
+            "y": 650,
             "font": "h4"
         },
         "back": {
@@ -90,7 +120,7 @@
     },
     "intro": {
         "scroll_speed": 40,
-        "scroll_offset": 180,
+        "scroll_offset": 225,
         "stop": 2325,
         "scrolling_text": {
             "0": {
@@ -347,6 +377,7 @@
         "darken_alpha": 45,
         "scroll_divisor": 10,
         "scroll_speed": 30,
+        "score_per_Life": 15,
         "cd_box": {
             "text": "%.1f",
             "x": 335,
@@ -371,16 +402,28 @@
             "y": 130,
             "font": "h5"
         },
+        "lives": {
+            "text": "Lives:",
+            "x": 70,
+            "y": 2,
+            "font": "h4"
+        },
+        "life_boxes": {
+            "w": 25,
+            "h": 25,
+            "spacing": 30,
+            "color": "#BF616A"
+        },
         "fps": {
             "text": "fps: %i",
-            "x": 63,
+            "x": 595,
             "y": 2,
             "refresh": 0.1,
             "font": "h5"
         },
         "tiles": {
             "text": "tiles: %i",
-            "x": 63,
+            "x": 595,
             "y": 22,
             "font": "h5"
         }
@@ -420,9 +463,20 @@
         "speed": 300,
         "jump_vel": 800,
         "gravity": 2400,
+        "respawn_delay": 2,
+        "respawn_time": 2,
+        "respawn_r": 120,
         "alive_color": "#A3BE8C",
         "dead_color": "#BF616A",
+        "respawn_color": "#D8DEE9",
         "powers": {
+            "none": {
+                "text": "No power",
+                "details": {
+                    "0": "No power selected"
+                },
+                "cost": 0
+            },
             "shield": {
                 "text": "Shield",
                 "details": {
@@ -431,6 +485,7 @@
                     "2": "and blocking any explosions.",
                     "3": "Cooldown: 10 seconds"
                 },
+                "cost": 800,
                 "time": 2,
                 "color": "#D08770",
                 "cd": 10
@@ -442,6 +497,7 @@
                     "1": "accelerating downward.",
                     "2": "Cooldown: 2 seconds"
                 },
+                "cost": 200,
                 "vel": 600,
                 "cd": 2
             },
@@ -451,6 +507,7 @@
                     "0": "Passive: you can now jump 3 times",
                     "1": "(normally you can only double jump)."
                 },
+                "cost": 500,
                 "jumps": 3
             },
             "chest_spawn": {
@@ -459,6 +516,7 @@
                     "0": "Passive: chests that drop coins spawn more often",
                     "1": " (33% more often)."
                 },
+                "cost": 1500,
                 "increase": 1.33
             },
             "tile_fall": {
@@ -467,6 +525,7 @@
                     "0": "Passive: tiles fall 25% slower",
                     "1": " (they still spawn at the same rate)."
                 },
+                "cost": 2000,
                 "decrease": 0.75
             }
         }

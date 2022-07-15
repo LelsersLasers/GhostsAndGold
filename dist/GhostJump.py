@@ -194,7 +194,9 @@ class Chest(Hitbox):
             except KeyError:
                 pass
 
-        if (state.player.alive and self.collide(state.player)) or not self.bot_tile in state.tiles:
+        if (
+            state.player.can_interact() and self.collide(state.player)
+        ) or not self.bot_tile in state.tiles:
             state.chests.remove(self)  # TODO: remove in iteration?
             num_coins = random.choice(state.options["coin"]["pop"]["coin_chances"])
             for _ in range(num_coins):
@@ -289,8 +291,13 @@ class Player(Movable):
         self.power_cd: float = 0
         self.shield: float = 0
 
+        self.lives: int = 1
+        self.respawn: float = 0
+        self.status: str = "alive"
+        self.flicker: Interval = Interval(0.1, self.respawn)
+        self.show: bool = True
+
         self.space_tk: ToggleKey = ToggleKey(True)
-        self.alive: bool = True
 
     def key_input(self, keys_down: Sequence[bool], keys: dict[str, KeyList], power: str) -> None:
         self.move_vec.x = 0
@@ -327,7 +334,7 @@ class Player(Movable):
                                 self.shield = 0
                                 state.tiles.remove(tile)
                             else:
-                                self.alive = False
+                                self.trigger_respawn(state)
                         elif collision == "top":
                             self.pt.y = tile.pt.y - self.h
                             self.move_vec.y = 0
@@ -340,8 +347,20 @@ class Player(Movable):
                 except KeyError:
                     pass
 
+    def can_interact(self) -> bool:
+        return self.lives >= 1 and not (self.status == "dead" or self.status == "true_death")
+
+    def trigger_respawn(self, state: State) -> None:
+        if self.status == "alive":
+            self.lives -= 1
+            if self.lives >= 1 and self.status == "alive":  # TODO
+                self.status = "dead"
+                self.respawn = -state.options["player"]["respawn_delay"]
+            elif self.lives <= 0:
+                self.status = "true_death"
+
     def update(self, state: State) -> None:
-        if self.alive:
+        if self.can_interact():
             self.key_input(state.keys_down, state.keys, state.save["power"])
             self.shield -= state.delta
             if state.active_power_type():
@@ -355,13 +374,58 @@ class Player(Movable):
 
             self.move(state.delta)
             self.check_tile_collision(state)
-        else:
-            self.color = state.options["player"]["dead_color"]
+        elif self.status == "true_death":
+            self.color = self.color = state.options["player"]["dead_color"]
+        elif self.status == "dead":
+            self.respawn += state.delta
+            self.color = state.options["player"]["respawn_color"]
+            if self.respawn >= 0:
+                self.status = "respawning"
+                self.destory_nearby(state)
+                self.color = state.options["player"]["alive_color"]
+        if self.status == "respawning":
+            self.respawn += state.delta
+            if self.flicker.update(self.respawn):
+                self.show = not self.show
+            if self.respawn >= state.options["player"]["respawn_time"]:
+                self.color = state.options["player"]["alive_color"]
+                self.status = "alive"
+
+    def destory_nearby(self, state):
+        map_tup = self.pt.get_map_tup(state.options["tile"]["w"])
+        map_xs = [map_tup[0] - 1, map_tup[0], map_tup[0] + 1]
+        map_ys = [map_tup[1] - 1, map_tup[1], map_tup[1] + 1]
+        for x in map_xs:
+            for y in map_ys:
+                map_str = str(x) + ";" + str(y)
+                try:
+                    for i in range(len(state.tile_map[map_str]) - 1, -1, -1):
+                        if type(state.tile_map[map_str][i]) != EdgeTile and circle_rect_collide(
+                            state.tile_map[map_str][i],
+                            self.get_center(),
+                            state.options["player"]["respawn_r"],
+                        ):
+                            state.tiles.remove(state.tile_map[map_str][i])
+                        pass
+                except KeyError:
+                    pass
+
+        state.effects.append(
+            CircleEffect(
+                self.get_center(),
+                state.options["player"]["respawn_r"],
+                state.options["player"]["respawn_color"],
+                Vector(0, 0),
+                0,
+                state.options["tile"]["heavy"]["draw_time"],
+            )
+        )
 
     def draw(self, win: pygame.surface.Surface) -> None:
-        super().draw(win)
-        if self.shield > 0:
-            pygame.draw.rect(win, self.powers["shield"]["color"], self.get_rect(), 5)
+        if not (self.status == "respawning" and not self.show):
+            super().draw(win)
+            if self.shield > 0:
+                pygame.draw.rect(win, self.powers["shield"]["color"], self.get_rect(), 5)
 
 
 class Tile(Movable):
@@ -466,7 +530,6 @@ class HeavyTile(Tile):
         self.move_vec.y *= tile_options["heavy"]["fall"]
 
     def check_explosion_tiles(self, state: State) -> None:
-        pass
         map_tup = self.pt.get_map_tup(state.options["tile"]["w"])
         map_xs = [map_tup[0] - 1, map_tup[0], map_tup[0] + 1]
         map_ys = [map_tup[1] - 1, map_tup[1], map_tup[1] + 1]
@@ -501,7 +564,7 @@ class HeavyTile(Tile):
                             if state.player.shield > 0:
                                 state.player.shield = 0
                             else:
-                                state.player.alive = False
+                                state.player.trigger_respawn(state)
 
                         state.effects.append(
                             CircleEffect(
@@ -578,9 +641,12 @@ class Coin(Movable):
                 except KeyError:
                     pass
 
-        if state.player.alive and self.move_vec.y >= 0 and self.collide(state.player):
+        if state.player.can_interact() >= 1 and self.move_vec.y >= 0 and self.collide(state.player):
             state.coins.remove(self)  # TODO: remove in iteration?
-            state.score += 1
+            state.score += 1  # TODO: make 1
+            if state.score // state.options["game"]["score_per_Life"] > state.lives_given:
+                state.lives_given += 1
+                state.player.lives += 1
 
 
 class State:
@@ -606,6 +672,7 @@ class State:
         self.delta: float = 1 / 500
         self.ticks: float = 1 / 500
         self.score: int = -1
+        self.lives_given: int = 0
         self.scrolling: float = 0
         self.full_rows: int = 3
         self.display_rows: int = 3
@@ -628,13 +695,8 @@ class State:
         self.playing: bool = True
         self.updated_highscore: bool = False
         self.passive_highlight: float = 0
-        self.power_choice: int = [
-            "shield",
-            "downthrust",
-            "triple_jump",
-            "chest_spawn",
-            "tile_fall",
-        ].index(self.save["power"])
+        self.powers: list[str] = list(self.options["player"]["powers"].keys())
+        self.power_choice: int = self.powers.index(self.save["power"])
 
     def reset(self):
         self.player = Player(self.options)
@@ -717,17 +779,23 @@ class State:
             if self.keys_down[pygame.K_b]:
                 self.screen = "welcome"
         elif self.screen == "powers":
-            if self.keys_down[pygame.K_b] or self.keys_down[pygame.K_RETURN]:
+            if self.keys_down[pygame.K_b]:
                 self.screen = "welcome"
+            elif (
+                self.keys_down[pygame.K_RETURN]
+                and self.powers[self.power_choice] in self.save["unlocked"]
+            ):
+                self.screen = "welcome"
+                self.save["power"] = self.powers[self.power_choice]
                 write_json(self.options["save_file"], self.save)
         elif self.screen == "game":
             if self.esc_tk.down(self.keys_down[pygame.K_ESCAPE]):
                 self.paused = not self.paused
-            elif (not self.player.alive and self.keys_down[pygame.K_r]) or (
+            elif (self.player.lives <= 0 and self.keys_down[pygame.K_r]) or (
                 self.paused and self.keys_down[pygame.K_q]
             ):
                 if not self.updated_highscore:
-                    self.update_highscore()
+                    self.update_save()
                 self.screen = "welcome"
 
     def draw(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]):
@@ -746,10 +814,11 @@ class State:
 
         pygame.display.update()
 
-    def update_highscore(self):
+    def update_save(self):
         if self.score > self.save["high_score"]:
             self.save["high_score"] = self.score
-            write_json(self.options["save_file"], self.save)
+        self.save["gold"] += self.score
+        write_json(self.options["save_file"], self.save)
         self.updated_highscore = True
 
     def next_frame(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]):
@@ -757,8 +826,8 @@ class State:
             if not self.paused:
                 self.update_game()
                 self.update_passive_highlight()
-            if not self.player.alive and not self.updated_highscore:
-                self.update_highscore()
+            if self.player.lives <= 0 and not self.updated_highscore:
+                self.update_save()
         self.draw(win, fonts)
 
     def run(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]):
@@ -780,7 +849,7 @@ class State:
 
         if self.paused:
             self.draw_pause(win, fonts)
-        elif not self.player.alive:
+        elif self.player.lives <= 0:
             self.draw_death(win, fonts)
 
     def draw_entities(self, win: pygame.surface.Surface) -> None:
@@ -1072,14 +1141,14 @@ class State:
         if self.fps_draw.update(self.ticks):
             self.display_fps = int(1 / self.delta)
 
-        surf_fps = fonts["h5"].render(
+        surf_fps = fonts[self.options["game"]["fps"]["font"]].render(
             self.options["game"]["fps"]["text"] % self.display_fps,
             True,
             self.options["colors"]["text"],
         )
         win.blit(surf_fps, ((self.options["game"]["fps"]["x"], self.options["game"]["fps"]["y"])))
 
-        surf_tiles = fonts["h5"].render(
+        surf_tiles = fonts[self.options["game"]["tiles"]["font"]].render(
             self.options["game"]["tiles"]["text"] % len(self.tiles),
             True,
             self.options["colors"]["text"],
@@ -1088,18 +1157,66 @@ class State:
             surf_tiles, ((self.options["game"]["tiles"]["x"], self.options["game"]["tiles"]["y"]))
         )
 
+        surf_lives = fonts[self.options["game"]["lives"]["font"]].render(
+            self.options["game"]["lives"]["text"],
+            True,
+            self.options["colors"]["text"],
+        )
+        win.blit(
+            surf_lives, ((self.options["game"]["lives"]["x"], self.options["game"]["lives"]["y"]))
+        )
+        for i in range(self.player.lives):
+            pygame.draw.rect(
+                win,
+                self.options["game"]["life_boxes"]["color"],
+                (
+                    surf_lives.get_width()
+                    + self.options["game"]["lives"]["x"]
+                    + self.options["game"]["life_boxes"]["spacing"] * (i + 1)
+                    - self.options["game"]["life_boxes"]["w"],
+                    (
+                        surf_lives.get_height()
+                        - self.options["game"]["life_boxes"]["h"]
+                        + self.options["game"]["lives"]["y"]
+                    )
+                    / 2,
+                    self.options["game"]["life_boxes"]["w"],
+                    self.options["game"]["life_boxes"]["h"],
+                ),
+            )
+
     def draw_powers(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]) -> None:
         if self.left_tk.down(self.keys["left"].down(self.keys_down)):
             self.power_choice -= 1
         elif self.right_tk.down(self.keys["right"].down(self.keys_down)):
             self.power_choice += 1
-        self.power_choice %= 5
-        self.save["power"] = ["shield", "downthrust", "triple_jump", "chest_spawn", "tile_fall"][
-            self.power_choice
-        ]
 
-        text_keys = ["title", "current", "details", "controls", "back"]
-        text_format = [(), (self.player.powers[self.save["power"]]["text"]), (), (), ()]
+        self.power_choice %= 5
+        selected_power = self.powers[self.power_choice]
+
+        text_keys = ["title", "gold", "current", "cost", "details", "controls", "buy", "back"]
+        text_format = [
+            (),
+            (self.save["gold"]),
+            (self.player.powers[selected_power]["text"]),
+            (self.player.powers[selected_power]["cost"]),
+            (),
+            (),
+            (),
+            (),
+        ]
+        if selected_power in self.save["unlocked"]:
+            text_keys[3] = "unlocked"
+            text_format[3] = ()
+            text_keys[6] = "choose"
+        elif self.save["gold"] < self.player.powers[selected_power]["cost"]:
+            text_keys[6] = "expensive"
+        else:
+            if self.keys_down[pygame.K_u]:
+                self.save["gold"] -= self.player.powers[selected_power]["cost"]
+                self.save["unlocked"].append(selected_power)
+                write_json(self.options["save_file"], self.save)
+
         for i in range(len(text_keys)):
             draw_centered_text(
                 win,
@@ -1108,11 +1225,11 @@ class State:
                 self.options["powers"][text_keys[i]]["y"],
                 self.options["colors"]["text"],
             )
-        for i in range(len(self.player.powers[self.save["power"]]["details"])):
+        for i in range(len(self.player.powers[selected_power]["details"])):
             draw_centered_text(
                 win,
                 fonts[self.options["powers"]["ability_details"]["font"]],
-                self.player.powers[self.save["power"]]["details"][str(i)],
+                self.player.powers[selected_power]["details"][str(i)],
                 self.options["powers"]["ability_details"]["y"]
                 + i * self.options["powers"]["ability_details"]["spacing"],
                 self.options["colors"]["text"],
@@ -1154,10 +1271,7 @@ class State:
 
     def draw_welcome(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]) -> None:
         text_keys = list(self.options["welcome"].keys())
-        text_format = [(), (self.save["high_score"]), (self.score), (), (), (), ()]
-        if self.score == -1:
-            text_keys.remove("last_score")
-            text_format.remove((self.score))
+        text_format = [(), (self.save["high_score"]), (self.save["gold"]), (), (), (), ()]
         if self.save["high_score"] == -1:
             text_keys.remove("high_score")
             text_format.remove((self.save["high_score"]))
