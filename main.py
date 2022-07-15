@@ -785,8 +785,11 @@ class State:
             if self.keys_down[pygame.K_b]:
                 self.screen = "welcome"
         elif self.screen == "powers":
-            if self.keys_down[pygame.K_b] or self.keys_down[pygame.K_RETURN]:
+            if self.keys_down[pygame.K_b]:
                 self.screen = "welcome"
+            elif self.keys_down[pygame.K_RETURN] and self.powers[self.power_choice] in self.save["unlocked"]:
+                self.screen = "welcome"
+                self.save["power"] = self.powers[self.power_choice]
                 write_json(self.options["save_file"], self.save)
         elif self.screen == "game":
             if self.esc_tk.down(self.keys_down[pygame.K_ESCAPE]):
@@ -795,7 +798,7 @@ class State:
                 self.paused and self.keys_down[pygame.K_q]
             ):
                 if not self.updated_highscore:
-                    self.update_highscore()
+                    self.update_save()
                 self.screen = "welcome"
 
     def draw(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]):
@@ -814,7 +817,7 @@ class State:
 
         pygame.display.update()
 
-    def update_highscore(self):
+    def update_save(self):
         if self.score > self.save["high_score"]:
             self.save["high_score"] = self.score
         self.save["gold"] += self.score
@@ -827,7 +830,7 @@ class State:
                 self.update_game()
                 self.update_passive_highlight()
             if self.player.lives <= 0 and not self.updated_highscore:
-                self.update_highscore()
+                self.update_save()
         self.draw(win, fonts)
 
     def run(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]):
@@ -1192,25 +1195,24 @@ class State:
             self.power_choice += 1
 
         self.power_choice %= 5
-        self.save["power"] = self.powers[self.power_choice]
+        selected_power = self.powers[self.power_choice]
 
         text_keys = ["title", "gold", "current", "cost", "details", "controls", "buy", "back"]
         text_format = [
             (),
             (self.save["gold"]),
-            (self.player.powers[self.save["power"]]["text"]),
-            (self.player.powers[self.save["power"]]["cost"]),
+            (self.player.powers[selected_power]["text"]),
+            (self.player.powers[selected_power]["cost"]),
             (),
             (),
             (),
             (),
         ]
-        if self.save["power"] in self.save["unlocked"]:
+        if selected_power in self.save["unlocked"]:
             text_keys[3] = "unlocked"
             text_format[3] = ()
-            del text_keys[6]
-            del text_format[6]
-        elif self.save["gold"] < self.player.powers[self.save["power"]]["cost"]:
+            text_keys[6] = "choose"
+        elif self.save["gold"] < self.player.powers[selected_power]["cost"]:
             text_keys[6] = "expensive"
         for i in range(len(text_keys)):
             draw_centered_text(
@@ -1220,11 +1222,11 @@ class State:
                 self.options["powers"][text_keys[i]]["y"],
                 self.options["colors"]["text"],
             )
-        for i in range(len(self.player.powers[self.save["power"]]["details"])):
+        for i in range(len(self.player.powers[selected_power]["details"])):
             draw_centered_text(
                 win,
                 fonts[self.options["powers"]["ability_details"]["font"]],
-                self.player.powers[self.save["power"]]["details"][str(i)],
+                self.player.powers[selected_power]["details"][str(i)],
                 self.options["powers"]["ability_details"]["y"]
                 + i * self.options["powers"]["ability_details"]["spacing"],
                 self.options["colors"]["text"],

@@ -1,6 +1,6 @@
 {
-    "high_score": -1,
-    "power": "downthrust",
+    "high_score": 0,
+    "power": "shield",
     "gold": 300,
     "unlocked": [
         "shield",

@@ -39,7 +39,6 @@ C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
 ### Main
 
 - Coin "shop"
-    - Only update save.json when owned power is selected
     - Actual buying of powers
 - Rewrite intro
     - Fit powers into it

@@ -107,6 +107,11 @@
             "y": 650,
             "font": "h4"
         },
+        "choose": {
+            "text": "Press [Enter] to select this power",
+            "y": 650,
+            "font": "h4"
+        },
         "back": {
             "text": "Press [B] to go back",
             "y": 700,
