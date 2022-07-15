@@ -90,7 +90,7 @@
     },
     "intro": {
         "scroll_speed": 40,
-        "scroll_offset": 180,
+        "scroll_offset": 225,
         "stop": 2325,
         "scrolling_text": {
             "0": {
@@ -347,6 +347,7 @@
         "darken_alpha": 45,
         "scroll_divisor": 10,
         "scroll_speed": 30,
+        "score_per_Life": 15,
         "cd_box": {
             "text": "%.1f",
             "x": 335,
@@ -420,8 +421,11 @@
         "speed": 300,
         "jump_vel": 800,
         "gravity": 2400,
+        "respawn_delay": 2,
+        "respawn_time": 2,
         "alive_color": "#A3BE8C",
         "dead_color": "#BF616A",
+        "respawn_color": "#B48EAD",
         "powers": {
             "shield": {
                 "text": "Shield",

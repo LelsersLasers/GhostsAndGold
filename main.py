@@ -194,7 +194,7 @@ class Chest(Hitbox):
             except KeyError:
                 pass
 
-        if (state.player.alive and self.collide(state.player)) or not self.bot_tile in state.tiles:
+        if (state.player.can_interact() and self.collide(state.player)) or not self.bot_tile in state.tiles:
             state.chests.remove(self)  # TODO: remove in iteration?
             num_coins = random.choice(state.options["coin"]["pop"]["coin_chances"])
             for _ in range(num_coins):
@@ -289,8 +289,12 @@ class Player(Movable):
         self.power_cd: float = 0
         self.shield: float = 0
 
+        self.lives: int = 2
+        self.respawn: float = 0
+        self.status: str = "alive"
+
+
         self.space_tk: ToggleKey = ToggleKey(True)
-        self.alive: bool = True
 
     def key_input(self, keys_down: Sequence[bool], keys: dict[str, KeyList], power: str) -> None:
         self.move_vec.x = 0
@@ -327,7 +331,7 @@ class Player(Movable):
                                 self.shield = 0
                                 state.tiles.remove(tile)
                             else:
-                                self.alive = False
+                                self.trigger_respawn(state)
                         elif collision == "top":
                             self.pt.y = tile.pt.y - self.h
                             self.move_vec.y = 0
@@ -340,8 +344,21 @@ class Player(Movable):
                 except KeyError:
                     pass
 
+    def can_interact(self) -> bool:
+        return self.lives >= 1 and not (self.status == "dead" or self.status == "true_death")
+
+    def trigger_respawn(self, state: State) -> None:
+        if self.status == "alive":
+            self.lives -= 1
+            if self.lives >= 1 and self.status == "alive": # TODO
+                self.status = "dead"
+                self.respawn = -state.options["player"]["respawn_delay"]
+            elif self.lives <= 0:
+                self.status = "true_death"
+ 
     def update(self, state: State) -> None:
-        if self.alive:
+        print("LIVES:", self.lives)
+        if self.can_interact():
             self.key_input(state.keys_down, state.keys, state.save["power"])
             self.shield -= state.delta
             if state.active_power_type():
@@ -355,8 +372,18 @@ class Player(Movable):
 
             self.move(state.delta)
             self.check_tile_collision(state)
-        else:
-            self.color = state.options["player"]["dead_color"]
+        elif self.status == "true_death":
+            self.color = self.color = state.options["player"]["dead_color"]
+        elif self.status == "dead":
+            self.respawn += state.delta
+            self.color = state.options["player"]["respawn_color"]
+            if self.respawn >= 0:
+                self.status = "respawning"
+        if self.status == "respawning":
+            self.respawn += state.delta
+            if self.respawn >= state.options["player"]["respawn_time"]:
+                self.color = state.options["player"]["alive_color"]
+                self.status = "alive"
 
     def draw(self, win: pygame.surface.Surface) -> None:
         super().draw(win)
@@ -501,7 +528,7 @@ class HeavyTile(Tile):
                             if state.player.shield > 0:
                                 state.player.shield = 0
                             else:
-                                state.player.alive = False
+                                state.player.trigger_respawn(state)
 
                         state.effects.append(
                             CircleEffect(
@@ -578,9 +605,12 @@ class Coin(Movable):
                 except KeyError:
                     pass
 
-        if state.player.alive and self.move_vec.y >= 0 and self.collide(state.player):
+        if state.player.can_interact() >= 1 and self.move_vec.y >= 0 and self.collide(state.player):
             state.coins.remove(self)  # TODO: remove in iteration?
-            state.score += 1
+            state.score += 1 # TODO: make 1
+            if state.score // state.options["game"]["score_per_Life"] > state.lives_given:
+                state.lives_given += 1
+                state.player.lives += 1
 
 
 class State:
@@ -606,6 +636,7 @@ class State:
         self.delta: float = 1 / 500
         self.ticks: float = 1 / 500
         self.score: int = -1
+        self.lives_given: int = 0
         self.scrolling: float = 0
         self.full_rows: int = 3
         self.display_rows: int = 3
@@ -723,7 +754,7 @@ class State:
         elif self.screen == "game":
             if self.esc_tk.down(self.keys_down[pygame.K_ESCAPE]):
                 self.paused = not self.paused
-            elif (not self.player.alive and self.keys_down[pygame.K_r]) or (
+            elif (self.player.lives <= 0 and self.keys_down[pygame.K_r]) or (
                 self.paused and self.keys_down[pygame.K_q]
             ):
                 if not self.updated_highscore:
@@ -757,7 +788,7 @@ class State:
             if not self.paused:
                 self.update_game()
                 self.update_passive_highlight()
-            if not self.player.alive and not self.updated_highscore:
+            if self.player.lives <= 0 and not self.updated_highscore:
                 self.update_highscore()
         self.draw(win, fonts)
 
@@ -780,7 +811,7 @@ class State:
 
         if self.paused:
             self.draw_pause(win, fonts)
-        elif not self.player.alive:
+        elif self.player.lives <= 0:
             self.draw_death(win, fonts)
 
     def draw_entities(self, win: pygame.surface.Surface) -> None:

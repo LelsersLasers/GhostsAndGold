@@ -37,9 +37,12 @@ C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
 
 ### Main
 
-- Intro
-- Reward for going for coins?
-    - Every X coins, Y happens
+- Lives:
+    - Make sure it works
+    - Display lives at top
+    - Always respawn at top in safe location
+    - Blink while status == respawning
+- Tetris blocks?
 - Coin "shop"
 - PERFORMANCE
     - Run State.update() in background of State.draw()
