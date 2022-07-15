@@ -1,9 +1,9 @@
 {
-    "title": "Ghosts and Gold",
+    "title": "Ghosts & Gold",
     "save_file": "resources/save.json",
     "window": {
         "width": 720,
-        "height": 750
+        "height": 800
     },
     "colors": {
         "background": "#2E3440",
@@ -21,7 +21,7 @@
     },
     "welcome": {
         "title": {
-            "text": "Ghosts and Gold",
+            "text": "Ghosts & Gold",
             "y": 175,
             "font": "h1"
         },
@@ -86,6 +86,196 @@
             "text": "Press [B] to go back",
             "y": 700,
             "font": "h5"
+        }
+    },
+    "intro": {
+        "scroll_speed": 40,
+        "scroll_offset": 175,
+        "stop": 2325,
+        "scrolling_text": {
+            "0": {
+                "text": "You are dead.",
+                "y": 960,
+                "font": "h4"
+            },
+            "1": {
+                "text": "You died poor and alone.",
+                "y": 990,
+                "font": "h4"
+            },
+            "2": {
+                "text": "Without a proper burial,",
+                "y": 1020,
+                "font": "h4"
+            },
+            "3": {
+                "text": "you were denied entrance to the underworld",
+                "y": 1050,
+                "font": "h4"
+            },
+            "4": {
+                "text": "and forced to roam the Earth as a ghost",
+                "y": 1080,
+                "font": "h4"
+            },
+            "5": {
+                "text": "for eternity.",
+                "y": 1110,
+                "font": "h4"
+            },
+            "6": {
+                "text": "As time went on, you began to hunger for revenge.",
+                "y": 1210,
+                "font": "h4"
+            },
+            "7": {
+                "text": "Revenge against all who wronged you:",
+                "y": 1240,
+                "font": "h4"
+            },
+            "8": {
+                "text": "those who never helped you up,",
+                "y": 1270,
+                "font": "h4"
+            },
+            "9": {
+                "text": "those who only helped you down,",
+                "y": 1300,
+                "font": "h4"
+            },
+            "10": {
+                "text": "and those who taught you that nothing mattered but greed,",
+                "y": 1330,
+                "font": "h4"
+            },
+            "11": {
+                "text": "the ghosts of your past life.",
+                "y": 1360,
+                "font": "h4"
+            },
+            "12": {
+                "text": "You wanted retribution.",
+                "y": 1460,
+                "font": "h4"
+            },
+            "13": {
+                "text": "But as a ghost you are unable to touch the living,",
+                "y": 1490,
+                "font": "h4"
+            },
+            "14": {
+                "text": "so you turned your sights to the main thing",
+                "y": 1520,
+                "font": "h4"
+            },
+            "15": {
+                "text": "that had been denied from you: gold.",
+                "y": 1550,
+                "font": "h4"
+            },
+            "16": {
+                "text": "However, as a ghost, you can not be near",
+                "y": 1580,
+                "font": "h4"
+            },
+            "17": {
+                "text": "any gold that has been seen by the living.",
+                "y": 1610,
+                "font": "h4"
+            },
+            "18": {
+                "text": "You began to venture into old mining shafts.",
+                "y": 1710,
+                "font": "h4"
+            },
+            "19": {
+                "text": "Then, you found an abandoned gold mine.",
+                "y": 1740,
+                "font": "h4"
+            },
+            "20": {
+                "text": "You stopped your exploration",
+                "y": 1770,
+                "font": "h4"
+            },
+            "21": {
+                "text": "and vowed to never leave the mine",
+                "y": 1800,
+                "font": "h4"
+            },
+            "22": {
+                "text": "until you had taken all of its gold.",
+                "y": 1830,
+                "font": "h4"
+            },
+            "23": {
+                "text": "As you started clearing the mine, it grew unstable.",
+                "y": 1930,
+                "font": "h4"
+            },
+            "24": {
+                "text": "And the longer you were the mine,",
+                "y": 1960,
+                "font": "h4"
+            },
+            "25": {
+                "text": "the more unstable it became.",
+                "y": 1990,
+                "font": "h4"
+            },
+            "26": {
+                "text": "But this does not bother you.",
+                "y": 2090,
+                "font": "h4"
+            },
+            "27": {
+                "text": "As shafts collapse, they reveal hidden pockets gold.",
+                "y": 2120,
+                "font": "h4"
+            },
+            "28": {
+                "text": "However, the shafts also contain old mining explosives",
+                "y": 2150,
+                "font": "h4"
+            },
+            "29": {
+                "text": "which were never disarmed and",
+                "y": 2180,
+                "font": "h4"
+            },
+            "30": {
+                "text": "explode when they came in contact with the ground.",
+                "y": 2210,
+                "font": "h4"
+            },
+            "31": {
+                "text": "Undeterred, you continue to stay in the mine,",
+                "y": 2310,
+                "font": "h4"
+            },
+            "32": {
+                "text": "with the futile task of hunting",
+                "y": 2340,
+                "font": "h4"
+            },
+            "33": {
+                "text": "the endless gold.",
+                "y": 2370,
+                "font": "h4"
+            },
+            "34": {
+                "text": "Ghosts & Gold",
+                "y": 2500,
+                "font": "h1"
+            },
+            "35": {
+                "text": "A game by: LelsersLasers",
+                "y": 2590,
+                "font": "h3"
+            }
+        },
+        "still_text": {
+
         }
     },
     "instructions": {

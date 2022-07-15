@@ -40,6 +40,7 @@ C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
 - Intro
 - Reward for going for coins?
     - Every X coins, Y happens
+- Coin "shop"
 - PERFORMANCE
     - Run State.update() in background of State.draw()
     - Replace pygame.draw with blit?

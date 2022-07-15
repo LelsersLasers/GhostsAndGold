@@ -588,7 +588,7 @@ class State:
         self.options: dict[str, Any] = options
         self.save = save
         self.paused: bool = False
-        self.screen: str = "welcome"
+        self.screen: str = "intro"
         self.keys_down: Sequence[bool] = pygame.key.get_pressed()
         self.keys: dict[str, KeyList] = {
             "up": KeyList([pygame.K_SPACE, pygame.K_UP, pygame.K_w]),
@@ -698,7 +698,12 @@ class State:
             if event.type == pygame.QUIT:
                 self.exit()
 
-        if self.screen == "welcome":
+        if self.screen == "intro":
+            if self.keys_down[pygame.K_ESCAPE]:
+                self.exit()
+            elif self.keys_down[pygame.K_RETURN]:
+                self.screen = "welcome"
+        elif self.screen == "welcome":
             if self.keys["up"].down(self.keys_down):
                 self.reset()
                 self.screen = "game"
@@ -728,7 +733,9 @@ class State:
     def draw(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]):
         win.fill(self.options["colors"]["background"])
 
-        if self.screen == "welcome":
+        if self.screen == "intro":
+            self.draw_intro(win, fonts)
+        elif self.screen == "welcome":
             self.draw_welcome(win, fonts)
         elif self.screen == "instructions":
             self.draw_instructions(win, fonts)
@@ -1110,6 +1117,20 @@ class State:
                 + i * self.options["powers"]["ability_details"]["spacing"],
                 self.options["colors"]["text"],
             )
+
+    def draw_intro(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]) -> None:
+        y_move = -self.ticks * self.options["intro"]["scroll_speed"] - self.options["intro"]["scroll_offset"] 
+        for i in range(len(self.options["intro"]["scrolling_text"])):
+            draw_centered_text(
+                win,
+                fonts[self.options["intro"]["scrolling_text"][str(i)]["font"]],
+                self.options["intro"]["scrolling_text"][str(i)]["text"],
+                self.options["intro"]["scrolling_text"][str(i)]["y"] + y_move,
+                self.options["colors"]["text"],
+            )
+        if y_move <= -self.options["intro"]["stop"]:
+            self.screen = "welcome"
+        self.ticks += self.delta
 
     def draw_welcome(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]) -> None:
         text_keys = list(self.options["welcome"].keys())
