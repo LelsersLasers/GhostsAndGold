@@ -381,6 +381,8 @@ class Player(Movable):
             self.color = state.options["player"]["respawn_color"]
             if self.respawn >= 0:
                 self.status = "respawning"
+                self.destory_nearby(state)
+                self.color = state.options["player"]["alive_color"]
         if self.status == "respawning":
             self.respawn += state.delta
             if self.flicker.update(self.respawn):
@@ -388,6 +390,36 @@ class Player(Movable):
             if self.respawn >= state.options["player"]["respawn_time"]:
                 self.color = state.options["player"]["alive_color"]
                 self.status = "alive"
+
+    def destory_nearby(self, state):
+        map_tup = self.pt.get_map_tup(state.options["tile"]["w"])
+        map_xs = [map_tup[0] - 1, map_tup[0], map_tup[0] + 1]
+        map_ys = [map_tup[1] - 1, map_tup[1], map_tup[1] + 1]
+        for x in map_xs:
+            for y in map_ys:
+                map_str = str(x) + ";" + str(y)
+                try:
+                    for i in range(len(state.tile_map[map_str]) - 1, -1, -1):
+                        if type(state.tile_map[map_str][i]) != EdgeTile and circle_rect_collide(
+                            state.tile_map[map_str][i],
+                            self.get_center(),
+                            state.options["player"]["respawn_r"],
+                        ):
+                            state.tiles.remove(state.tile_map[map_str][i])
+                        pass
+                except KeyError:
+                    pass
+
+        state.effects.append(
+            CircleEffect(
+                self.get_center(),
+                state.options["player"]["respawn_r"],
+                state.options["player"]["respawn_color"],
+                Vector(0, 0),
+                0,
+                state.options["tile"]["heavy"]["draw_time"],
+            )
+        )
 
     def draw(self, win: pygame.surface.Surface) -> None:
         if not (self.status == "respawning" and not self.show):
@@ -498,7 +530,6 @@ class HeavyTile(Tile):
         self.move_vec.y *= tile_options["heavy"]["fall"]
 
     def check_explosion_tiles(self, state: State) -> None:
-        pass
         map_tup = self.pt.get_map_tup(state.options["tile"]["w"])
         map_xs = [map_tup[0] - 1, map_tup[0], map_tup[0] + 1]
         map_ys = [map_tup[1] - 1, map_tup[1], map_tup[1] + 1]

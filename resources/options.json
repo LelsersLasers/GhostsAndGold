@@ -435,9 +435,10 @@
         "gravity": 2400,
         "respawn_delay": 2,
         "respawn_time": 2,
+        "respawn_r": 120,
         "alive_color": "#A3BE8C",
         "dead_color": "#BF616A",
-        "respawn_color": "#B48EAD",
+        "respawn_color": "#D8DEE9",
         "powers": {
             "shield": {
                 "text": "Shield",
