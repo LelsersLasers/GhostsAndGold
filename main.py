@@ -1266,10 +1266,7 @@ class State:
 
     def draw_welcome(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]) -> None:
         text_keys = list(self.options["welcome"].keys())
-        text_format = [(), (self.save["high_score"]), (self.score), (), (), (), ()]
-        if self.score == -1:
-            text_keys.remove("last_score")
-            text_format.remove((self.score))
+        text_format = [(), (self.save["high_score"]), (self.save["gold"]), (), (), (), ()]
         if self.save["high_score"] == -1:
             text_keys.remove("high_score")
             text_format.remove((self.save["high_score"]))

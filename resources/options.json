@@ -30,8 +30,8 @@
             "y": 320,
             "font": "h3"
         },
-        "last_score": {
-            "text": "Last score: %i",
+        "gold": {
+            "text": "Gold in your stash: %i",
             "y": 365,
             "font": "h4"
         },
@@ -63,7 +63,7 @@
             "font": "h2"
         },
         "gold": {
-            "text": "Gold in you stash: %i",
+            "text": "Gold in your stash: %i",
             "y": 150,
             "font": "h4"
         },
