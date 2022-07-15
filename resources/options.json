@@ -78,7 +78,7 @@
             "font": "h4"
         },
         "unlocked": {
-            "text": "You have already learned this power",
+            "text": "You have learned this power",
             "y": 275,
             "font": "h4"
         },

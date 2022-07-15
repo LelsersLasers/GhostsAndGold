@@ -1,10 +1,6 @@
 {
-    "high_score": 0,
-    "power": "shield",
-    "gold": 300,
-    "unlocked": [
-        "shield",
-        "triple_jump",
-        "chest_spawn"
-    ]
+    "high_score": -1,
+    "power": "downthrust",
+    "gold": 0,
+    "unlocked": []
 }

@@ -1214,6 +1214,12 @@ class State:
             text_keys[6] = "choose"
         elif self.save["gold"] < self.player.powers[selected_power]["cost"]:
             text_keys[6] = "expensive"
+        else:
+            if self.keys_down[pygame.K_u]:
+                self.save["gold"] -= self.player.powers[selected_power]["cost"]
+                self.save["unlocked"].append(selected_power)
+                write_json(self.options["save_file"], self.save)
+
         for i in range(len(text_keys)):
             draw_centered_text(
                 win,

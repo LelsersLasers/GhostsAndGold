@@ -39,7 +39,7 @@ C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
 ### Main
 
 - Coin "shop"
-    - Actual buying of powers
+    - Check
 - Rewrite intro
     - Fit powers into it
     - Update instructions
