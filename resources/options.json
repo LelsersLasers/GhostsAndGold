@@ -372,16 +372,28 @@
             "y": 130,
             "font": "h5"
         },
+        "lives": {
+            "text": "Lives:",
+            "x": 70,
+            "y": 2,
+            "font": "h4"
+        },
+        "life_boxes": {
+            "w": 25,
+            "h": 25,
+            "spacing": 30,
+            "color": "#BF616A"
+        },
         "fps": {
             "text": "fps: %i",
-            "x": 63,
+            "x": 595,
             "y": 2,
             "refresh": 0.1,
             "font": "h5"
         },
         "tiles": {
             "text": "tiles: %i",
-            "x": 63,
+            "x": 595,
             "y": 22,
             "font": "h5"
         }

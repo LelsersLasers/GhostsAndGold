@@ -39,7 +39,6 @@ C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
 
 - Lives:
     - Make sure it works
-    - Display lives at top
     - Always respawn at top in safe location
 - Tetris blocks?
 - Coin "shop"

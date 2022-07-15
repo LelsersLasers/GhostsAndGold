@@ -194,7 +194,9 @@ class Chest(Hitbox):
             except KeyError:
                 pass
 
-        if (state.player.can_interact() and self.collide(state.player)) or not self.bot_tile in state.tiles:
+        if (
+            state.player.can_interact() and self.collide(state.player)
+        ) or not self.bot_tile in state.tiles:
             state.chests.remove(self)  # TODO: remove in iteration?
             num_coins = random.choice(state.options["coin"]["pop"]["coin_chances"])
             for _ in range(num_coins):
@@ -289,7 +291,7 @@ class Player(Movable):
         self.power_cd: float = 0
         self.shield: float = 0
 
-        self.lives: int = 2
+        self.lives: int = 1
         self.respawn: float = 0
         self.status: str = "alive"
         self.flicker: Interval = Interval(0.1, self.respawn)
@@ -351,14 +353,13 @@ class Player(Movable):
     def trigger_respawn(self, state: State) -> None:
         if self.status == "alive":
             self.lives -= 1
-            if self.lives >= 1 and self.status == "alive": # TODO
+            if self.lives >= 1 and self.status == "alive":  # TODO
                 self.status = "dead"
                 self.respawn = -state.options["player"]["respawn_delay"]
             elif self.lives <= 0:
                 self.status = "true_death"
- 
+
     def update(self, state: State) -> None:
-        print("LIVES:", self.lives)
         if self.can_interact():
             self.key_input(state.keys_down, state.keys, state.save["power"])
             self.shield -= state.delta
@@ -611,7 +612,7 @@ class Coin(Movable):
 
         if state.player.can_interact() >= 1 and self.move_vec.y >= 0 and self.collide(state.player):
             state.coins.remove(self)  # TODO: remove in iteration?
-            state.score += 1 # TODO: make 1
+            state.score += 1  # TODO: make 1
             if state.score // state.options["game"]["score_per_Life"] > state.lives_given:
                 state.lives_given += 1
                 state.player.lives += 1
@@ -1107,14 +1108,14 @@ class State:
         if self.fps_draw.update(self.ticks):
             self.display_fps = int(1 / self.delta)
 
-        surf_fps = fonts["h5"].render(
+        surf_fps = fonts[self.options["game"]["fps"]["font"]].render(
             self.options["game"]["fps"]["text"] % self.display_fps,
             True,
             self.options["colors"]["text"],
         )
         win.blit(surf_fps, ((self.options["game"]["fps"]["x"], self.options["game"]["fps"]["y"])))
 
-        surf_tiles = fonts["h5"].render(
+        surf_tiles = fonts[self.options["game"]["tiles"]["font"]].render(
             self.options["game"]["tiles"]["text"] % len(self.tiles),
             True,
             self.options["colors"]["text"],
@@ -1122,6 +1123,34 @@ class State:
         win.blit(
             surf_tiles, ((self.options["game"]["tiles"]["x"], self.options["game"]["tiles"]["y"]))
         )
+
+        surf_lives = fonts[self.options["game"]["lives"]["font"]].render(
+            self.options["game"]["lives"]["text"],
+            True,
+            self.options["colors"]["text"],
+        )
+        win.blit(
+            surf_lives, ((self.options["game"]["lives"]["x"], self.options["game"]["lives"]["y"]))
+        )
+        for i in range(self.player.lives):
+            pygame.draw.rect(
+                win,
+                self.options["game"]["life_boxes"]["color"],
+                (
+                    surf_lives.get_width()
+                    + self.options["game"]["lives"]["x"]
+                    + self.options["game"]["life_boxes"]["spacing"] * (i + 1)
+                    - self.options["game"]["life_boxes"]["w"],
+                    (
+                        surf_lives.get_height()
+                        - self.options["game"]["life_boxes"]["h"]
+                        + self.options["game"]["lives"]["y"]
+                    )
+                    / 2,
+                    self.options["game"]["life_boxes"]["w"],
+                    self.options["game"]["life_boxes"]["h"],
+                ),
+            )
 
     def draw_powers(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]) -> None:
         if self.left_tk.down(self.keys["left"].down(self.keys_down)):
