@@ -41,7 +41,6 @@ C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
     - Make sure it works
     - Display lives at top
     - Always respawn at top in safe location
-    - Blink while status == respawning
 - Tetris blocks?
 - Coin "shop"
 - PERFORMANCE

@@ -292,7 +292,8 @@ class Player(Movable):
         self.lives: int = 2
         self.respawn: float = 0
         self.status: str = "alive"
-
+        self.flicker: Interval = Interval(0.1, self.respawn)
+        self.show: bool = True
 
         self.space_tk: ToggleKey = ToggleKey(True)
 
@@ -381,14 +382,17 @@ class Player(Movable):
                 self.status = "respawning"
         if self.status == "respawning":
             self.respawn += state.delta
+            if self.flicker.update(self.respawn):
+                self.show = not self.show
             if self.respawn >= state.options["player"]["respawn_time"]:
                 self.color = state.options["player"]["alive_color"]
                 self.status = "alive"
 
     def draw(self, win: pygame.surface.Surface) -> None:
-        super().draw(win)
-        if self.shield > 0:
-            pygame.draw.rect(win, self.powers["shield"]["color"], self.get_rect(), 5)
+        if not (self.status == "respawning" and not self.show):
+            super().draw(win)
+            if self.shield > 0:
+                pygame.draw.rect(win, self.powers["shield"]["color"], self.get_rect(), 5)
 
 
 class Tile(Movable):
