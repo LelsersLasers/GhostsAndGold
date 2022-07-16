@@ -500,13 +500,6 @@
         "dead_color": "#BF616A",
         "respawn_color": "#D8DEE9",
         "powers": {
-            "none": {
-                "text": "No power",
-                "details": {
-                    "0": "No power selected"
-                },
-                "cost": 0
-            },
             "shield": {
                 "text": "Shield",
                 "details": {
