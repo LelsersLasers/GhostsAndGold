@@ -33,7 +33,6 @@ C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
 ### Bugs
 
 - Directional check sometimes misses??
-- Falling coins sometimes stop falling
 - Player explosion doesn't always break tiles?
 
 ### Main
