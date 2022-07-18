@@ -43,7 +43,6 @@ C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
     - More shapes?
     - Spawn rate depends on ticks?
     - When spawning a tetris blocks, pause normal spawn?
-    - Fix chests, put a chest on the top, not the main tile
 - PERFORMANCE
     - Run State.update() in background of State.draw()
     - Replace pygame.draw with blit?

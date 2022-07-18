@@ -945,14 +945,10 @@ class State:
                 lowest_idxs.append(i)
         main_idx = random.choice(lowest_idxs)
         main_x = self.options["tile"]["spawn_xs"][main_idx]
-        new_tile = Tile(
-            Vector(main_x, self.options["tile"]["spawn_y"]),
-            self.options["tile"],
-            self.options["tile"]["color"],
-        )
+        new_tile = None
         shape = random.choice(self.options["tile"]["tetris"]["shapes"])
         if shape == "I":
-            for i in range(1, self.options["tile"]["tetris"]["num"]):
+            for i in range(0, self.options["tile"]["tetris"]["num"] - 1):
                 self.tiles.append(
                     Tile(
                         Vector(
@@ -963,23 +959,43 @@ class State:
                         self.options["tile"]["color"],
                     )
                 )
-        elif shape == "T":
+            new_tile = Tile(
+                Vector(
+                    main_x,
+                    self.options["tile"]["spawn_y"] - 3 * self.options["tile"]["w"],
+                ),
+                self.options["tile"],
+                self.options["tile"]["color"],
+            )
+        else:  # shape == "T":
+            self.tiles.append(
+                Tile(
+                    Vector(main_x, self.options["tile"]["spawn_y"]),
+                    self.options["tile"],
+                    self.options["tile"]["color"],
+                )
+            )
             startX = main_x - self.options["tile"]["w"]
             if main_idx == 0:
                 startX += self.options["tile"]["w"]
             elif main_idx == len(self.options["tile"]["spawn_xs"]) - 1:
                 startX -= self.options["tile"]["w"]
+            new_tile_idx = random.randint(1, self.options["tile"]["tetris"]["num"] - 1)
             for i in range(1, self.options["tile"]["tetris"]["num"]):
-                self.tiles.append(
-                    Tile(
-                        Vector(
-                            startX + (i - 1) * self.options["tile"]["w"],
-                            self.options["tile"]["spawn_y"] - self.options["tile"]["w"],
-                        ),
-                        self.options["tile"],
-                        self.options["tile"]["color"],
-                    )
+                tile = Tile(
+                    Vector(
+                        startX + (i - 1) * self.options["tile"]["w"],
+                        self.options["tile"]["spawn_y"] - self.options["tile"]["w"],
+                    ),
+                    self.options["tile"],
+                    self.options["tile"]["color"],
                 )
+                if i == new_tile_idx:
+                    new_tile = tile
+                else:
+                    self.tiles.append(tile)
+        if not new_tile:
+            new_tile = Tile(Vector(-1, -1), self.options["tile"], self.options["tile"]["color"])
         return new_tile
 
     def update_game(self) -> None:
