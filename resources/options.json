@@ -565,19 +565,24 @@
         "columns": 12,
         "row_limit": 4,
         "row_min": 3,
-        "base_y": 660,
+        "base_y": 710,
         "spawn_scale_min": 1,
         "spawn_scale_max": 99,
         "color": "#81A1C1",
         "edge_color": "#88C0D0",
         "hbs_color": "#BF616A",
         "heavy": {
-            "r": 100,
+            "r": 80,
             "fall": 1.5,
             "chance": 0.075,
             "draw_time": 0.3,
             "color": "#8FBCBB",
             "explosion_color": "#BF616A"
+        },
+        "tetris": {
+            "chance": 0.075,
+            "shapes": ["I", "T"],
+            "num": 4
         }
     },
     "coin": {
@@ -590,7 +595,7 @@
         "color": "#EBCB8B",
         "pop": {
             "coin_chances": [1, 1, 2, 2, 2, 3],
-            "speed": 90,
+            "speed": 120,
             "vel": 900,
             "gravity": 2400,
             "friction": 180

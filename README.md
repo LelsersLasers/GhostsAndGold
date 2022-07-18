@@ -37,13 +37,14 @@ C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
 
 ### Main
 
-- Coin "shop"
-    - Check
-- Rewrite intro
-    - Fit powers into it
-    - Update instructions
-        - Maybe make instructions show on first boot?
-- Tetris blocks?
+- Update instructions
+    - Maybe make instructions show on first boot?
+- Tetris blocks
+    - More shapes?
+    - Spawn rate depends on ticks?
+    - When spawning a tetris blocks, pause normal spawn?
+    - Fix chests, put a chest on the top, not the main tile
+- Increase chest spawn from .15 to 0.3 with log
 - PERFORMANCE
     - Run State.update() in background of State.draw()
     - Replace pygame.draw with blit?

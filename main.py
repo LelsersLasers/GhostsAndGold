@@ -392,8 +392,8 @@ class Player(Movable):
 
     def destory_nearby(self, state):
         map_tup = self.pt.get_map_tup(state.options["tile"]["w"])
-        map_xs = [map_tup[0] - 1, map_tup[0], map_tup[0] + 1]
-        map_ys = [map_tup[1] - 1, map_tup[1], map_tup[1] + 1]
+        map_xs = [map_tup[0] - 2, map_tup[0] - 1, map_tup[0], map_tup[0] + 1, map_tup[0] + 2]
+        map_ys = [map_tup[1] - 2, map_tup[1] - 1, map_tup[1], map_tup[1] + 1, map_tup[1] + 2]
         for x in map_xs:
             for y in map_ys:
                 map_str = str(x) + ";" + str(y)
@@ -530,8 +530,8 @@ class HeavyTile(Tile):
 
     def check_explosion_tiles(self, state: State) -> None:
         map_tup = self.pt.get_map_tup(state.options["tile"]["w"])
-        map_xs = [map_tup[0] - 1, map_tup[0], map_tup[0] + 1]
-        map_ys = [map_tup[1] - 1, map_tup[1], map_tup[1] + 1]
+        map_xs = [map_tup[0] - 2, map_tup[0] - 1, map_tup[0], map_tup[0] + 1, map_tup[0] + 2]
+        map_ys = [map_tup[1] - 2, map_tup[1] - 1, map_tup[1], map_tup[1] + 1, map_tup[1] + 2]
         for x in map_xs:
             for y in map_ys:
                 map_str = str(x) + ";" + str(y)
@@ -866,7 +866,7 @@ class State:
             except KeyError:
                 self.tile_map[map_str] = [tile]
 
-    def calc_drop_chances(self) -> list[int]:
+    def find_top_tiles(self) -> list[float]:
         top_tiles: list[float] = []
         for _ in self.options["tile"]["spawn_xs"]:
             top_tiles.append(self.options["tile"]["base_y"] - self.options["tile"]["w"])
@@ -875,7 +875,9 @@ class State:
                 idx = self.options["tile"]["spawn_xs"].index(tile.pt.x)
                 if top_tiles[idx] > tile.pt.y:
                     top_tiles[idx] = tile.pt.y
+        return top_tiles
 
+    def calc_drop_chances(self, top_tiles: list[float]) -> list[int]:
         max_value: float = max(top_tiles)
         min_value: float = min(top_tiles)
 
@@ -933,6 +935,52 @@ class State:
                     below_tiles.append(tile)
 
         return count, tiles_to_remove, below_tiles
+
+    def drop_tetris_tiles(self) -> Tile:
+        top_tiles = self.find_top_tiles()
+        max_y = max(top_tiles)
+        lowest_idxs: list[int] = []
+        for i in range(len(top_tiles)):
+            if top_tiles[i] == max_y:
+                lowest_idxs.append(i)
+        main_idx = random.choice(lowest_idxs)
+        main_x = self.options["tile"]["spawn_xs"][main_idx]
+        new_tile = Tile(
+            Vector(main_x, self.options["tile"]["spawn_y"]),
+            self.options["tile"],
+            self.options["tile"]["color"],
+        )
+        shape = random.choice(self.options["tile"]["tetris"]["shapes"])
+        if shape == "I":
+            for i in range(1, self.options["tile"]["tetris"]["num"]):
+                self.tiles.append(
+                    Tile(
+                        Vector(
+                            main_x,
+                            self.options["tile"]["spawn_y"] - i * self.options["tile"]["w"],
+                        ),
+                        self.options["tile"],
+                        self.options["tile"]["color"],
+                    )
+                )
+        elif shape == "T":
+            startX = main_x - self.options["tile"]["w"]
+            if main_idx == 0:
+                startX += self.options["tile"]["w"]
+            elif main_idx == len(self.options["tile"]["spawn_xs"]) - 1:
+                startX -= self.options["tile"]["w"]
+            for i in range(1, self.options["tile"]["tetris"]["num"]):
+                self.tiles.append(
+                    Tile(
+                        Vector(
+                            startX + (i - 1) * self.options["tile"]["w"],
+                            self.options["tile"]["spawn_y"] - self.options["tile"]["w"],
+                        ),
+                        self.options["tile"],
+                        self.options["tile"]["color"],
+                    )
+                )
+        return new_tile
 
     def update_game(self) -> None:
         self.create_tile_map()
@@ -1011,8 +1059,7 @@ class State:
         if self.tile_spawn.update(self.ticks):
             # TODO: clean the types here - why is union[X, None] needed?
             new_tile: Union[Tile, None] = None
-            heavy_chance = random.random()
-            if heavy_chance < self.options["tile"]["heavy"]["chance"]:
+            if random.random() < self.options["tile"]["heavy"]["chance"]:
                 new_tile = HeavyTile(
                     Vector(
                         random.choice(self.options["tile"]["spawn_xs"]),
@@ -1020,8 +1067,11 @@ class State:
                     ),
                     self.options["tile"],
                 )
+            elif random.random() < self.options["tile"]["tetris"]["chance"]:
+                new_tile = self.drop_tetris_tiles()
             else:
-                drop_chances = self.calc_drop_chances()
+                top_tiles = self.find_top_tiles()
+                drop_chances = self.calc_drop_chances(top_tiles)
                 drop_chance_list: list[float] = []
                 for i in range(len(self.options["tile"]["spawn_xs"])):
                     drop_chance_list += [self.options["tile"]["spawn_xs"][i]] * drop_chances[i]
@@ -1031,8 +1081,7 @@ class State:
                     self.options["tile"]["color"],
                 )
             self.tiles.append(new_tile)
-            chest_chance = random.random()
-            if chest_chance < self.options["chest"]["spawn_chance"] * (
+            if random.random() < self.options["chest"]["spawn_chance"] * (
                 self.player.powers["chest_spawn"]["increase"]
                 if self.save["power"] == "chest_spawn"
                 else 1
