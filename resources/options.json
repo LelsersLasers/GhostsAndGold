@@ -604,7 +604,9 @@
     "chest": {
         "w": 50,
         "h": 40,
-        "spawn_chance": 0.15,
+        "chance_base": 0.15,
+        "chance_max": 0.3,
+        "chance_time": 300,
         "color": "#B48EAD"
     }
 }
