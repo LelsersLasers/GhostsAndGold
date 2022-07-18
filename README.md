@@ -34,6 +34,7 @@ C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
 
 - Directional check sometimes misses??
 - Player explosion doesn't always break tiles?
+- Tetris blocks break edge tile calcs
 
 ### Main
 
@@ -41,8 +42,6 @@ C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
     - Maybe make instructions show on first boot?
 - Tetris blocks
     - More shapes?
-    - Spawn rate depends on ticks?
-    - When spawning a tetris blocks, pause normal spawn?
 - PERFORMANCE
     - Run State.update() in background of State.draw()
     - Replace pygame.draw with blit?

@@ -254,7 +254,7 @@
                 "font": "h4"
             },
             "26": {
-                "text": "But this does not bother you.",
+                "text": "But this does not worry you.",
                 "y": 2090,
                 "font": "h4"
             },
@@ -279,28 +279,58 @@
                 "font": "h4"
             },
             "31": {
-                "text": "Undeterred, you continue to stay in the mine,",
+                "text": "As you collect more gold, you become more powerful",
                 "y": 2310,
                 "font": "h4"
             },
             "32": {
-                "text": "with the futile task of hunting",
+                "text": "and you learn certain powers",
                 "y": 2340,
                 "font": "h4"
             },
             "33": {
-                "text": "the endless gold.",
+                "text": "which aid you on your quest for gold.",
                 "y": 2370,
                 "font": "h4"
             },
             "34": {
-                "text": "Ghosts & Gold",
-                "y": 2500,
-                "font": "h1"
+                "text": "You have already learned how to cast a shield on yourself,",
+                "y": 2400,
+                "font": "h4"
             },
             "35": {
-                "text": "A game by: LelsersLasers",
+                "text": "which protects you from the falling rocks and mining equipment.",
+                "y": 2430,
+                "font": "h4"
+            },
+            "36": {
+                "text": "Forever undeterred,",
+                "y": 2530,
+                "font": "h4"
+            },
+            "37": {
+                "text": "you continue to stay in the mine",
+                "y": 2560,
+                "font": "h4"
+            },
+            "38": {
+                "text": "with the futile task of hunting",
                 "y": 2590,
+                "font": "h4"
+            },
+            "39": {
+                "text": "the endless gold.",
+                "y": 2620,
+                "font": "h4"
+            },
+            "40": {
+                "text": "Ghosts & Gold",
+                "y": 2750,
+                "font": "h1"
+            },
+            "41": {
+                "text": "A game by: LelsersLasers",
+                "y": 2840,
                 "font": "h3"
             }
         },
@@ -470,13 +500,6 @@
         "dead_color": "#BF616A",
         "respawn_color": "#D8DEE9",
         "powers": {
-            "none": {
-                "text": "No power",
-                "details": {
-                    "0": "No power selected"
-                },
-                "cost": 0
-            },
             "shield": {
                 "text": "Shield",
                 "details": {
@@ -536,25 +559,30 @@
         "fall_speed": 200,
         "spawn_interval_base": 1.5,
         "spawn_interval_min": 0.3,
-        "spawn_interval_time": 300,
+        "spawn_interval_time": 400,
         "spawn_y": -60,
         "spawn_xs": [60, 120, 180, 240, 300, 360, 420, 480, 540, 600],
         "columns": 12,
         "row_limit": 4,
         "row_min": 3,
-        "base_y": 660,
+        "base_y": 710,
         "spawn_scale_min": 1,
         "spawn_scale_max": 99,
         "color": "#81A1C1",
         "edge_color": "#88C0D0",
         "hbs_color": "#BF616A",
         "heavy": {
-            "r": 100,
+            "r": 80,
             "fall": 1.5,
             "chance": 0.075,
             "draw_time": 0.3,
             "color": "#8FBCBB",
             "explosion_color": "#BF616A"
+        },
+        "tetris": {
+            "chance": 0.075,
+            "shapes": ["I", "T"],
+            "num": 4
         }
     },
     "coin": {
@@ -567,7 +595,7 @@
         "color": "#EBCB8B",
         "pop": {
             "coin_chances": [1, 1, 2, 2, 2, 3],
-            "speed": 90,
+            "speed": 120,
             "vel": 900,
             "gravity": 2400,
             "friction": 180
@@ -576,7 +604,9 @@
     "chest": {
         "w": 50,
         "h": 40,
-        "spawn_chance": 0.15,
+        "chance_base": 0.15,
+        "chance_max": 0.3,
+        "chance_time": 300,
         "color": "#B48EAD"
     }
 }

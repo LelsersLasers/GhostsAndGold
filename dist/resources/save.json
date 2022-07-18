@@ -1,8 +1,8 @@
 {
     "high_score": -1,
-    "power": "none",
+    "power": "shield",
     "gold": 0,
     "unlocked": [
-        "none"
+        "shield"
     ]
 }
