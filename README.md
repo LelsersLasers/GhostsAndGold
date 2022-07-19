@@ -36,6 +36,7 @@ C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
 - Player explosion doesn't always break tiles?
 - Tetris blocks break edge tile calcs?
 - Tetris blocks lowest y?
+- Player doesn't always flash on rez
 
 ### Main
 
@@ -59,9 +60,9 @@ C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
 
 ### Cleaning
 
+- Remove all TODO's
 - Choose scaling
 - Removing during iteration
-- Downscroll
 - Make sure tup offsets for map_dict cover all cases
 - Returns, breaks, etc
 - Not need to convert/pass fake tuple (r, g, b)
@@ -81,3 +82,9 @@ C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
 
 - Play with Class.var (static variables)
 - Multi class inheritance
+    - Ex:
+~~~
+class Explosion(something?)
+class Player(something, Explosion)
+class HeavyTile(tile, Explosion)
+~~~

@@ -196,6 +196,10 @@ class Chest(Hitbox):
         if (
             state.player.can_interact() and self.collide(state.player)
         ) or not self.bot_tile in state.tiles:
+            self.pop(state)
+
+    def pop(self, state: State) -> None:
+        if self in state.chests:
             state.chests.remove(self)  # TODO: remove in iteration?
             num_coins = random.choice(state.options["coin"]["pop"]["coin_chances"])
             for _ in range(num_coins):
@@ -390,7 +394,7 @@ class Player(Movable):
                 self.color = state.options["player"]["alive_color"]
                 self.status = "alive"
 
-    def destory_nearby(self, state):
+    def destory_nearby(self, state: State):
         map_tup = self.pt.get_map_tup(state.options["tile"]["w"])
         map_xs = [map_tup[0] - 2, map_tup[0] - 1, map_tup[0], map_tup[0] + 1, map_tup[0] + 2]
         map_ys = [map_tup[1] - 2, map_tup[1] - 1, map_tup[1], map_tup[1] + 1, map_tup[1] + 2]
@@ -408,6 +412,10 @@ class Player(Movable):
                         pass
                 except KeyError:
                     pass
+
+        for chest in state.chests:
+            if circle_rect_collide(chest, self.get_center(), state.options["player"]["respawn_r"]):
+                chest.pop(state)
 
         state.effects.append(
             CircleEffect(
@@ -564,6 +572,12 @@ class HeavyTile(Tile):
                                 state.player.shield = 0
                             else:
                                 state.player.trigger_respawn(state)
+                        
+                        for chest in state.chests:
+                            if circle_rect_collide(
+                                chest, self.get_center(), state.options["player"]["respawn_r"]
+                            ):
+                                chest.pop(state)
 
                         state.effects.append(
                             CircleEffect(
@@ -951,15 +965,20 @@ class State:
         main_x = self.options["tile"]["spawn_xs"][main_idx]
 
         new_tile = None
-        shape = random.choice(list(self.options["tile"]["tetris"]["shapes"].keys()))
+        shape = random.choice(list(self.options["tile"]["tetris"]["shapes"].keys())).strip()
         chest_idx = random.choice(self.options["tile"]["tetris"]["shapes"][shape]["chest_tiles"])
 
         offset = 0
-        if shape == "T":
-            if main_idx == 0:
-                offset += 1
-            elif main_idx == len(self.options["tile"]["spawn_xs"]) - 1:
-                offset -= 1
+        if (
+            main_idx == 0
+            and "l" in self.options["tile"]["tetris"]["shapes"][shape]["offset_needed"]
+        ):
+            offset += 1
+        elif (
+            main_idx == len(self.options["tile"]["spawn_xs"]) - 1
+            and "r" in self.options["tile"]["tetris"]["shapes"][shape]["offset_needed"]
+        ):
+            offset -= 1
 
         for key, item in self.options["tile"]["tetris"]["shapes"][shape]["tile_info"].items():
             tile = Tile(
@@ -1015,7 +1034,7 @@ class State:
                 self.delta * self.options["game"]["scroll_speed"] * get_sign(self.scrolling)
             )
             self.scrolling -= scroll_dist
-            to_scroll: list[Moveable] = self.tiles + self.coins + self.effects  # type: ignore
+            to_scroll: list[Movable] = self.tiles + self.coins + self.effects  # type: ignore
             for ts in to_scroll:
                 ts.scroll(scroll_dist)
             self.player.pt.y += scroll_dist
