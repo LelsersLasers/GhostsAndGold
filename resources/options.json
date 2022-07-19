@@ -604,9 +604,9 @@
     "chest": {
         "w": 50,
         "h": 40,
-        "chance_base": 0.15,
-        "chance_max": 0.3,
-        "chance_time": 300,
+        "chance_base": 0.1,
+        "chance_max": 0.2,
+        "chance_time": 400,
         "color": "#B48EAD"
     }
 }

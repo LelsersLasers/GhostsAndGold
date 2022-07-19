@@ -1097,10 +1097,15 @@ class State:
                     self.options["tile"]["color"],
                 )
             self.tiles.append(new_tile)
-            chest_chance = (
-                (self.options["chest"]["chance_base"] + self.options["chest"]["chance_max"])
-                / self.options["chest"]["chance_time"]
-            ) * self.ticks + self.options["chest"]["chance_base"]
+            chest_chance = min(
+                (
+                    (self.options["chest"]["chance_base"] + self.options["chest"]["chance_max"])
+                    / self.options["chest"]["chance_time"]
+                )
+                * self.ticks
+                + self.options["chest"]["chance_base"],
+                self.options["chest"]["chance_max"],
+            )
             if self.save["power"] == "chest_spawn":
                 chest_chance *= self.player.powers["chest_spawn"]["increase"]
             if random.random() < chest_chance:
