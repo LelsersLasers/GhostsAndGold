@@ -383,6 +383,7 @@ class Player(Movable):
             self.respawn += state.delta
             self.color = state.options["player"]["respawn_color"]
             if self.respawn >= 0:
+                self.flicker.reset(self.respawn)
                 self.status = "respawning"
                 self.destory_nearby(state)
                 self.color = state.options["player"]["alive_color"]

@@ -36,7 +36,6 @@ C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
 - Player explosion doesn't always break tiles?
 - Tetris blocks break edge tile calcs?
 - Tetris blocks lowest y?
-- Player doesn't always flash on rez
 
 ### Main
 
