@@ -964,7 +964,7 @@ class State:
         for key, item in self.options["tile"]["tetris"]["shapes"][shape]["tile_info"].items():
             tile = Tile(
                 Vector(
-                    main_x + (item[0] + offset) * self.options["tile"]["w"],
+                    main_x + (item[0] + (offset * item[2])) * self.options["tile"]["w"],
                     self.options["tile"]["spawn_y"] + item[1] * self.options["tile"]["w"],
                 ),
                 self.options["tile"],
