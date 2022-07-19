@@ -1066,6 +1066,7 @@ class State:
                 )
             elif random.random() < self.options["tile"]["tetris"]["chance"]:
                 new_tile = self.drop_tetris_tiles()
+                self.tile_spawn.last += self.tile_spawn.period
             else:
                 top_tiles = self.find_top_tiles()
                 drop_chances = self.calc_drop_chances(top_tiles)

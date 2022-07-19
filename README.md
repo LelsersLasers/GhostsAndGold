@@ -43,7 +43,6 @@ C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
     - Maybe make instructions show on first boot?
 - Tetris blocks
     - More shapes?
-    - After tetris block, skip 1 tile spawn
 - PERFORMANCE
     - Run State.update() in background of State.draw()
     - Replace pygame.draw with blit?
