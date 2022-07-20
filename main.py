@@ -573,7 +573,7 @@ class HeavyTile(Tile):
                                 state.player.shield = 0
                             else:
                                 state.player.trigger_respawn(state)
-                        
+
                         for chest in state.chests:
                             if circle_rect_collide(
                                 chest, self.get_center(), state.options["player"]["respawn_r"]

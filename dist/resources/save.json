@@ -1,5 +1,6 @@
 {
     "high_score": -1,
+    "first_boot": true,
     "power": "shield",
     "gold": 0,
     "unlocked": [

@@ -196,6 +196,10 @@ class Chest(Hitbox):
         if (
             state.player.can_interact() and self.collide(state.player)
         ) or not self.bot_tile in state.tiles:
+            self.pop(state)
+
+    def pop(self, state: State) -> None:
+        if self in state.chests:
             state.chests.remove(self)  # TODO: remove in iteration?
             num_coins = random.choice(state.options["coin"]["pop"]["coin_chances"])
             for _ in range(num_coins):
@@ -379,6 +383,7 @@ class Player(Movable):
             self.respawn += state.delta
             self.color = state.options["player"]["respawn_color"]
             if self.respawn >= 0:
+                self.flicker.reset(self.respawn)
                 self.status = "respawning"
                 self.destory_nearby(state)
                 self.color = state.options["player"]["alive_color"]
@@ -390,7 +395,7 @@ class Player(Movable):
                 self.color = state.options["player"]["alive_color"]
                 self.status = "alive"
 
-    def destory_nearby(self, state):
+    def destory_nearby(self, state: State):
         map_tup = self.pt.get_map_tup(state.options["tile"]["w"])
         map_xs = [map_tup[0] - 2, map_tup[0] - 1, map_tup[0], map_tup[0] + 1, map_tup[0] + 2]
         map_ys = [map_tup[1] - 2, map_tup[1] - 1, map_tup[1], map_tup[1] + 1, map_tup[1] + 2]
@@ -408,6 +413,10 @@ class Player(Movable):
                         pass
                 except KeyError:
                     pass
+
+        for chest in state.chests:
+            if circle_rect_collide(chest, self.get_center(), state.options["player"]["respawn_r"]):
+                chest.pop(state)
 
         state.effects.append(
             CircleEffect(
@@ -564,6 +573,12 @@ class HeavyTile(Tile):
                                 state.player.shield = 0
                             else:
                                 state.player.trigger_respawn(state)
+
+                        for chest in state.chests:
+                            if circle_rect_collide(
+                                chest, self.get_center(), state.options["player"]["respawn_r"]
+                            ):
+                                chest.pop(state)
 
                         state.effects.append(
                             CircleEffect(
@@ -763,7 +778,7 @@ class State:
             if self.keys_down[pygame.K_ESCAPE]:
                 self.exit()
             elif self.keys_down[pygame.K_RETURN]:
-                self.screen = "welcome"
+                self.after_intro()
         elif self.screen == "welcome":
             if self.keys["up"].down(self.keys_down):
                 self.reset()
@@ -936,66 +951,52 @@ class State:
 
         return count, tiles_to_remove, below_tiles
 
-    def drop_tetris_tiles(self) -> Tile:
+    def pick_lowest_x_idx(self) -> int:
         top_tiles = self.find_top_tiles()
         max_y = max(top_tiles)
         lowest_idxs: list[int] = []
         for i in range(len(top_tiles)):
             if top_tiles[i] == max_y:
                 lowest_idxs.append(i)
-        main_idx = random.choice(lowest_idxs)
+        print(lowest_idxs, top_tiles)  # TODO
+        return random.choice(lowest_idxs)
+
+    def drop_tetris_tiles(self) -> Tile:
+        main_idx = self.pick_lowest_x_idx()
         main_x = self.options["tile"]["spawn_xs"][main_idx]
+
         new_tile = None
-        shape = random.choice(self.options["tile"]["tetris"]["shapes"])
-        if shape == "I":
-            for i in range(0, self.options["tile"]["tetris"]["num"] - 1):
-                self.tiles.append(
-                    Tile(
-                        Vector(
-                            main_x,
-                            self.options["tile"]["spawn_y"] - i * self.options["tile"]["w"],
-                        ),
-                        self.options["tile"],
-                        self.options["tile"]["color"],
-                    )
-                )
-            new_tile = Tile(
+        shape = random.choice(list(self.options["tile"]["tetris"]["shapes"].keys())).strip()
+        chest_idx = random.choice(self.options["tile"]["tetris"]["shapes"][shape]["chest_tiles"])
+
+        offset = 0
+        if (
+            main_idx == 0
+            and "l" in self.options["tile"]["tetris"]["shapes"][shape]["offset_needed"]
+        ):
+            offset += 1
+        elif (
+            main_idx == len(self.options["tile"]["spawn_xs"]) - 1
+            and "r" in self.options["tile"]["tetris"]["shapes"][shape]["offset_needed"]
+        ):
+            offset -= 1
+
+        for key, item in self.options["tile"]["tetris"]["shapes"][shape]["tile_info"].items():
+            tile = Tile(
                 Vector(
-                    main_x,
-                    self.options["tile"]["spawn_y"] - 3 * self.options["tile"]["w"],
+                    main_x + (item[0] + (offset * item[2])) * self.options["tile"]["w"],
+                    self.options["tile"]["spawn_y"] + item[1] * self.options["tile"]["w"],
                 ),
                 self.options["tile"],
                 self.options["tile"]["color"],
             )
-        else:  # shape == "T":
-            self.tiles.append(
-                Tile(
-                    Vector(main_x, self.options["tile"]["spawn_y"]),
-                    self.options["tile"],
-                    self.options["tile"]["color"],
-                )
-            )
-            startX = main_x - self.options["tile"]["w"]
-            if main_idx == 0:
-                startX += self.options["tile"]["w"]
-            elif main_idx == len(self.options["tile"]["spawn_xs"]) - 1:
-                startX -= self.options["tile"]["w"]
-            new_tile_idx = random.randint(1, self.options["tile"]["tetris"]["num"] - 1)
-            for i in range(1, self.options["tile"]["tetris"]["num"]):
-                tile = Tile(
-                    Vector(
-                        startX + (i - 1) * self.options["tile"]["w"],
-                        self.options["tile"]["spawn_y"] - self.options["tile"]["w"],
-                    ),
-                    self.options["tile"],
-                    self.options["tile"]["color"],
-                )
-                if i == new_tile_idx:
-                    new_tile = tile
-                else:
-                    self.tiles.append(tile)
+            if key == chest_idx:
+                new_tile = tile
+            else:
+                self.tiles.append(tile)
+
         if not new_tile:
-            new_tile = Tile(Vector(-1, -1), self.options["tile"], self.options["tile"]["color"])
+            new_tile = Tile(Vector(-1, -1), self.options["tile"], "#ffffff")
         return new_tile
 
     def update_game(self) -> None:
@@ -1034,7 +1035,7 @@ class State:
                 self.delta * self.options["game"]["scroll_speed"] * get_sign(self.scrolling)
             )
             self.scrolling -= scroll_dist
-            to_scroll: list[Moveable] = self.tiles + self.coins + self.effects  # type: ignore
+            to_scroll: list[Movable] = self.tiles + self.coins + self.effects  # type: ignore
             for ts in to_scroll:
                 ts.scroll(scroll_dist)
             self.player.pt.y += scroll_dist
@@ -1085,6 +1086,7 @@ class State:
                 )
             elif random.random() < self.options["tile"]["tetris"]["chance"]:
                 new_tile = self.drop_tetris_tiles()
+                self.tile_spawn.last += self.tile_spawn.period
             else:
                 top_tiles = self.find_top_tiles()
                 drop_chances = self.calc_drop_chances(top_tiles)
@@ -1097,10 +1099,15 @@ class State:
                     self.options["tile"]["color"],
                 )
             self.tiles.append(new_tile)
-            chest_chance = (
-                (self.options["chest"]["chance_base"] + self.options["chest"]["chance_max"])
-                / self.options["chest"]["chance_time"]
-            ) * self.ticks + self.options["chest"]["chance_base"]
+            chest_chance = min(
+                (
+                    (self.options["chest"]["chance_base"] + self.options["chest"]["chance_max"])
+                    / self.options["chest"]["chance_time"]
+                )
+                * self.ticks
+                + self.options["chest"]["chance_base"],
+                self.options["chest"]["chance_max"],
+            )
             if self.save["power"] == "chest_spawn":
                 chest_chance *= self.player.powers["chest_spawn"]["increase"]
             if random.random() < chest_chance:
@@ -1301,6 +1308,14 @@ class State:
                 self.options["colors"]["text"],
             )
 
+    def after_intro(self) -> None:
+        if self.save["first_boot"]:
+            self.save["first_boot"] = False
+            write_json(self.options["save_file"], self.save)
+            self.screen = "instructions"
+        else:
+            self.screen = "welcome"
+
     def draw_intro(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]) -> None:
         y_move = (
             -self.ticks * self.options["intro"]["scroll_speed"]
@@ -1332,7 +1347,7 @@ class State:
         )
 
         if y_move <= -self.options["intro"]["stop"]:
-            self.screen = "welcome"
+            self.after_intro()
         self.ticks += self.delta
 
     def draw_welcome(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]) -> None:

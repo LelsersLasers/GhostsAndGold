@@ -108,12 +108,12 @@
             "font": "h4"
         },
         "choose": {
-            "text": "Press [Enter] to select this power",
+            "text": "Press [ENTER] to select this power",
             "y": 650,
             "font": "h4"
         },
         "back": {
-            "text": "Press [B] to go back",
+            "text": "Press [B] to return to the main menu",
             "y": 700,
             "font": "h5"
         }
@@ -336,7 +336,7 @@
         },
         "still_text": {
             "skip": {
-                "text": "Press [Enter] to skip",
+                "text": "Press [ENTER] to skip",
                 "y": 750,
                 "font": "h5"
             },
@@ -358,17 +358,17 @@
             "font": "h4"
         },
         "gameplay2": {
-            "text": "of green rocks which explode when they land.",
+            "text": "of old mining equipment which explodes when it lands.",
             "y": 210,
             "font": "h4"
         },
         "gameplay3": {
-            "text": "Survive as long as you can and collect gold coins which can",
+            "text": "Survive for as long as you can and collect gold coins which can",
             "y": 240,
             "font": "h4"
         },
         "gameplay4": {
-            "text": "be found in purple chests or falling from the sky.",
+            "text": "be found in purple rocks or falling from the sky.",
             "y": 270,
             "font": "h4"
         },
@@ -383,7 +383,7 @@
             "font": "h4"
         },
         "controls2": {
-            "text": "jump:  Space, W or up arrow",
+            "text": "jump:  SPACE, W or up arrow",
             "y": 460,
             "font": "h4"
         },
@@ -398,7 +398,7 @@
             "font": "h4"
         },
         "back": {
-            "text": "Press [B] to go back",
+            "text": "Press [B] to return to the main menu",
             "y": 700,
             "font": "h5"
         }
@@ -581,8 +581,60 @@
         },
         "tetris": {
             "chance": 0.075,
-            "shapes": ["I", "T"],
-            "num": 4
+            "shapes": {
+                "I ": {},
+                "I": {
+                    "chest_tiles": ["3"],
+                    "offset_needed": [],
+                    "tile_info": {
+                        "0": [0, 0, 0],
+                        "1": [0, -1, 0],
+                        "2": [0, -2, 0],
+                        "3": [0, -3, 0]
+                    }
+                },
+                "T": {
+                    "chest_tiles": ["1", "2", "3"],
+                    "offset_needed": ["l", "r"],
+                    "tile_info": {
+                        "0": [0, 0, 0],
+                        "1": [-1, -1, 1],
+                        "2": [0, -1, 1],
+                        "3": [1, -1, 1]
+                    }
+                },
+                "+": {
+                    "chest_tiles": ["1", "3", "4"],
+                    "offset_needed": ["l", "r"],
+                    "tile_info": {
+                        "0": [0, 0, 0],
+                        "1": [-1, -1, 1],
+                        "2": [0, -1, 1],
+                        "3": [1, -1, 1],
+                        "4": [0, -2, 0]
+                    }
+                },
+                "bolt": {
+                    "chest_tiles": ["1", "3"],
+                    "offset_needed": ["l"],
+                    "tile_info": {
+                        "0": [0, 0, 0],
+                        "1": [0, -1, 0],
+                        "2": [-1, -2, 2],
+                        "3": [-1, -3, 2]
+                    }
+                },
+                "-bolt": {
+                    "chest_tiles": ["1", "3"],
+                    "offset_needed": ["r"],
+                    "tile_info": {
+                        "0": [0, 0, 0],
+                        "1": [0, -1, 0],
+                        "2": [1, -2, 2],
+                        "3": [1, -3, 2]
+                    }
+                }
+            }
         }
     },
     "coin": {
@@ -604,9 +656,9 @@
     "chest": {
         "w": 50,
         "h": 40,
-        "chance_base": 0.15,
-        "chance_max": 0.3,
-        "chance_time": 300,
+        "chance_base": 0.1,
+        "chance_max": 0.2,
+        "chance_time": 400,
         "color": "#B48EAD"
     }
 }
