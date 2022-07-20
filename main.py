@@ -778,7 +778,7 @@ class State:
             if self.keys_down[pygame.K_ESCAPE]:
                 self.exit()
             elif self.keys_down[pygame.K_RETURN]:
-                self.screen = "welcome"
+                self.after_intro()
         elif self.screen == "welcome":
             if self.keys["up"].down(self.keys_down):
                 self.reset()
@@ -1308,6 +1308,14 @@ class State:
                 self.options["colors"]["text"],
             )
 
+    def after_intro(self) -> None:
+        if self.save["first_boot"]:
+            self.save["first_boot"] = False
+            write_json(self.options["save_file"], self.save)
+            self.screen = "instructions"
+        else:
+            self.screen = "welcome"
+
     def draw_intro(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]) -> None:
         y_move = (
             -self.ticks * self.options["intro"]["scroll_speed"]
@@ -1339,7 +1347,7 @@ class State:
         )
 
         if y_move <= -self.options["intro"]["stop"]:
-            self.screen = "welcome"
+            self.after_intro()
         self.ticks += self.delta
 
     def draw_welcome(self, win: pygame.surface.Surface, fonts: dict[str, pygame.font.Font]) -> None:

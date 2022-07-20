@@ -108,12 +108,12 @@
             "font": "h4"
         },
         "choose": {
-            "text": "Press [Enter] to select this power",
+            "text": "Press [ENTER] to select this power",
             "y": 650,
             "font": "h4"
         },
         "back": {
-            "text": "Press [B] to go back",
+            "text": "Press [B] to return to the main menu",
             "y": 700,
             "font": "h5"
         }
@@ -336,7 +336,7 @@
         },
         "still_text": {
             "skip": {
-                "text": "Press [Enter] to skip",
+                "text": "Press [ENTER] to skip",
                 "y": 750,
                 "font": "h5"
             },
@@ -358,17 +358,17 @@
             "font": "h4"
         },
         "gameplay2": {
-            "text": "of green rocks which explode when they land.",
+            "text": "of old mining equipment which explodes when it lands.",
             "y": 210,
             "font": "h4"
         },
         "gameplay3": {
-            "text": "Survive as long as you can and collect gold coins which can",
+            "text": "Survive for as long as you can and collect gold coins which can",
             "y": 240,
             "font": "h4"
         },
         "gameplay4": {
-            "text": "be found in purple chests or falling from the sky.",
+            "text": "be found in purple rocks or falling from the sky.",
             "y": 270,
             "font": "h4"
         },
@@ -383,7 +383,7 @@
             "font": "h4"
         },
         "controls2": {
-            "text": "jump:  Space, W or up arrow",
+            "text": "jump:  SPACE, W or up arrow",
             "y": 460,
             "font": "h4"
         },
@@ -398,7 +398,7 @@
             "font": "h4"
         },
         "back": {
-            "text": "Press [B] to go back",
+            "text": "Press [B] to return to the main menu",
             "y": 700,
             "font": "h5"
         }

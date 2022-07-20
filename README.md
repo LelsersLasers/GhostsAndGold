@@ -39,8 +39,6 @@ C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
 
 ### Main
 
-- Update instructions
-    - Maybe make instructions show on first boot?
 - Tetris blocks
     - More shapes?
 - PERFORMANCE
