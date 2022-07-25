@@ -34,7 +34,6 @@ C:\Python39\Scripts\pyinstaller.exe --onefile --noconsole main.py
 
 - Directional check sometimes misses??
 - Player explosion doesn't always break tiles?
-- Tetris blocks break edge tile calcs?
 - Tetris blocks lowest y?
 
 ### Main

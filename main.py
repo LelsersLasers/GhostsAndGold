@@ -1008,20 +1008,18 @@ class State:
 
         count, tiles_to_remove, below_tiles = self.count_full_rows()
         if count != self.full_rows:
-            if count > self.full_rows:
+            for i in range(count - self.full_rows):
+                y = self.options["tile"]["top_y"] - self.scrolling +  i * self.options["tile"]["w"]
                 self.tiles.append(
                     EdgeTile(
-                        Vector(0, self.options["tile"]["top_y"] - self.scrolling),
+                        Vector(0, y),
                         self.options["tile"],
                         self.options["tile"]["edge_color"],
                     )
                 )
                 self.tiles.append(
                     EdgeTile(
-                        Vector(
-                            self.options["window"]["width"] - self.options["tile"]["w"],
-                            self.options["tile"]["top_y"] - self.scrolling,
-                        ),
+                        Vector(self.options["window"]["width"] - self.options["tile"]["w"], y),
                         self.options["tile"],
                         self.options["tile"]["edge_color"],
                     )
