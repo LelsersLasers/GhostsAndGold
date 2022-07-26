@@ -451,27 +451,44 @@ class Tile(Movable):
             Vector(0, tile_options["fall_speed"]),
             0,
         )
-        self.hbs_size: float = tile_options["hbs_size"]
-        self.hbs_len: float = self.w - 2 * tile_options["hbs_size"]
+        self.hbs_size: dict[str, float] = tile_options["hbs_size"]
         self.side_hbs: dict[str, Hitbox] = {
-            "top": Hitbox(Vector(-1, -1), self.hbs_len, self.hbs_size, tile_options["hbs_color"]),
-            "bottom": Hitbox(
-                Vector(-1, -1), self.hbs_len, self.hbs_size, tile_options["hbs_color"]
+            "top": Hitbox(
+                Vector(-1, -1),
+                self.w - 2 * self.hbs_size["w"],
+                self.hbs_size["h"],
+                tile_options["hbs_color"],
             ),
-            "left": Hitbox(Vector(-1, -1), self.hbs_size, self.hbs_len, tile_options["hbs_color"]),
-            "right": Hitbox(Vector(-1, -1), self.hbs_size, self.hbs_len, tile_options["hbs_color"]),
+            "bottom": Hitbox(
+                Vector(-1, -1),
+                self.w - 2 * self.hbs_size["w"],
+                self.hbs_size["h"],
+                tile_options["hbs_color"],
+            ),
+            "left": Hitbox(
+                Vector(-1, -1),
+                self.hbs_size["w"],
+                self.w - 2 * self.hbs_size["h"],
+                tile_options["hbs_color"],
+            ),
+            "right": Hitbox(
+                Vector(-1, -1),
+                self.hbs_size["w"],
+                self.w - 2 * self.hbs_size["h"],
+                tile_options["hbs_color"],
+            ),
         }
         self.update_side_hbs()
 
     def update_side_hbs(self) -> None:
         # TODO: is it slow to always recreate the Vectors?
-        self.side_hbs["top"].pt = Vector(self.pt.x + self.hbs_size, self.pt.y)
+        self.side_hbs["top"].pt = Vector(self.pt.x + self.hbs_size["w"], self.pt.y)
         self.side_hbs["bottom"].pt = Vector(
-            self.pt.x + self.hbs_size, self.pt.y + self.h - self.hbs_size
+            self.pt.x + self.hbs_size["w"], self.pt.y + self.h - self.hbs_size["h"]
         )
-        self.side_hbs["left"].pt = Vector(self.pt.x, self.pt.y + self.hbs_size)
+        self.side_hbs["left"].pt = Vector(self.pt.x, self.pt.y + self.hbs_size["h"])
         self.side_hbs["right"].pt = Vector(
-            self.pt.x + self.w - self.hbs_size, self.pt.y + self.hbs_size
+            self.pt.x + self.w - self.hbs_size["w"], self.pt.y + self.hbs_size["h"]
         )
 
     def update(self, state: State) -> None:
@@ -519,11 +536,6 @@ class Tile(Movable):
                 return "right"
             return "center"
         return "none"
-
-    def draw(self, win: pygame.surface.Surface) -> None:
-        super().draw(win)
-        for value in self.side_hbs.values():
-            value.draw(win)
 
 
 class EdgeTile(Tile):
@@ -1008,20 +1020,18 @@ class State:
 
         count, tiles_to_remove, below_tiles = self.count_full_rows()
         if count != self.full_rows:
-            if count > self.full_rows:
+            for i in range(count - self.full_rows):
+                y = self.options["tile"]["top_y"] - self.scrolling + i * self.options["tile"]["w"]
                 self.tiles.append(
                     EdgeTile(
-                        Vector(0, self.options["tile"]["top_y"] - self.scrolling),
+                        Vector(0, y),
                         self.options["tile"],
                         self.options["tile"]["edge_color"],
                     )
                 )
                 self.tiles.append(
                     EdgeTile(
-                        Vector(
-                            self.options["window"]["width"] - self.options["tile"]["w"],
-                            self.options["tile"]["top_y"] - self.scrolling,
-                        ),
+                        Vector(self.options["window"]["width"] - self.options["tile"]["w"], y),
                         self.options["tile"],
                         self.options["tile"]["edge_color"],
                     )

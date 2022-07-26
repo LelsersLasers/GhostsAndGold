@@ -555,7 +555,10 @@
     },
     "tile": {
         "w": 60,
-        "hbs_size": 5,
+        "hbs_size": {
+            "w": 10,
+            "h": 5
+        },
         "fall_speed": 200,
         "spawn_interval_base": 1.5,
         "spawn_interval_min": 0.3,
@@ -569,7 +572,7 @@
         "spawn_scale_min": 1,
         "spawn_scale_max": 99,
         "color": "#81A1C1",
-        "edge_color": "#88C0D0",
+        "edge_color": "#4C566A",
         "hbs_color": "#BF616A",
         "heavy": {
             "r": 80,
